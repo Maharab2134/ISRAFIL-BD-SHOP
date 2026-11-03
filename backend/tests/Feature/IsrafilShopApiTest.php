@@ -50,6 +50,22 @@ class IsrafilShopApiTest extends TestCase
     {
         $user = User::where('email', 'cashier@israfilbd.com')->first();
 
+        $unit = \App\Models\Unit::first() ?? \App\Models\Unit::create(['name' => 'Piece', 'name_bn' => 'পিস', 'code' => 'pcs']);
+        $cat = \App\Models\Category::first() ?? \App\Models\Category::create(['name' => 'General', 'name_bn' => 'সাধারণ', 'slug' => 'general']);
+        Product::firstOrCreate(
+            ['barcode' => '894110001001'],
+            [
+                'name' => 'Test Product',
+                'sku' => 'TEST-001',
+                'category_id' => $cat->id,
+                'unit_id' => $unit->id,
+                'purchase_price' => 100,
+                'selling_price' => 150,
+                'current_stock' => 50,
+                'alert_stock' => 5,
+            ]
+        );
+
         $response = $this->actingAs($user, 'sanctum')
             ->getJson('/api/products/barcode/894110001001');
 
@@ -61,7 +77,22 @@ class IsrafilShopApiTest extends TestCase
     public function test_pos_checkout_flow()
     {
         $user = User::where('email', 'cashier@israfilbd.com')->first();
-        $product = Product::where('barcode', '894110001001')->first();
+
+        $unit = \App\Models\Unit::first() ?? \App\Models\Unit::create(['name' => 'Piece', 'name_bn' => 'পিস', 'code' => 'pcs']);
+        $cat = \App\Models\Category::first() ?? \App\Models\Category::create(['name' => 'General', 'name_bn' => 'সাধারণ', 'slug' => 'general']);
+        $product = Product::firstOrCreate(
+            ['barcode' => '894110001001'],
+            [
+                'name' => 'Test Product',
+                'sku' => 'TEST-001',
+                'category_id' => $cat->id,
+                'unit_id' => $unit->id,
+                'purchase_price' => 100,
+                'selling_price' => 150,
+                'current_stock' => 50,
+                'alert_stock' => 5,
+            ]
+        );
         $stockBefore = (float) $product->current_stock;
 
         $payload = [
