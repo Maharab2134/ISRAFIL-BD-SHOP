@@ -7,18 +7,16 @@ import {
   ArrowLeft,
   Edit,
   Barcode,
-  Boxes,
   TrendingUp,
-  History,
-  Calendar,
-  Layers,
   Tag,
+  Layers,
+  History,
 } from 'lucide-react';
 import api from '../../services/api';
 
 export const ProductDetails = () => {
   const { id } = useParams();
-  const { formatCurrency, formatNumber } = useLanguage();
+  const { t, lang, formatCurrency, formatNumber } = useLanguage();
   const { error } = useToast();
 
   const [product, setProduct] = useState(null);
@@ -30,20 +28,29 @@ export const ProductDetails = () => {
         const res = await api.get(`/products/${id}`);
         setProduct(res.data);
       } catch (e) {
-        error('পণ্যের বিস্তারিত লোড করতে ব্যর্থ হয়েছে।');
+        error(lang === 'bn' ? 'পণ্যের তথ্য লোড করতে সমস্যা হয়েছে।' : 'Failed to load product details.');
       } finally {
         setLoading(false);
       }
     };
     fetchProduct();
-  }, [id]);
+  }, [id, lang]);
 
   if (loading) {
-    return <div className="p-12 text-center text-slate-400">লোড হচ্ছে...</div>;
+    return (
+      <div className="p-12 text-center text-slate-400">
+        <div className="w-8 h-8 border-3 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+        <p className="text-sm">{t('loading')}</p>
+      </div>
+    );
   }
 
   if (!product) {
-    return <div className="p-12 text-center text-rose-500">পণ্যটি খুঁজে পাওয়া যায়নি।</div>;
+    return (
+      <div className="p-12 text-center text-rose-500 font-semibold">
+        {lang === 'bn' ? 'পণ্যটি খুঁজে পাওয়া যায়নি।' : 'Product not found.'}
+      </div>
+    );
   }
 
   return (
@@ -53,7 +60,7 @@ export const ProductDetails = () => {
         <div className="flex items-center gap-3">
           <Link
             to="/products"
-            className="p-2 rounded-xl bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 text-slate-600 hover:text-slate-900 transition"
+            className="p-2 rounded-xl bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition"
           >
             <ArrowLeft className="w-5 h-5" />
           </Link>
@@ -62,7 +69,7 @@ export const ProductDetails = () => {
               {product.name}
             </h1>
             <p className="text-xs text-slate-500">
-              {product.name_bn || 'বারকোড: ' + product.barcode} • SKU: {product.sku}
+              {product.name_bn || (lang === 'bn' ? 'বারকোড: ' : 'Barcode: ') + product.barcode} • SKU: {product.sku}
             </p>
           </div>
         </div>
@@ -72,7 +79,7 @@ export const ProductDetails = () => {
           className="py-2 px-4 rounded-xl font-bold text-xs bg-amber-500 hover:bg-amber-600 text-white shadow-md flex items-center gap-1.5 transition"
         >
           <Edit className="w-3.5 h-3.5" />
-          <span>সম্পাদন করুন</span>
+          <span>{t('edit')}</span>
         </Link>
       </div>
 
@@ -89,7 +96,9 @@ export const ProductDetails = () => {
           </div>
 
           <div className="space-y-1 w-full">
-            <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">বারকোড কোড</div>
+            <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+              {lang === 'bn' ? 'বারকোড' : 'Barcode'}
+            </div>
             <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 font-mono text-sm font-bold text-indigo-600 dark:text-indigo-400 tracking-widest">
               {product.barcode}
             </div>
@@ -100,51 +109,65 @@ export const ProductDetails = () => {
         <div className="md:col-span-2 p-6 rounded-3xl bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 shadow-card space-y-6">
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
             <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800">
-              <span className="text-[11px] text-slate-400 block">বর্তমান স্টক</span>
+              <span className="text-[11px] text-slate-400 block">
+                {lang === 'bn' ? 'বর্তমান স্টক' : 'Current Stock'}
+              </span>
               <span className="text-xl font-black text-indigo-600 dark:text-indigo-400">
-                {product.current_stock} {product.unit?.name_bn}
+                {product.current_stock} {lang === 'bn' ? (product.unit?.name_bn || 'পিস') : (product.unit?.name || 'pcs')}
               </span>
             </div>
 
             <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800">
-              <span className="text-[11px] text-slate-400 block">ক্রয় মূল্য (কেনা দর)</span>
+              <span className="text-[11px] text-slate-400 block">
+                {lang === 'bn' ? 'ক্রয় মূল্য' : 'Cost Price'}
+              </span>
               <span className="text-lg font-bold text-slate-800 dark:text-slate-200">
                 {formatCurrency(product.purchase_price)}
               </span>
             </div>
 
             <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800">
-              <span className="text-[11px] text-slate-400 block">বিক্রয় মূল্য</span>
+              <span className="text-[11px] text-slate-400 block">
+                {lang === 'bn' ? 'বিক্রয় মূল্য' : 'Selling Price'}
+              </span>
               <span className="text-lg font-bold text-emerald-600">
                 {formatCurrency(product.selling_price)}
               </span>
             </div>
 
             <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800">
-              <span className="text-[11px] text-slate-400 block">প্রত্যাশিত মুনাফা/পিস</span>
+              <span className="text-[11px] text-slate-400 block">
+                {lang === 'bn' ? 'প্রত্যাশিত মুনাফা/পিস' : 'Unit Profit Margin'}
+              </span>
               <span className="text-sm font-bold text-emerald-600">
                 {formatCurrency(product.selling_price - product.purchase_price)}
               </span>
             </div>
 
             <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800">
-              <span className="text-[11px] text-slate-400 block">ক্যাটাগরি</span>
+              <span className="text-[11px] text-slate-400 block">
+                {lang === 'bn' ? 'ক্যাটাগরি' : 'Category'}
+              </span>
               <span className="text-sm font-semibold text-slate-800 dark:text-slate-200">
-                {product.category?.name_bn || product.category?.name}
+                {lang === 'bn' ? (product.category?.name_bn || product.category?.name) : product.category?.name}
               </span>
             </div>
 
             <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800">
-              <span className="text-[11px] text-slate-400 block">ব্র্যান্ড</span>
+              <span className="text-[11px] text-slate-400 block">
+                {lang === 'bn' ? 'ব্র্যান্ড' : 'Brand'}
+              </span>
               <span className="text-sm font-semibold text-slate-800 dark:text-slate-200">
-                {product.brand?.name_bn || product.brand?.name || '—'}
+                {lang === 'bn' ? (product.brand?.name_bn || product.brand?.name || '—') : (product.brand?.name || '—')}
               </span>
             </div>
           </div>
 
           {product.description && (
             <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
-              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">বিবরণ</h3>
+              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
+                {lang === 'bn' ? 'বিবরণ' : 'Description'}
+              </h3>
               <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
                 {product.description}
               </p>
@@ -158,7 +181,7 @@ export const ProductDetails = () => {
         <div className="flex items-center gap-2">
           <History className="w-5 h-5 text-indigo-600" />
           <h2 className="text-base font-bold text-slate-900 dark:text-white">
-            স্টক চলাচলের ইতিহাস (Stock Ledger)
+            {lang === 'bn' ? 'স্টক চলাচলের ইতিহাস (Stock Ledger)' : 'Stock Movement Ledger'}
           </h2>
         </div>
 
@@ -166,19 +189,19 @@ export const ProductDetails = () => {
           <table className="w-full text-left text-xs border-collapse">
             <thead>
               <tr className="bg-slate-50 dark:bg-slate-800 text-slate-500 font-bold uppercase border-b border-slate-200 dark:border-slate-700">
-                <th className="p-3">তারিখ</th>
-                <th className="p-3">লেনদেনের ধরন</th>
-                <th className="p-3 text-right">আগের স্টক</th>
-                <th className="p-3 text-center">পরিমাণ</th>
-                <th className="p-3 text-right">পরবর্তী স্টক</th>
-                <th className="p-3">কারণ / রেফারেন্স</th>
+                <th className="p-3">{t('date')}</th>
+                <th className="p-3">{lang === 'bn' ? 'লেনদেনের ধরন' : 'Type'}</th>
+                <th className="p-3 text-right">{lang === 'bn' ? 'আগের স্টক' : 'Stock Before'}</th>
+                <th className="p-3 text-center">{lang === 'bn' ? 'পরিমাণ' : 'Quantity'}</th>
+                <th className="p-3 text-right">{lang === 'bn' ? 'পরবর্তী স্টক' : 'Stock After'}</th>
+                <th className="p-3">{lang === 'bn' ? 'কারণ / রেফারেন্স' : 'Reason / Reference'}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {product.stock_movements?.length === 0 ? (
                 <tr>
                   <td colSpan="6" className="p-6 text-center text-slate-400">
-                    এখনও কোনো স্টক রেকর্ড পাওয়া যায়নি।
+                    {lang === 'bn' ? 'এখনও কোনো স্টক রেকর্ড পাওয়া যায়নি।' : 'No stock records found yet.'}
                   </td>
                 </tr>
               ) : (
@@ -187,7 +210,7 @@ export const ProductDetails = () => {
                   return (
                     <tr key={m.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
                       <td className="p-3 text-slate-500 font-mono">
-                        {new Date(m.created_at).toLocaleString('bn-BD')}
+                        {new Date(m.created_at).toLocaleString(lang === 'bn' ? 'bn-BD' : 'en-US')}
                       </td>
                       <td className="p-3 font-semibold capitalize text-slate-700 dark:text-slate-300">
                         {m.movement_type}
@@ -219,4 +242,4 @@ export const ProductDetails = () => {
     </div>
   );
 };
-
+export default ProductDetails;

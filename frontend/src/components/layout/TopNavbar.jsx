@@ -215,7 +215,7 @@ export const TopNavbar = ({ isCollapsed }) => {
               <div className="max-h-60 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-700/50">
                 {notifications.length === 0 ? (
                   <div className="p-4 text-xs text-center text-slate-400">
-                    কোনো নতুন নোটিফিকেশন নেই
+                    {lang === 'bn' ? 'কোনো নতুন নোটিফিকেশন নেই' : 'No new notifications'}
                   </div>
                 ) : (
                   notifications.map((item) => (
@@ -231,7 +231,9 @@ export const TopNavbar = ({ isCollapsed }) => {
                           {item.name}
                         </div>
                         <div className="text-[11px] text-rose-500 font-medium">
-                          বর্তমান স্টক: {item.current_stock} (সতর্কতা: {item.alert_stock})
+                          {lang === 'bn'
+                            ? `বর্তমান স্টক: ${item.current_stock} (সতর্কতা: ${item.alert_stock})`
+                            : `Current Stock: ${item.current_stock} (Alert: ${item.alert_stock})`}
                         </div>
                       </div>
                     </Link>
