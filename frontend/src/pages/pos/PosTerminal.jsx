@@ -24,7 +24,10 @@ import {
   Coins,
   Receipt,
   Layers,
+  ChevronLeft,
   ChevronRight,
+  RefreshCw,
+  Package,
 } from 'lucide-react';
 import api from '../../services/api';
 
@@ -55,6 +58,7 @@ export const PosTerminal = () => {
   const [receiptFormat, setReceiptFormat] = useState('80mm'); // '80mm', '58mm', 'a4'
 
   const barcodeInputRef = useRef(null);
+  const categoryScrollRef = useRef(null);
 
   useEffect(() => {
     fetchInitialData();
@@ -71,6 +75,15 @@ export const PosTerminal = () => {
     } finally {
       setLoading(false);
       setTimeout(() => barcodeInputRef.current?.focus(), 250);
+    }
+  };
+
+  const scrollCategories = (direction) => {
+    if (categoryScrollRef.current) {
+      categoryScrollRef.current.scrollBy({
+        left: direction === 'left' ? -260 : 260,
+        behavior: 'smooth',
+      });
     }
   };
 
@@ -254,7 +267,7 @@ export const PosTerminal = () => {
   });
 
   return (
-    <div className="space-y-4">
+    <div className="w-full space-y-3">
       {/* If completed sale, show Dedicated Success & Print Screen */}
       {completedSale ? (
         <div className="max-w-2xl mx-auto p-6 md:p-8 rounded-3xl bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 shadow-xl space-y-6 animate-in fade-in zoom-in-95 duration-200">
@@ -508,12 +521,13 @@ export const PosTerminal = () => {
           </div>
         </div>
       ) : (
-        /* Regular POS Terminal Screen */
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
-          {/* Left Column (7 cols): Barcode, Categories & Product Grid */}
-          <div className="lg:col-span-7 xl:col-span-8 space-y-4">
-            {/* Top Barcode Input with Live USB Scanner Indicator */}
-            <div className="bg-white dark:bg-[#1E293B] p-3 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col sm:flex-row items-center gap-3">
+        /* Regular POS Terminal Screen - Spacious, Beautiful, Full Width */
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start w-full">
+          {/* Left Column (8 or 9 cols): Barcode, Full-Width Categories & Product Grid */}
+          <div className="lg:col-span-8 xl:col-span-8 2xl:col-span-9 space-y-3">
+            {/* Top Unified Control Bar: Barcode (Left), Text Search (Right), Live Scanner Status */}
+            <div className="bg-white dark:bg-[#1E293B] p-2.5 sm:p-3 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col md:flex-row items-center gap-3">
+              {/* Barcode Scanner Input */}
               <form onSubmit={handleBarcodeSubmit} className="relative flex-1 w-full">
                 <Barcode className="w-5 h-5 absolute left-3.5 top-1/2 -translate-y-1/2 text-indigo-600" />
                 <input
@@ -522,129 +536,228 @@ export const PosTerminal = () => {
                   placeholder={lang === 'bn' ? 'বারকোড স্ক্যান করুন বা লিখুন (Enter চাপুন)...' : 'Scan barcode or enter manually (Press Enter)...'}
                   value={barcodeInput}
                   onChange={(e) => setBarcodeInput(e.target.value)}
-                  className="w-full pl-11 pr-4 py-2.5 text-sm font-semibold rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
+                  className="w-full pl-11 pr-4 py-2 text-sm font-semibold rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
                 />
               </form>
 
-              {/* Status Pill */}
+              {/* Product Live Search */}
+              <div className="relative w-full md:w-80 shrink-0">
+                <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder={lang === 'bn' ? 'পণ্য বা কোড দিয়ে খুঁজুন...' : 'Search products by name/code...'}
+                  value={productSearch}
+                  onChange={(e) => setProductSearch(e.target.value)}
+                  className="w-full pl-10 pr-8 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
+                />
+                {productSearch && (
+                  <button
+                    type="button"
+                    onClick={() => setProductSearch('')}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5"
+                    title="Clear Search"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+
+              {/* Live Scanner Ready Status Indicator */}
               <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 text-xs font-bold shrink-0">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                 <span>{lang === 'bn' ? 'স্ক্যানার সক্রিয়' : 'Scanner Ready'}</span>
               </div>
+
+              {/* Reload / Sync Button */}
+              <button
+                type="button"
+                onClick={fetchInitialData}
+                className="p-2 rounded-xl text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition shrink-0"
+                title="Reload Products"
+              >
+                <RefreshCw className="w-4 h-4" />
+              </button>
             </div>
 
-            {/* Category Filter Pills & Product Search */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div className="flex items-center gap-2 overflow-x-auto pb-1 max-w-full sm:max-w-md scrollbar-none">
+            {/* FULL-WIDTH CATEGORY CHIPS BAR (No max-w-md constraint, smooth scrolling, left/right buttons) */}
+            <div className="relative w-full flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => scrollCategories('left')}
+                className="w-8 h-8 rounded-xl bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 text-slate-500 hover:text-indigo-600 hover:border-indigo-300 dark:hover:border-indigo-700 shrink-0 flex items-center justify-center transition shadow-sm"
+                title="Previous Categories"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+
+              <div
+                ref={categoryScrollRef}
+                className="flex-1 flex items-center gap-2 overflow-x-auto py-1 no-scrollbar scroll-smooth"
+              >
                 <button
                   type="button"
                   onClick={() => setSelectedCategory(null)}
-                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition ${
+                  className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-2 shrink-0 ${
                     selectedCategory === null
-                      ? 'bg-indigo-600 text-white shadow-sm'
-                      : 'bg-white dark:bg-[#1E293B] text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800'
+                      ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
+                      : 'bg-white dark:bg-[#1E293B] text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800/80'
                   }`}
                 >
-                  {lang === 'bn' ? `সব ক্যাটাগরি (${products.length})` : `All (${products.length})`}
-                </button>
-                {categories.map((cat) => (
-                  <button
-                    key={cat.id}
-                    type="button"
-                    onClick={() => setSelectedCategory(cat.id)}
-                    className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition ${
-                      selectedCategory === cat.id
-                        ? 'bg-indigo-600 text-white shadow-sm font-bold'
-                        : 'bg-white dark:bg-[#1E293B] text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800'
+                  <Layers className="w-3.5 h-3.5" />
+                  <span>{lang === 'bn' ? 'সকল পণ্য' : 'All Items'}</span>
+                  <span
+                    className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
+                      selectedCategory === null
+                        ? 'bg-white/20 text-white'
+                        : 'bg-slate-100 dark:bg-slate-800 text-slate-500'
                     }`}
                   >
-                    {lang === 'bn' ? (cat.name_bn || cat.name) : cat.name}
-                  </button>
-                ))}
-              </div>
+                    {products.length}
+                  </span>
+                </button>
 
-              {/* Product Text Search */}
-              <div className="relative w-full sm:w-52 shrink-0">
-                <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                <input
-                  type="text"
-                  placeholder={lang === 'bn' ? 'পণ্য খুঁজুন...' : 'Search products...'}
-                  value={productSearch}
-                  onChange={(e) => setProductSearch(e.target.value)}
-                  className="w-full pl-8 pr-3 py-1.5 text-xs rounded-xl bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                />
-              </div>
-            </div>
-
-            {/* Products Grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 max-h-[600px] overflow-y-auto pr-1">
-              {filteredProducts.map((prod) => {
-                const stock = Number(prod.current_stock);
-                const isOutOfStock = stock <= 0;
-                const isLowStock = stock <= Number(prod.alert_stock);
-
-                return (
-                  <div
-                    key={prod.id}
-                    onClick={() => addToCart(prod)}
-                    className="p-3 rounded-2xl bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 hover:border-indigo-500 dark:hover:border-indigo-500 shadow-sm hover:shadow-md transition-all cursor-pointer flex flex-col justify-between group active:scale-[0.98] select-none"
-                  >
-                    <div className="aspect-video w-full rounded-xl bg-slate-100 dark:bg-slate-800 mb-2 overflow-hidden relative">
-                      {prod.image_url ? (
-                        <img src={prod.image_url} alt={prod.name} className="w-full h-full object-cover group-hover:scale-105 transition" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-slate-400 text-xs font-bold font-mono">
-                          {prod.name.substring(0, 2).toUpperCase()}
-                        </div>
-                      )}
+                {categories.map((cat) => {
+                  const catCount = products.filter((p) => p.category_id === cat.id).length;
+                  const isSelected = selectedCategory === cat.id;
+                  return (
+                    <button
+                      key={cat.id}
+                      type="button"
+                      onClick={() => setSelectedCategory(cat.id)}
+                      className={`px-4 py-2 rounded-xl text-xs whitespace-nowrap transition-all flex items-center gap-2 shrink-0 ${
+                        isSelected
+                          ? 'bg-indigo-600 text-white font-bold shadow-md shadow-indigo-600/30'
+                          : 'bg-white dark:bg-[#1E293B] text-slate-700 dark:text-slate-300 font-medium border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800/80'
+                      }`}
+                    >
+                      <span>{lang === 'bn' ? (cat.name_bn || cat.name) : cat.name}</span>
                       <span
-                        className={`absolute top-1 right-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold ${
-                          isOutOfStock
-                            ? 'bg-rose-500 text-white'
-                            : isLowStock
-                            ? 'bg-amber-500 text-white'
-                            : 'bg-black/60 backdrop-blur-sm text-white'
+                        className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
+                          isSelected
+                            ? 'bg-white/20 text-white'
+                            : 'bg-slate-100 dark:bg-slate-800 text-slate-500'
                         }`}
                       >
-                        {lang === 'bn' ? `স্টক: ${stock}` : `Stock: ${stock}`}
+                        {catCount}
                       </span>
-                    </div>
+                    </button>
+                  );
+                })}
+              </div>
 
-                    <div>
-                      <h3 className="text-xs font-bold text-slate-900 dark:text-white line-clamp-1 group-hover:text-indigo-600 transition">
-                        {lang === 'bn' ? (prod.name_bn || prod.name) : prod.name}
-                      </h3>
-                      <div className="text-[10px] text-slate-400 font-mono mt-0.5">
-                        {prod.barcode}
+              <button
+                type="button"
+                onClick={() => scrollCategories('right')}
+                className="w-8 h-8 rounded-xl bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 text-slate-500 hover:text-indigo-600 hover:border-indigo-300 dark:hover:border-indigo-700 shrink-0 flex items-center justify-center transition shadow-sm"
+                title="Next Categories"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Spacious Responsive Products Grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 max-h-[calc(100vh-220px)] overflow-y-auto pr-1">
+              {filteredProducts.length === 0 ? (
+                <div className="col-span-full py-16 text-center text-slate-400 space-y-2">
+                  <Package className="w-10 h-10 mx-auto opacity-30 stroke-1" />
+                  <p className="text-sm font-semibold">
+                    {lang === 'bn' ? 'কোনো পণ্য পাওয়া যায়নি।' : 'No products found matching criteria.'}
+                  </p>
+                </div>
+              ) : (
+                filteredProducts.map((prod) => {
+                  const stock = Number(prod.current_stock);
+                  const isOutOfStock = stock <= 0;
+                  const isLowStock = stock <= Number(prod.alert_stock);
+
+                  return (
+                    <div
+                      key={prod.id}
+                      onClick={() => addToCart(prod)}
+                      className="p-3 rounded-2xl bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 hover:border-indigo-500 dark:hover:border-indigo-500 shadow-sm hover:shadow-md transition-all cursor-pointer flex flex-col justify-between group active:scale-[0.98] select-none"
+                    >
+                      {/* Image Box with robust onError Fallback */}
+                      <div className="aspect-[4/3] w-full rounded-xl bg-slate-100 dark:bg-slate-800 mb-2 overflow-hidden relative border border-slate-100 dark:border-slate-800 flex items-center justify-center">
+                        {prod.image_url ? (
+                          <img
+                            src={prod.image_url}
+                            alt=""
+                            onError={(e) => {
+                              e.currentTarget.style.display = 'none';
+                              if (e.currentTarget.nextElementSibling) {
+                                e.currentTarget.nextElementSibling.style.display = 'flex';
+                              }
+                            }}
+                            className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                          />
+                        ) : null}
+                        <div
+                          className={`w-full h-full flex flex-col items-center justify-center text-slate-400 bg-slate-100 dark:bg-slate-800/80 ${
+                            prod.image_url ? 'hidden' : 'flex'
+                          }`}
+                        >
+                          <Package className="w-8 h-8 opacity-40 stroke-1 mb-1" />
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                            {prod.name.substring(0, 3)}
+                          </span>
+                        </div>
+
+                        {/* Stock Status Badge at Top-Right */}
+                        <span
+                          className={`absolute top-1.5 right-1.5 px-2 py-0.5 rounded-lg text-[10px] font-bold shadow-sm backdrop-blur-md ${
+                            isOutOfStock
+                              ? 'bg-rose-600/90 text-white'
+                              : isLowStock
+                              ? 'bg-amber-600/90 text-white'
+                              : 'bg-emerald-600/90 text-white'
+                          }`}
+                        >
+                          {lang === 'bn' ? `স্টক: ${stock}` : `Stock: ${stock}`}
+                        </span>
+                      </div>
+
+                      {/* Product Title & Info */}
+                      <div className="flex-1">
+                        <h3 className="text-xs font-bold text-slate-900 dark:text-white line-clamp-2 leading-snug group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition">
+                          {lang === 'bn' ? (prod.name_bn || prod.name) : prod.name}
+                        </h3>
+                        <div className="text-[10px] text-slate-400 font-mono mt-1 flex items-center gap-1.5">
+                          <span>{prod.barcode}</span>
+                          {prod.unit && <span>• {lang === 'bn' ? (prod.unit.name_bn || 'পিস') : (prod.unit.name || 'pcs')}</span>}
+                        </div>
+                      </div>
+
+                      {/* Price & Add Action */}
+                      <div className="mt-2.5 pt-2 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between">
+                        <span className="text-sm font-black text-indigo-600 dark:text-indigo-400">
+                          {formatCurrency(prod.selling_price)}
+                        </span>
+                        <button
+                          type="button"
+                          className="w-7 h-7 rounded-xl bg-indigo-50 dark:bg-indigo-950/80 text-indigo-600 dark:text-indigo-300 flex items-center justify-center group-hover:bg-indigo-600 group-hover:text-white transition shadow-sm"
+                        >
+                          <Plus className="w-4 h-4" />
+                        </button>
                       </div>
                     </div>
-
-                    <div className="mt-2 pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                      <span className="text-xs font-black text-indigo-600 dark:text-indigo-400">
-                        {formatCurrency(prod.selling_price)}
-                      </span>
-                      <button
-                        type="button"
-                        className="w-6 h-6 rounded-lg bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 flex items-center justify-center group-hover:bg-indigo-600 group-hover:text-white transition"
-                      >
-                        <Plus className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
+                  );
+                })
+              )}
             </div>
           </div>
 
-          {/* Right Column (5 cols): Cart & Instant Checkout Panel */}
-          <div className="lg:col-span-5 xl:col-span-4 p-5 rounded-3xl bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between space-y-4">
-            {/* Header: Customer Select & Cart Title */}
-            <div className="space-y-3 pb-3 border-b border-slate-100 dark:border-slate-800">
+          {/* Right Column (4 or 3 cols): Dedicated Cart & Instant Checkout Panel */}
+          <div className="lg:col-span-4 xl:col-span-4 2xl:col-span-3 p-4 sm:p-5 rounded-3xl bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between space-y-3 sticky top-20 max-h-[calc(100vh-85px)]">
+            {/* Cart Header & Customer Selector */}
+            <div className="space-y-2.5 pb-2.5 border-b border-slate-100 dark:border-slate-800">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <ShoppingCart className="w-5 h-5 text-indigo-600" />
                   <span className="font-bold text-sm text-slate-900 dark:text-white">
-                    {t('cart')} ({cart.length})
+                    {t('cart')}
+                  </span>
+                  <span className="px-2 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 text-xs font-black">
+                    {cart.length}
                   </span>
                 </div>
                 {cart.length > 0 && (
@@ -653,7 +766,7 @@ export const PosTerminal = () => {
                     onClick={clearCart}
                     className="text-xs text-rose-500 hover:text-rose-700 font-semibold transition"
                   >
-                    {lang === 'bn' ? 'কার্ট খালি করুন' : 'Clear Cart'}
+                    {lang === 'bn' ? 'খালি করুন' : 'Clear'}
                   </button>
                 )}
               </div>
@@ -683,11 +796,11 @@ export const PosTerminal = () => {
             </div>
 
             {/* Cart Items List */}
-            <div className="flex-1 max-h-64 overflow-y-auto space-y-2 pr-1 divide-y divide-slate-100 dark:divide-slate-800">
+            <div className="flex-1 max-h-52 xl:max-h-60 overflow-y-auto space-y-2 pr-1 divide-y divide-slate-100 dark:divide-slate-800">
               {cart.length === 0 ? (
-                <div className="py-12 text-center text-slate-400 space-y-2">
+                <div className="py-10 text-center text-slate-400 space-y-2">
                   <ShoppingCart className="w-8 h-8 mx-auto opacity-30 stroke-1" />
-                  <p className="text-xs">{t('cartEmptyPrompt')}</p>
+                  <p className="text-xs font-medium">{t('cartEmptyPrompt')}</p>
                 </div>
               ) : (
                 cart.map((item) => (
@@ -744,7 +857,7 @@ export const PosTerminal = () => {
             </div>
 
             {/* Calculations & Order Discount */}
-            <div className="pt-3 border-t border-slate-200 dark:border-slate-800 space-y-2 text-xs">
+            <div className="pt-2.5 border-t border-slate-200 dark:border-slate-800 space-y-1.5 text-xs">
               <div className="flex justify-between text-slate-500 dark:text-slate-400">
                 <span>{lang === 'bn' ? 'উপমোট (Subtotal):' : 'Subtotal:'}</span>
                 <span className="font-semibold text-slate-800 dark:text-slate-200">{formatCurrency(subtotal)}</span>
@@ -780,14 +893,14 @@ export const PosTerminal = () => {
               )}
 
               {/* Grand Total */}
-              <div className="flex justify-between items-center text-lg font-black text-slate-900 dark:text-white pt-2 border-t border-slate-200 dark:border-slate-700">
+              <div className="flex justify-between items-center text-base font-black text-slate-900 dark:text-white pt-2 border-t border-slate-200 dark:border-slate-700">
                 <span>{t('total')}:</span>
                 <span className="text-xl text-indigo-600 dark:text-indigo-400">{formatCurrency(grandTotal)}</span>
               </div>
             </div>
 
             {/* Payment Method Tabs & Quick Cash */}
-            <div className="space-y-3 pt-2">
+            <div className="space-y-2.5 pt-1">
               <div className="grid grid-cols-4 gap-1.5">
                 {[
                   { key: 'cash', bn: 'ক্যাশ', en: 'Cash' },
@@ -811,7 +924,7 @@ export const PosTerminal = () => {
               </div>
 
               {/* Quick Cash Buttons */}
-              <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
                 <button
                   type="button"
                   onClick={() => addQuickCash('exact')}
@@ -832,10 +945,10 @@ export const PosTerminal = () => {
               </div>
 
               {/* Tendered Amount & Change Display */}
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-2.5">
                 <div>
                   <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 block mb-1">
-                    {lang === 'bn' ? 'প্রদত্ত টাকা (Tendered)' : 'Tendered (৳)'}
+                    {lang === 'bn' ? 'প্রদত্ত টাকা' : 'Tendered (৳)'}
                   </label>
                   <input
                     type="number"
@@ -894,4 +1007,5 @@ export const PosTerminal = () => {
     </div>
   );
 };
+
 export default PosTerminal;

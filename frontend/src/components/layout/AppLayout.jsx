@@ -55,6 +55,8 @@ export const AppLayout = () => {
     return <Navigate to="/login" replace />;
   }
 
+  const isPos = location.pathname.startsWith('/pos');
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-[#0F172A] text-slate-900 dark:text-slate-100 font-sans">
       <Sidebar isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
@@ -66,7 +68,7 @@ export const AppLayout = () => {
           isCollapsed ? 'pl-20' : 'pl-72'
         }`}
       >
-        <div className="p-4 sm:p-6 md:p-8 max-w-7xl mx-auto">
+        <div className={isPos ? "p-3 sm:p-4 w-full" : "p-4 sm:p-6 md:p-8 max-w-[1600px] w-full mx-auto"}>
           <Outlet />
         </div>
       </main>
