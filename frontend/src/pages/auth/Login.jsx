@@ -27,7 +27,7 @@ export const Login = () => {
 
   const { login } = useAuth();
   const { success, error } = useToast();
-  const { t } = useLanguage();
+  const { lang, t } = useLanguage();
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -36,11 +36,15 @@ export const Login = () => {
     setIsLoading(true);
 
     try {
-      await login(email, password);
-      success('স্বাগতম! আপনি সফলভাবে সিস্টেমে লগইন করেছেন।');
-      navigate('/dashboard');
+      const userData = await login(email, password);
+      success(lang === 'bn' ? 'স্বাগতম! আপনি সফলভাবে সিস্টেমে লগইন করেছেন।' : 'Welcome! Successfully logged in.');
+      if (userData?.role?.slug === 'cashier') {
+        navigate('/pos');
+      } else {
+        navigate('/dashboard');
+      }
     } catch (err) {
-      const msg = err.response?.data?.message || 'লগইন ব্যর্থ হয়েছে। ইমেইল ও পাসওয়ার্ড চেক করুন।';
+      const msg = err.response?.data?.message || (lang === 'bn' ? 'লগইন ব্যর্থ হয়েছে। ইমেইল ও পাসওয়ার্ড চেক করুন।' : 'Login failed. Please check credentials.');
       setErrorMessage(msg);
       error(msg);
     } finally {

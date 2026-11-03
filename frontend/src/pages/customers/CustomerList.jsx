@@ -16,7 +16,7 @@ import {
 import api from '../../services/api';
 
 export const CustomerList = () => {
-  const { t, formatCurrency, formatNumber } = useLanguage();
+  const { t, lang, formatCurrency, formatNumber } = useLanguage();
   const { error } = useToast();
 
   const [customers, setCustomers] = useState([]);
@@ -27,7 +27,7 @@ export const CustomerList = () => {
 
   useEffect(() => {
     fetchCustomers(pagination.current_page);
-  }, [search, hasDueOnly]);
+  }, [search, hasDueOnly, lang]);
 
   const fetchCustomers = async (page = 1) => {
     setLoading(true);
@@ -46,7 +46,7 @@ export const CustomerList = () => {
         total: res.data.total,
       });
     } catch (e) {
-      error('গ্রাহক তালিকা লোড করতে সমস্যা হয়েছে।');
+      error(lang === 'bn' ? 'গ্রাহক তালিকা লোড করতে সমস্যা হয়েছে।' : 'Failed to load customer list.');
     } finally {
       setLoading(false);
     }
@@ -56,11 +56,14 @@ export const CustomerList = () => {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2.5">
+            <Users className="w-7 h-7 text-indigo-600" />
             {t('customerList')}
           </h1>
-          <p className="text-sm text-slate-500">
-            মোট {formatNumber(pagination.total)} জন নিবন্ধিত গ্রাহক ও তাদের বকেয়া লেজার
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+            {lang === 'bn'
+              ? `মোট ${formatNumber(pagination.total)} জন নিবন্ধিত গ্রাহক ও তাদের বকেয়া লেজার`
+              : `Total ${formatNumber(pagination.total)} registered customers and due balances`}
           </p>
         </div>
 
@@ -79,7 +82,7 @@ export const CustomerList = () => {
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             type="text"
-            placeholder="গ্রাহকের নাম, মোবাইল নম্বর দিয়ে খুঁজুন..."
+            placeholder={lang === 'bn' ? 'গ্রাহকের নাম, মোবাইল নম্বর দিয়ে খুঁজুন...' : 'Search by name or phone...'}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full pl-9 pr-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
@@ -94,7 +97,7 @@ export const CustomerList = () => {
               : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300'
           }`}
         >
-          শুধুমাত্র বকেয়া যুক্ত গ্রাহক
+          {lang === 'bn' ? 'শুধুমাত্র বকেয়া যুক্ত গ্রাহক' : 'Customers with Due Only'}
         </button>
       </div>
 
@@ -104,33 +107,41 @@ export const CustomerList = () => {
           <table className="w-full text-left text-xs border-collapse">
             <thead>
               <tr className="bg-slate-50 dark:bg-slate-850/60 border-b border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 font-bold uppercase tracking-wider">
-                <th className="p-4">গ্রাহকের নাম</th>
-                <th className="p-4">মোবাইল নম্বর</th>
-                <th className="p-4 text-center">মোট ক্রয়</th>
-                <th className="p-4 text-right">বর্তমান বকেয়া (Due)</th>
-                <th className="p-4 text-right">ক্রেডিট লিমিট</th>
-                <th className="p-4 text-right">পদক্ষেপ</th>
+                <th className="p-4">{lang === 'bn' ? 'গ্রাহকের নাম' : 'Customer Name'}</th>
+                <th className="p-4">{lang === 'bn' ? 'মোবাইল নম্বর' : 'Phone Number'}</th>
+                <th className="p-4 text-center">{lang === 'bn' ? 'মোট ক্রয়' : 'Total Orders'}</th>
+                <th className="p-4 text-right">{lang === 'bn' ? 'বর্তমান বকেয়া (Due)' : 'Current Due'}</th>
+                <th className="p-4 text-right">{lang === 'bn' ? 'ক্রেডিট লিমিট' : 'Credit Limit'}</th>
+                <th className="p-4 text-right">{t('actions')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {loading ? (
-                <tr><td colSpan="6" className="p-8 text-center text-slate-400">লোড হচ্ছে...</td></tr>
+                <tr>
+                  <td colSpan="6" className="p-8 text-center text-slate-400">
+                    {t('loading')}
+                  </td>
+                </tr>
               ) : customers.length === 0 ? (
-                <tr><td colSpan="6" className="p-8 text-center text-slate-400">কোনো গ্রাহক পাওয়া যায়নি।</td></tr>
+                <tr>
+                  <td colSpan="6" className="p-8 text-center text-slate-400">
+                    {t('noData')}
+                  </td>
+                </tr>
               ) : (
                 customers.map((c) => {
                   const hasDue = Number(c.current_balance) > 0;
                   return (
-                    <tr key={c.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40">
+                    <tr key={c.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition">
                       <td className="p-4 font-bold text-slate-900 dark:text-white">
                         <div>{c.name}</div>
                         {c.address && <div className="text-[11px] text-slate-400 font-normal">{c.address}</div>}
                       </td>
                       <td className="p-4 text-slate-600 dark:text-slate-300 font-mono">
-                        {c.phone}
+                        {c.phone || '—'}
                       </td>
                       <td className="p-4 text-center font-bold text-indigo-600">
-                        {c.sales_count} টি
+                        {c.sales_count} {lang === 'bn' ? 'টি' : 'orders'}
                       </td>
                       <td className="p-4 text-right">
                         <span
@@ -152,7 +163,7 @@ export const CustomerList = () => {
                           className="py-1.5 px-3 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 font-bold hover:bg-indigo-100 transition inline-flex items-center gap-1"
                         >
                           <Eye className="w-3.5 h-3.5" />
-                          <span>লেজার ও পেমেন্ট</span>
+                          <span>{lang === 'bn' ? 'লেজার ও পেমেন্ট' : 'Ledger & Pay'}</span>
                         </Link>
                       </td>
                     </tr>
@@ -166,20 +177,22 @@ export const CustomerList = () => {
         {/* Pagination */}
         <div className="p-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500">
           <div>
-            পৃষ্ঠা {formatNumber(pagination.current_page)} / {formatNumber(pagination.last_page)}
+            {lang === 'bn'
+              ? `পৃষ্ঠা ${formatNumber(pagination.current_page)} / ${formatNumber(pagination.last_page)}`
+              : `Page ${formatNumber(pagination.current_page)} of ${formatNumber(pagination.last_page)}`}
           </div>
           <div className="flex items-center gap-2">
             <button
               disabled={pagination.current_page <= 1}
               onClick={() => fetchCustomers(pagination.current_page - 1)}
-              className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 disabled:opacity-40 hover:bg-slate-100 transition"
+              className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 disabled:opacity-40 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
             <button
               disabled={pagination.current_page >= pagination.last_page}
               onClick={() => fetchCustomers(pagination.current_page + 1)}
-              className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 disabled:opacity-40 hover:bg-slate-100 transition"
+              className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 disabled:opacity-40 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
             >
               <ChevronRight className="w-4 h-4" />
             </button>
@@ -190,3 +203,4 @@ export const CustomerList = () => {
   );
 };
 
+export default CustomerList;

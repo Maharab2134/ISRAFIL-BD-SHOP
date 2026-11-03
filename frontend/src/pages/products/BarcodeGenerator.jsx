@@ -4,7 +4,7 @@ import { Barcode, Printer, Search } from 'lucide-react';
 import api from '../../services/api';
 
 export const BarcodeGenerator = () => {
-  const { t, formatCurrency } = useLanguage();
+  const { t, lang, formatCurrency } = useLanguage();
   const [products, setProducts] = useState([]);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [quantity, setQuantity] = useState(12);
@@ -24,7 +24,7 @@ export const BarcodeGenerator = () => {
       }
     };
     fetchProducts();
-  }, []);
+  }, [lang]);
 
   const handlePrint = () => {
     window.print();
@@ -35,10 +35,13 @@ export const BarcodeGenerator = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 no-print">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2.5">
+            <Barcode className="w-7 h-7 text-indigo-600" />
             {t('barcodeGenerator')}
           </h1>
-          <p className="text-sm text-slate-500">পণ্যের বারকোড স্টিকার প্রিন্ট ও তৈরি করুন</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+            {lang === 'bn' ? 'পণ্যের বারকোড স্টিকার প্রিন্ট ও তৈরি করুন' : 'Generate and print thermal barcode labels and price stickers'}
+          </p>
         </div>
 
         <button
@@ -46,14 +49,16 @@ export const BarcodeGenerator = () => {
           className="py-2.5 px-5 rounded-xl font-bold text-sm bg-indigo-600 hover:bg-indigo-700 text-white shadow-md flex items-center gap-2 self-start transition"
         >
           <Printer className="w-4 h-4" />
-          <span>বারকোড স্টিকার প্রিন্ট করুন</span>
+          <span>{lang === 'bn' ? 'বারকোড স্টিকার প্রিন্ট করুন' : 'Print Barcode Stickers'}</span>
         </button>
       </div>
 
       {/* Controls Card */}
       <div className="p-6 rounded-3xl bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 shadow-card grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 no-print">
         <div className="space-y-1.5">
-          <label className="text-xs font-bold text-slate-700 dark:text-slate-300">পণ্য নির্বাচন করুন</label>
+          <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+            {lang === 'bn' ? 'পণ্য নির্বাচন করুন' : 'Select Product'}
+          </label>
           <select
             value={selectedProduct ? selectedProduct.id : ''}
             onChange={(e) => {
@@ -63,13 +68,17 @@ export const BarcodeGenerator = () => {
             className="w-full py-2 px-3 text-xs rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white"
           >
             {products.map((p) => (
-              <option key={p.id} value={p.id}>{p.name} ({p.barcode})</option>
+              <option key={p.id} value={p.id}>
+                {lang === 'bn' ? (p.name_bn || p.name) : p.name} ({p.barcode})
+              </option>
             ))}
           </select>
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-xs font-bold text-slate-700 dark:text-slate-300">স্টিকার সংখ্যা (Quantity)</label>
+          <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+            {lang === 'bn' ? 'স্টিকার সংখ্যা (Quantity)' : 'Label Quantity'}
+          </label>
           <input
             type="number"
             min="1"
@@ -88,7 +97,7 @@ export const BarcodeGenerator = () => {
               onChange={(e) => setShowPrice(e.target.checked)}
               className="rounded text-indigo-600 focus:ring-indigo-500"
             />
-            <span>মূল্য প্রদর্শন করুন</span>
+            <span>{lang === 'bn' ? 'মূল্য প্রদর্শন করুন' : 'Show Retail Price'}</span>
           </label>
         </div>
 
@@ -100,54 +109,61 @@ export const BarcodeGenerator = () => {
               onChange={(e) => setShowShopName(e.target.checked)}
               className="rounded text-indigo-600 focus:ring-indigo-500"
             />
-            <span>দোকানের নাম প্রদর্শন</span>
+            <span>{lang === 'bn' ? 'দোকানের নাম প্রদর্শন' : 'Show Brand Name'}</span>
           </label>
         </div>
       </div>
 
-      {/* Printable Barcode Sheet Preview */}
-      <div id="printable-area" className="p-6 rounded-3xl bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 shadow-card">
-        <h2 className="text-sm font-bold text-slate-900 dark:text-white mb-4 no-print">
-          প্রিভিউ শিট ({quantity} টি স্টিকার)
-        </h2>
+      {/* Barcode Stickers Preview & Print Grid */}
+      {selectedProduct && (
+        <div className="p-6 md:p-8 rounded-3xl bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 shadow-card">
+          <h2 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-6 no-print">
+            {lang === 'bn' ? 'প্রিন্ট প্রিভিউ (Print Sheet Preview):' : 'Print Sheet Preview:'}
+          </h2>
 
-        {selectedProduct ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-            {[...Array(quantity)].map((_, idx) => (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 print:grid-cols-3 print:gap-2">
+            {Array.from({ length: quantity }).map((_, i) => (
               <div
-                key={idx}
-                className="p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white text-black flex flex-col items-center justify-center text-center space-y-1 shadow-subtle"
+                key={i}
+                className="p-3 border border-dashed border-slate-300 dark:border-slate-700 rounded-xl text-center bg-white text-black flex flex-col items-center justify-between shadow-sm page-break-inside-avoid"
               >
                 {showShopName && (
-                  <div className="text-[10px] font-black tracking-tight uppercase text-indigo-900">
+                  <div className="text-[10px] font-black tracking-tight uppercase">
                     ISRAFIL BD SHOP
                   </div>
                 )}
-                <div className="text-[11px] font-bold line-clamp-1 text-slate-800">
-                  {selectedProduct.name}
+                <div className="text-[11px] font-bold line-clamp-1 mt-1">
+                  {lang === 'bn' ? (selectedProduct.name_bn || selectedProduct.name) : selectedProduct.name}
                 </div>
-                {/* Visual Barcode Graphic representation */}
-                <div className="w-full flex justify-center py-1">
-                  <div className="h-9 w-36 bg-[repeating-linear-gradient(90deg,#000,#000_2px,transparent_2px,transparent_4px,#000_4px,#000_7px,transparent_7px,transparent_9px,#000_9px,#000_12px,transparent_12px,transparent_13px)]" />
+
+                {/* Simulated clean barcode graphic */}
+                <div className="my-2 flex flex-col items-center">
+                  <div className="flex items-center justify-center gap-[2px] h-9">
+                    {[1, 2, 1, 3, 1, 2, 2, 1, 3, 1, 2, 1, 2, 3, 1, 2, 1, 2].map((w, idx) => (
+                      <div
+                        key={idx}
+                        className="bg-black h-full"
+                        style={{ width: `${w * 1.5}px` }}
+                      />
+                    ))}
+                  </div>
+                  <div className="font-mono text-[10px] tracking-widest mt-1">
+                    {selectedProduct.barcode}
+                  </div>
                 </div>
-                <div className="font-mono text-[10px] font-bold tracking-widest text-slate-700">
-                  {selectedProduct.barcode}
-                </div>
+
                 {showPrice && (
-                  <div className="text-xs font-black text-slate-900 pt-0.5">
-                    মূল্য: ৳ {selectedProduct.selling_price}
+                  <div className="text-xs font-black text-slate-900 border-t border-slate-200 w-full pt-1">
+                    {formatCurrency(selectedProduct.selling_price)}
                   </div>
                 )}
               </div>
             ))}
           </div>
-        ) : (
-          <div className="py-8 text-center text-slate-400 text-xs">
-            অনুগ্রহ করে একটি পণ্য নির্বাচন করুন।
-          </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 };
 
+export default BarcodeGenerator;

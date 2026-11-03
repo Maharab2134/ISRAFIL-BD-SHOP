@@ -37,11 +37,26 @@ import {
 
 export const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
   const { user, logout, hasPermission } = useAuth();
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const navigate = useNavigate();
 
+  const roleSlug = user?.role?.slug;
+  const isSuperAdmin = roleSlug === 'super-admin';
+  const isManager = roleSlug === 'manager' || roleSlug === 'store-manager';
+  const isCashier = roleSlug === 'cashier';
+
+  const rawName = user?.name || '';
+  const englishParenMatch = rawName.match(/\((.*?)\)/);
+  const englishName = englishParenMatch ? englishParenMatch[1].trim() : rawName;
+  const banglaName = rawName.replace(/\(.*?\)/, '').trim() || rawName;
+  const displayName = lang === 'en' ? englishName : banglaName;
+  const initialLetter = (displayName || 'U')[0].toUpperCase();
+  const roleName = lang === 'bn'
+    ? (user?.role?.name_bn || user?.role?.name || 'স্টাফ')
+    : (user?.role?.name || user?.role?.name_bn || 'Staff');
+
   const [expandedSections, setExpandedSections] = useState({
-    products: true,
+    products: false,
     inventory: false,
     sales: true,
     purchases: false,
@@ -100,8 +115,8 @@ export const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
       </div>
 
       {/* Navigation Links Scrollable */}
-      <div className="flex-1 overflow-y-auto px-3 py-4 space-y-6">
-        {/* Main Menu */}
+      <div className="flex-1 overflow-y-auto px-3 py-4 space-y-5">
+        {/* Main Section */}
         <div>
           {!isCollapsed && (
             <span className="px-3 text-[11px] font-semibold tracking-wider uppercase text-slate-400 dark:text-slate-500">
@@ -109,123 +124,129 @@ export const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
             </span>
           )}
           <div className="mt-2 space-y-1">
-            <NavLink to="/dashboard" className={navLinkClass} title={t('dashboard')}>
-              <LayoutDashboard className="w-5 h-5 shrink-0" />
-              {!isCollapsed && <span>{t('dashboard')}</span>}
-            </NavLink>
-
-            {hasPermission('pos.access') && (
-              <NavLink
-                to="/pos"
-                className={({ isActive }) =>
-                  `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 ${
-                    isActive
-                      ? 'bg-emerald-600 text-white shadow-md'
-                      : 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 border border-emerald-200/60 dark:border-emerald-800/60'
-                  }`
-                }
-                title={t('pos')}
-              >
-                <ShoppingCart className="w-5 h-5 shrink-0 text-emerald-600 dark:text-emerald-400 group-hover:scale-105 transition" />
-                {!isCollapsed && <span>{t('pos')}</span>}
+            {/* Dashboard: Restricted from Cashier */}
+            {!isCashier && (
+              <NavLink to="/dashboard" className={navLinkClass} title={t('dashboard')}>
+                <LayoutDashboard className="w-5 h-5 shrink-0" />
+                {!isCollapsed && <span>{t('dashboard')}</span>}
               </NavLink>
             )}
+
+            {/* POS Terminal: Main Highlight for Cashier & Staff */}
+            <NavLink
+              to="/pos"
+              className={({ isActive }) =>
+                `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 ${
+                  isActive
+                    ? 'bg-emerald-600 text-white shadow-md'
+                    : 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 border border-emerald-200/60 dark:border-emerald-800/60'
+                }`
+              }
+              title={t('pos')}
+            >
+              <ShoppingCart className="w-5 h-5 shrink-0 text-emerald-600 dark:text-emerald-400" />
+              {!isCollapsed && <span>{t('pos')}</span>}
+            </NavLink>
           </div>
         </div>
 
-        {/* Products */}
-        <div>
-          {!isCollapsed && (
-            <button
-              onClick={() => toggleSection('products')}
-              className="w-full flex items-center justify-between px-3 text-[11px] font-semibold tracking-wider uppercase text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
-            >
-              <span>{t('products')}</span>
-              <ChevronDown
-                className={`w-3.5 h-3.5 transition-transform ${
-                  expandedSections.products ? 'rotate-180' : ''
-                }`}
-              />
-            </button>
-          )}
-          {(isCollapsed || expandedSections.products) && (
-            <div className="mt-2 space-y-1">
-              <NavLink to="/products" end className={navLinkClass} title={t('productList')}>
-                <Package className="w-5 h-5 shrink-0" />
-                {!isCollapsed && <span>{t('productList')}</span>}
-              </NavLink>
+        {/* Products & Catalog: Manager & Admin Only */}
+        {!isCashier && (
+          <div>
+            {!isCollapsed && (
+              <button
+                onClick={() => toggleSection('products')}
+                className="w-full flex items-center justify-between px-3 text-[11px] font-semibold tracking-wider uppercase text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+              >
+                <span>{t('products')}</span>
+                <ChevronDown
+                  className={`w-3.5 h-3.5 transition-transform ${
+                    expandedSections.products ? 'rotate-180' : ''
+                  }`}
+                />
+              </button>
+            )}
+            {(isCollapsed || expandedSections.products) && (
+              <div className="mt-2 space-y-1">
+                <NavLink to="/products" end className={navLinkClass} title={t('productList')}>
+                  <Package className="w-5 h-5 shrink-0" />
+                  {!isCollapsed && <span>{t('productList')}</span>}
+                </NavLink>
 
-              <NavLink to="/products/new" className={navLinkClass} title={t('addProduct')}>
-                <Tag className="w-5 h-5 shrink-0" />
-                {!isCollapsed && <span>{t('addProduct')}</span>}
-              </NavLink>
+                <NavLink to="/products/new" className={navLinkClass} title={t('addProduct')}>
+                  <Tag className="w-5 h-5 shrink-0" />
+                  {!isCollapsed && <span>{t('addProduct')}</span>}
+                </NavLink>
 
-              <NavLink to="/categories" className={navLinkClass} title={t('categories')}>
-                <Layers className="w-5 h-5 shrink-0" />
-                {!isCollapsed && <span>{t('categories')}</span>}
-              </NavLink>
+                <NavLink to="/products/categories" className={navLinkClass} title={t('categories')}>
+                  <Layers className="w-5 h-5 shrink-0" />
+                  {!isCollapsed && <span>{t('categories')}</span>}
+                </NavLink>
 
-              <NavLink to="/brands" className={navLinkClass} title={t('brands')}>
-                <FolderTree className="w-5 h-5 shrink-0" />
-                {!isCollapsed && <span>{t('brands')}</span>}
-              </NavLink>
+                <NavLink to="/products/brands" className={navLinkClass} title={t('brands')}>
+                  <FolderTree className="w-5 h-5 shrink-0" />
+                  {!isCollapsed && <span>{t('brands')}</span>}
+                </NavLink>
 
-              <NavLink to="/units" className={navLinkClass} title={t('units')}>
-                <Scale className="w-5 h-5 shrink-0" />
-                {!isCollapsed && <span>{t('units')}</span>}
-              </NavLink>
+                <NavLink to="/products/units" className={navLinkClass} title={t('units')}>
+                  <Scale className="w-5 h-5 shrink-0" />
+                  {!isCollapsed && <span>{t('units')}</span>}
+                </NavLink>
 
-              <NavLink to="/barcode-generator" className={navLinkClass} title={t('barcodeGenerator')}>
-                <Barcode className="w-5 h-5 shrink-0" />
-                {!isCollapsed && <span>{t('barcodeGenerator')}</span>}
-              </NavLink>
-            </div>
-          )}
-        </div>
+                <NavLink to="/products/barcode-generator" className={navLinkClass} title={t('barcodeGenerator')}>
+                  <Barcode className="w-5 h-5 shrink-0" />
+                  {!isCollapsed && <span>{t('barcodeGenerator')}</span>}
+                </NavLink>
+              </div>
+            )}
+          </div>
+        )}
 
-        {/* Inventory */}
-        <div>
-          {!isCollapsed && (
-            <button
-              onClick={() => toggleSection('inventory')}
-              className="w-full flex items-center justify-between px-3 text-[11px] font-semibold tracking-wider uppercase text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
-            >
-              <span>{t('inventory')}</span>
-              <ChevronDown
-                className={`w-3.5 h-3.5 transition-transform ${
-                  expandedSections.inventory ? 'rotate-180' : ''
-                }`}
-              />
-            </button>
-          )}
-          {(isCollapsed || expandedSections.inventory) && (
-            <div className="mt-2 space-y-1">
-              <NavLink to="/inventory" end className={navLinkClass} title={t('stockOverview')}>
-                <Boxes className="w-5 h-5 shrink-0" />
-                {!isCollapsed && <span>{t('stockOverview')}</span>}
-              </NavLink>
+        {/* Inventory & Stock: Manager & Admin Only */}
+        {!isCashier && (
+          <div>
+            {!isCollapsed && (
+              <button
+                onClick={() => toggleSection('inventory')}
+                className="w-full flex items-center justify-between px-3 text-[11px] font-semibold tracking-wider uppercase text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+              >
+                <span>{t('inventory')}</span>
+                <ChevronDown
+                  className={`w-3.5 h-3.5 transition-transform ${
+                    expandedSections.inventory ? 'rotate-180' : ''
+                  }`}
+                />
+              </button>
+            )}
+            {(isCollapsed || expandedSections.inventory) && (
+              <div className="mt-2 space-y-1">
+                <NavLink to="/inventory" end className={navLinkClass} title={t('stockOverview')}>
+                  <Boxes className="w-5 h-5 shrink-0" />
+                  {!isCollapsed && <span>{t('stockOverview')}</span>}
+                </NavLink>
 
-              <NavLink to="/inventory/adjustment" className={navLinkClass} title={t('stockAdjustment')}>
-                <Sliders className="w-5 h-5 shrink-0" />
-                {!isCollapsed && <span>{t('stockAdjustment')}</span>}
-              </NavLink>
+                <NavLink to="/inventory/adjustment" className={navLinkClass} title={t('stockAdjustment')}>
+                  <Sliders className="w-5 h-5 shrink-0" />
+                  {!isCollapsed && <span>{t('stockAdjustment')}</span>}
+                </NavLink>
 
-              <NavLink to="/inventory/history" className={navLinkClass} title={t('stockHistory')}>
-                <History className="w-5 h-5 shrink-0" />
-                {!isCollapsed && <span>{t('stockHistory')}</span>}
-              </NavLink>
-            </div>
-          )}
-        </div>
+                <NavLink to="/inventory/history" className={navLinkClass} title={t('stockHistory')}>
+                  <History className="w-5 h-5 shrink-0" />
+                  {!isCollapsed && <span>{t('stockHistory')}</span>}
+                </NavLink>
+              </div>
+            )}
+          </div>
+        )}
 
-        {/* Sales & Purchases */}
+        {/* Sales & Purchases: Filtered by Role */}
         <div>
           {!isCollapsed && (
             <button
               onClick={() => toggleSection('sales')}
               className="w-full flex items-center justify-between px-3 text-[11px] font-semibold tracking-wider uppercase text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
             >
-              <span>{t('sales')} & {t('purchases')}</span>
+              <span>{isCashier ? t('sales') : `${t('sales')} & ${t('purchases')}`}</span>
               <ChevronDown
                 className={`w-3.5 h-3.5 transition-transform ${
                   expandedSections.sales ? 'rotate-180' : ''
@@ -245,15 +266,20 @@ export const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
                 {!isCollapsed && <span>{t('saleReturns')}</span>}
               </NavLink>
 
-              <NavLink to="/purchases" end className={navLinkClass} title={t('purchaseList')}>
-                <ShoppingBag className="w-5 h-5 shrink-0" />
-                {!isCollapsed && <span>{t('purchaseList')}</span>}
-              </NavLink>
+              {/* Purchases: Restricted from Cashier */}
+              {!isCashier && (
+                <>
+                  <NavLink to="/purchases" end className={navLinkClass} title={t('purchaseList')}>
+                    <ShoppingBag className="w-5 h-5 shrink-0" />
+                    {!isCollapsed && <span>{t('purchaseList')}</span>}
+                  </NavLink>
 
-              <NavLink to="/purchases/new" className={navLinkClass} title={t('newPurchase')}>
-                <ArrowDownCircle className="w-5 h-5 shrink-0" />
-                {!isCollapsed && <span>{t('newPurchase')}</span>}
-              </NavLink>
+                  <NavLink to="/purchases/new" className={navLinkClass} title={t('newPurchase')}>
+                    <ArrowDownCircle className="w-5 h-5 shrink-0" />
+                    {!isCollapsed && <span>{t('newPurchase')}</span>}
+                  </NavLink>
+                </>
+              )}
             </div>
           )}
         </div>
@@ -285,88 +311,105 @@ export const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
                 {!isCollapsed && <span>{t('addCustomer')}</span>}
               </NavLink>
 
-              <NavLink to="/suppliers" end className={navLinkClass} title={t('supplierList')}>
-                <Truck className="w-5 h-5 shrink-0" />
-                {!isCollapsed && <span>{t('supplierList')}</span>}
-              </NavLink>
+              {/* Suppliers: Restricted from Cashier */}
+              {!isCashier && (
+                <NavLink to="/suppliers" end className={navLinkClass} title={t('supplierList')}>
+                  <Truck className="w-5 h-5 shrink-0" />
+                  {!isCollapsed && <span>{t('supplierList')}</span>}
+                </NavLink>
+              )}
             </div>
           )}
         </div>
 
-        {/* Expenses & Accounting */}
-        <div>
-          {!isCollapsed && (
-            <button
-              onClick={() => toggleSection('finance')}
-              className="w-full flex items-center justify-between px-3 text-[11px] font-semibold tracking-wider uppercase text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
-            >
-              <span>{t('finance')}</span>
-              <ChevronDown
-                className={`w-3.5 h-3.5 transition-transform ${
-                  expandedSections.finance ? 'rotate-180' : ''
-                }`}
-              />
-            </button>
-          )}
-          {(isCollapsed || expandedSections.finance) && (
-            <div className="mt-2 space-y-1">
-              <NavLink to="/expenses" end className={navLinkClass} title={t('expenseList')}>
-                <WalletCards className="w-5 h-5 shrink-0" />
-                {!isCollapsed && <span>{t('expenseList')}</span>}
-              </NavLink>
+        {/* Expenses, Accounting & Reports: Restricted from Cashier */}
+        {!isCashier && (
+          <div>
+            {!isCollapsed && (
+              <button
+                onClick={() => toggleSection('finance')}
+                className="w-full flex items-center justify-between px-3 text-[11px] font-semibold tracking-wider uppercase text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+              >
+                <span>{t('finance')}</span>
+                <ChevronDown
+                  className={`w-3.5 h-3.5 transition-transform ${
+                    expandedSections.finance ? 'rotate-180' : ''
+                  }`}
+                />
+              </button>
+            )}
+            {(isCollapsed || expandedSections.finance) && (
+              <div className="mt-2 space-y-1">
+                <NavLink to="/expenses" end className={navLinkClass} title={t('expenseList')}>
+                  <WalletCards className="w-5 h-5 shrink-0" />
+                  {!isCollapsed && <span>{t('expenseList')}</span>}
+                </NavLink>
 
-              <NavLink to="/expenses/new" className={navLinkClass} title={t('addExpense')}>
-                <DollarSign className="w-5 h-5 shrink-0" />
-                {!isCollapsed && <span>{t('addExpense')}</span>}
-              </NavLink>
+                <NavLink to="/expenses/new" className={navLinkClass} title={t('addExpense')}>
+                  <DollarSign className="w-5 h-5 shrink-0" />
+                  {!isCollapsed && <span>{t('addExpense')}</span>}
+                </NavLink>
 
-              <NavLink to="/accounting" className={navLinkClass} title={t('accounting')}>
-                <TrendingUp className="w-5 h-5 shrink-0" />
-                {!isCollapsed && <span>{t('accounting')}</span>}
-              </NavLink>
+                <NavLink to="/expenses/categories" className={navLinkClass} title={t('expenseCategories')}>
+                  <Layers className="w-5 h-5 shrink-0" />
+                  {!isCollapsed && <span>{t('expenseCategories')}</span>}
+                </NavLink>
 
-              <NavLink to="/reports" className={navLinkClass} title={t('reports')}>
-                <FileSpreadsheet className="w-5 h-5 shrink-0" />
-                {!isCollapsed && <span>{t('reports')}</span>}
-              </NavLink>
-            </div>
-          )}
-        </div>
+                <NavLink to="/accounting" className={navLinkClass} title={t('accounting')}>
+                  <TrendingUp className="w-5 h-5 shrink-0" />
+                  {!isCollapsed && <span>{t('accounting')}</span>}
+                </NavLink>
 
-        {/* Administration */}
-        <div>
-          {!isCollapsed && (
-            <button
-              onClick={() => toggleSection('admin')}
-              className="w-full flex items-center justify-between px-3 text-[11px] font-semibold tracking-wider uppercase text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
-            >
-              <span>{t('administration')}</span>
-              <ChevronDown
-                className={`w-3.5 h-3.5 transition-transform ${
-                  expandedSections.admin ? 'rotate-180' : ''
-                }`}
-              />
-            </button>
-          )}
-          {(isCollapsed || expandedSections.admin) && (
-            <div className="mt-2 space-y-1">
-              <NavLink to="/employees" end className={navLinkClass} title={t('employeeList')}>
-                <UserCheck className="w-5 h-5 shrink-0" />
-                {!isCollapsed && <span>{t('employeeList')}</span>}
-              </NavLink>
+                <NavLink to="/accounting/cash-flow" className={navLinkClass} title={t('cashFlow')}>
+                  <DollarSign className="w-5 h-5 shrink-0" />
+                  {!isCollapsed && <span>{t('cashFlow')}</span>}
+                </NavLink>
 
-              <NavLink to="/activity-logs" className={navLinkClass} title={t('activityLogs')}>
-                <Activity className="w-5 h-5 shrink-0" />
-                {!isCollapsed && <span>{t('activityLogs')}</span>}
-              </NavLink>
+                <NavLink to="/reports" className={navLinkClass} title={t('reports')}>
+                  <FileSpreadsheet className="w-5 h-5 shrink-0" />
+                  {!isCollapsed && <span>{t('reports')}</span>}
+                </NavLink>
+              </div>
+            )}
+          </div>
+        )}
 
-              <NavLink to="/settings" className={navLinkClass} title={t('settings')}>
-                <Settings className="w-5 h-5 shrink-0" />
-                {!isCollapsed && <span>{t('settings')}</span>}
-              </NavLink>
-            </div>
-          )}
-        </div>
+        {/* Administration: Super Admin Only */}
+        {isSuperAdmin && (
+          <div>
+            {!isCollapsed && (
+              <button
+                onClick={() => toggleSection('admin')}
+                className="w-full flex items-center justify-between px-3 text-[11px] font-semibold tracking-wider uppercase text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+              >
+                <span>{t('administration')}</span>
+                <ChevronDown
+                  className={`w-3.5 h-3.5 transition-transform ${
+                    expandedSections.admin ? 'rotate-180' : ''
+                  }`}
+                />
+              </button>
+            )}
+            {(isCollapsed || expandedSections.admin) && (
+              <div className="mt-2 space-y-1">
+                <NavLink to="/employees" end className={navLinkClass} title={t('employeeList')}>
+                  <UserCheck className="w-5 h-5 shrink-0" />
+                  {!isCollapsed && <span>{t('employeeList')}</span>}
+                </NavLink>
+
+                <NavLink to="/activity-logs" className={navLinkClass} title={t('activityLogs')}>
+                  <Activity className="w-5 h-5 shrink-0" />
+                  {!isCollapsed && <span>{t('activityLogs')}</span>}
+                </NavLink>
+
+                <NavLink to="/settings" className={navLinkClass} title={t('settings')}>
+                  <Settings className="w-5 h-5 shrink-0" />
+                  {!isCollapsed && <span>{t('settings')}</span>}
+                </NavLink>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* User Profile & Logout Section at Bottom */}
@@ -377,15 +420,15 @@ export const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
             className="flex items-center gap-2.5 overflow-hidden flex-1 p-1 rounded-xl hover:bg-slate-200/50 dark:hover:bg-slate-800 transition"
           >
             <div className="w-9 h-9 rounded-full bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 font-bold flex items-center justify-center shrink-0 border border-indigo-200 dark:border-indigo-800">
-              {user?.name ? user.name[0].toUpperCase() : 'U'}
+              {initialLetter}
             </div>
             {!isCollapsed && (
               <div className="truncate text-left">
                 <div className="text-xs font-semibold text-slate-900 dark:text-white truncate">
-                  {user?.name}
+                  {displayName}
                 </div>
                 <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
-                  {user?.role?.name_bn || user?.role?.name || 'User'}
+                  {roleName}
                 </div>
               </div>
             )}
@@ -403,4 +446,4 @@ export const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
     </aside>
   );
 };
-
+export default Sidebar;

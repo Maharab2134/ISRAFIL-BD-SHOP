@@ -39,6 +39,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Products
     Route::get('/products/barcode/{barcode}', [ProductController::class, 'findByBarcode']);
+    Route::post('/products/{id}', [ProductController::class, 'update']);
+    Route::put('/products/{id}', [ProductController::class, 'update']);
     Route::apiResource('products', ProductController::class);
 
     // Categories, Brands, Units

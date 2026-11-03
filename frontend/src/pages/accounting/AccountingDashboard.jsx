@@ -17,7 +17,7 @@ import {
 import api from '../../services/api';
 
 export const AccountingDashboard = () => {
-  const { t, formatCurrency, formatNumber } = useLanguage();
+  const { t, lang, formatCurrency, formatNumber } = useLanguage();
   const { error } = useToast();
 
   const [summary, setSummary] = useState(null);
@@ -27,7 +27,7 @@ export const AccountingDashboard = () => {
 
   useEffect(() => {
     fetchSummary();
-  }, [startDate, endDate]);
+  }, [startDate, endDate, lang]);
 
   const fetchSummary = async () => {
     setLoading(true);
@@ -40,14 +40,19 @@ export const AccountingDashboard = () => {
       });
       setSummary(res.data);
     } catch (e) {
-      error('হিসাব বিবরণী লোড করতে ব্যর্থ হয়েছে।');
+      error(lang === 'bn' ? 'হিসাব বিবরণী লোড করতে ব্যর্থ হয়েছে।' : 'Failed to load accounting summary.');
     } finally {
       setLoading(false);
     }
   };
 
   if (loading) {
-    return <div className="p-12 text-center text-slate-400">হিসাব তথ্য লোড হচ্ছে...</div>;
+    return (
+      <div className="p-12 text-center text-slate-400">
+        <div className="w-8 h-8 border-3 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+        <p className="text-sm">{t('loading')}</p>
+      </div>
+    );
   }
 
   const isNetProfitPositive = (summary?.net_profit || 0) >= 0;
@@ -57,11 +62,14 @@ export const AccountingDashboard = () => {
       {/* Header & Date Range Filter */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
-            {t('accounting')} ও লাভ-ক্ষতি বিবরণী
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2.5">
+            <TrendingUp className="w-7 h-7 text-indigo-600" />
+            {lang === 'bn' ? 'হিসাবরক্ষণ ও লাভ-ক্ষতি বিবরণী' : 'Financials & Profit / Loss Statement'}
           </h1>
-          <p className="text-sm text-slate-500">
-            দোকানের মোট আয়, ব্যয়, পণ্য ক্রয়মূল্য (COGS) ও প্রকৃত নিট মুনাফা
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+            {lang === 'bn'
+              ? 'দোকানের মোট বিক্রয় আয়, পণ্য ক্রয়মূল্য (COGS), ব্যয় ও প্রকৃত নিট মুনাফা'
+              : 'Realized gross margins, inventory COGS, operational overhead, and net profit'}
           </p>
         </div>
 
@@ -73,7 +81,7 @@ export const AccountingDashboard = () => {
             onChange={(e) => setStartDate(e.target.value)}
             className="py-1.5 px-3 text-xs rounded-xl bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white font-mono"
           />
-          <span className="text-xs text-slate-400">হতে</span>
+          <span className="text-xs text-slate-400">{lang === 'bn' ? 'হতে' : 'to'}</span>
           <input
             type="date"
             value={endDate}
@@ -90,105 +98,135 @@ export const AccountingDashboard = () => {
           : 'bg-gradient-to-r from-rose-600 to-red-700 text-white border-rose-500'
       }`}>
         <div className="space-y-1 text-center md:text-left">
-          <span className="text-xs font-bold uppercase tracking-widest text-emerald-100">
-            নির্বাচিত সময়কালের প্রকৃত নিট লাভ / ক্ষতি (Net Profit & Loss)
+          <span className="text-xs font-bold uppercase tracking-widest text-emerald-100 opacity-90">
+            {lang === 'bn' ? 'নির্বাচিত সময়কালের প্রকৃত নিট লাভ / ক্ষতি (Net Profit & Loss)' : 'Selected Period Realized Net Profit / Loss'}
           </span>
           <div className="text-4xl md:text-5xl font-black tracking-tight">
             {formatCurrency(summary?.net_profit)}
           </div>
-          <p className="text-xs text-emerald-100/80">
-            গ্রস প্রফিট ৳{Number(summary?.gross_profit).toLocaleString()} হতে মোট পরিচালন ব্যয় ৳{Number(summary?.total_expenses).toLocaleString()} বাদ দেওয়ার পর
+          <p className="text-xs text-emerald-100/90">
+            {lang === 'bn'
+              ? `গ্রস প্রফিট ৳${Number(summary?.gross_profit).toLocaleString()} হতে মোট ব্যয় ৳${Number(summary?.total_expenses).toLocaleString()} বাদ দেওয়ার পর`
+              : `Calculated as Gross Profit ৳${Number(summary?.gross_profit).toLocaleString()} minus total expenses ৳${Number(summary?.total_expenses).toLocaleString()}`}
           </p>
         </div>
 
         <div className="flex items-center gap-3">
           <Link
-            to="/reports"
-            className="py-3 px-6 rounded-2xl font-bold text-xs bg-white text-emerald-800 hover:bg-emerald-50 shadow-md transition"
+            to="/cash-flow"
+            className="py-2.5 px-5 rounded-2xl bg-white text-slate-900 font-bold text-xs hover:bg-slate-100 transition shadow-md"
           >
-            পূর্ণাঙ্গ আর্থিক রিপোর্ট দেখুন
+            {t('cashFlow')}
+          </Link>
+          <Link
+            to="/reports"
+            className="py-2.5 px-5 rounded-2xl bg-black/20 hover:bg-black/30 text-white font-bold text-xs backdrop-blur-md transition"
+          >
+            {t('reports')}
           </Link>
         </div>
       </div>
 
-      {/* Financial Breakdown Grid */}
+      {/* Core Breakdown KPI Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Gross Revenue */}
         <div className="p-5 rounded-2xl bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 shadow-card">
-          <span className="text-xs font-semibold text-slate-400 block">মোট বিক্রয় মূল্য (Gross Sales)</span>
-          <div className="text-xl font-black text-slate-900 dark:text-white mt-1">
-            {formatCurrency(summary?.gross_sales)}
+          <div className="flex items-center justify-between text-slate-500">
+            <span className="text-xs font-semibold">{lang === 'bn' ? 'মোট বিক্রয় রাজস্ব (Revenue)' : 'Total Sales Revenue'}</span>
+            <DollarSign className="w-4 h-4 text-indigo-500" />
           </div>
-          <span className="text-[11px] text-slate-400 mt-1 block">ছাড়ের পূর্বে তালিকাভুক্ত মূল্য</span>
+          <div className="text-2xl font-black text-slate-900 dark:text-white mt-2">
+            {formatCurrency(summary?.total_sales_revenue)}
+          </div>
+          <span className="text-[11px] text-slate-400 mt-1 block">
+            {lang === 'bn' ? 'গ্রাহকদের মোট বিলিং' : 'Gross customer checkout volume'}
+          </span>
         </div>
 
-        {/* Total COGS */}
         <div className="p-5 rounded-2xl bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 shadow-card">
-          <span className="text-xs font-semibold text-slate-400 block">বিক্রিত পণ্যের ক্রয়মূল্য (COGS)</span>
-          <div className="text-xl font-black text-amber-600 mt-1">
+          <div className="flex items-center justify-between text-slate-500">
+            <span className="text-xs font-semibold">{lang === 'bn' ? 'বিক্রিত পণ্যের কেনা দর (COGS)' : 'Cost of Goods Sold (COGS)'}</span>
+            <Wallet className="w-4 h-4 text-amber-500" />
+          </div>
+          <div className="text-2xl font-black text-slate-900 dark:text-white mt-2">
             {formatCurrency(summary?.total_cogs)}
           </div>
-          <span className="text-[11px] text-slate-400 mt-1 block">বিক্রিত মালের কেনা খরচ</span>
+          <span className="text-[11px] text-slate-400 mt-1 block">
+            {lang === 'bn' ? 'ঐতিহাসিক ক্রয়মূল্য' : 'Cost of products invoiced'}
+          </span>
         </div>
 
-        {/* Gross Profit */}
         <div className="p-5 rounded-2xl bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 shadow-card">
-          <span className="text-xs font-semibold text-slate-400 block">মোট মোট লাভ (Gross Profit)</span>
-          <div className="text-xl font-black text-indigo-600 dark:text-indigo-400 mt-1">
-            {formatCurrency(summary?.gross_profit)}
+          <div className="flex items-center justify-between text-slate-500">
+            <span className="text-xs font-semibold">{lang === 'bn' ? 'মোট পরিচালন ব্যয় (Expenses)' : 'Operating Expenses'}</span>
+            <ArrowDownRight className="w-4 h-4 text-rose-500" />
           </div>
-          <span className="text-[11px] text-slate-400 mt-1 block">নিট বিক্রয় - পণ্যের ক্রয়মূল্য</span>
-        </div>
-
-        {/* Operating Expenses */}
-        <div className="p-5 rounded-2xl bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 shadow-card">
-          <span className="text-xs font-semibold text-slate-400 block">মোট পরিচালন ব্যয় (Expenses)</span>
-          <div className="text-xl font-black text-rose-600 mt-1">
+          <div className="text-2xl font-black text-rose-600 dark:text-rose-400 mt-2">
             {formatCurrency(summary?.total_expenses)}
           </div>
-          <span className="text-[11px] text-slate-400 mt-1 block">ভাড়া, বিদ্যুৎ, স্টাফ বেতন ইত্যাদি</span>
+          <span className="text-[11px] text-slate-400 mt-1 block">
+            {lang === 'bn' ? 'ভাড়া, বিল, বেতন ইত্যাদি' : 'Rent, utility, wages, logistics'}
+          </span>
+        </div>
+
+        <div className="p-5 rounded-2xl bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 shadow-card">
+          <div className="flex items-center justify-between text-slate-500">
+            <span className="text-xs font-semibold">{lang === 'bn' ? 'গ্রস মার্জিন (Gross Profit)' : 'Gross Profit Margin'}</span>
+            <ArrowUpRight className="w-4 h-4 text-emerald-500" />
+          </div>
+          <div className="text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-2">
+            {formatCurrency(summary?.gross_profit)}
+          </div>
+          <span className="text-[11px] text-emerald-500 mt-1 block font-semibold">
+            {lang === 'bn' ? 'বিক্রয় হতে সরাসরি লাভ' : 'Revenue minus product COGS'}
+          </span>
         </div>
       </div>
 
-      {/* Receivables & Payables Row */}
+      {/* Due Ledger Cards: Customers & Suppliers */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Customer Due (Receivable) */}
-        <div className="p-6 rounded-3xl bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 shadow-card flex items-center justify-between">
-          <div>
-            <div className="flex items-center gap-2 text-rose-600 font-bold text-xs uppercase tracking-wider">
-              <Users className="w-4 h-4" />
-              <span>মোট গ্রাহক বাকি (Customer Due)</span>
+        <div className="p-6 rounded-3xl bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 shadow-card space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Users className="w-5 h-5 text-indigo-600" />
+              <h2 className="text-sm font-bold text-slate-900 dark:text-white">
+                {lang === 'bn' ? 'গ্রাহকদের কাছে মোট বকেয়া (Receivable)' : 'Customer Receivables (Due)'}
+              </h2>
             </div>
-            <div className="text-2xl font-black text-rose-600 mt-2">
-              {formatCurrency(summary?.total_customer_due)}
-            </div>
-            <p className="text-xs text-slate-400 mt-1">দোকানের পাওনা বকেয়া টাকা</p>
+            <span className="text-lg font-black text-rose-600 dark:text-rose-400">
+              {formatCurrency(summary?.customer_due)}
+            </span>
           </div>
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            {lang === 'bn' ? 'বিভিন্ন বাকি বিক্রয় বাবদ গ্রাহকদের নিকট পাওনা মোট টাকার পরিমাণ।' : 'Outstanding amount owed by customers for credit sales.'}
+          </p>
           <Link
-            to="/customers?has_due=1"
-            className="py-2 px-4 rounded-xl font-bold text-xs bg-rose-50 dark:bg-rose-950 text-rose-700 dark:text-rose-300 hover:bg-rose-100 transition"
+            to="/customers"
+            className="inline-block py-2 px-4 rounded-xl text-xs font-bold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 transition"
           >
-            বকেয়া তালিকা
+            {lang === 'bn' ? 'বকেয়া গ্রাহক তালিকা দেখুন →' : 'View Customer Dues →'}
           </Link>
         </div>
 
-        {/* Supplier Due (Payable) */}
-        <div className="p-6 rounded-3xl bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 shadow-card flex items-center justify-between">
-          <div>
-            <div className="flex items-center gap-2 text-amber-600 font-bold text-xs uppercase tracking-wider">
-              <Truck className="w-4 h-4" />
-              <span>সরবরাহকারী দেনা (Supplier Payable)</span>
+        <div className="p-6 rounded-3xl bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 shadow-card space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Truck className="w-5 h-5 text-amber-600" />
+              <h2 className="text-sm font-bold text-slate-900 dark:text-white">
+                {lang === 'bn' ? 'সরবরাহকারীদের দেনা (Payable)' : 'Supplier Payables (Due)'}
+              </h2>
             </div>
-            <div className="text-2xl font-black text-amber-600 mt-2">
-              {formatCurrency(summary?.total_supplier_due)}
-            </div>
-            <p className="text-xs text-slate-400 mt-1">দোকানের পক্ষ থেকে পরিশোধযোগ্য দেনা</p>
+            <span className="text-lg font-black text-amber-600 dark:text-amber-400">
+              {formatCurrency(summary?.supplier_due)}
+            </span>
           </div>
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            {lang === 'bn' ? 'পাইকারি মালামাল ক্রয় বাবদ বিভিন্ন সরবরাহকারী প্রতিষ্ঠানের পাওনা টাকা।' : 'Outstanding payable to vendors and suppliers for stock purchases.'}
+          </p>
           <Link
             to="/suppliers"
-            className="py-2 px-4 rounded-xl font-bold text-xs bg-amber-50 dark:bg-amber-950 text-amber-800 dark:text-amber-300 hover:bg-amber-100 transition"
+            className="inline-block py-2 px-4 rounded-xl text-xs font-bold bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 hover:bg-amber-100 transition"
           >
-            সাপ্লায়ার দেনা
+            {lang === 'bn' ? 'সরবরাহকারী দেনা তালিকা দেখুন →' : 'View Supplier Payables →'}
           </Link>
         </div>
       </div>
@@ -196,3 +234,4 @@ export const AccountingDashboard = () => {
   );
 };
 
+export default AccountingDashboard;

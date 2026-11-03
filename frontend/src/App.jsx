@@ -77,16 +77,20 @@ export default function App() {
         {/* POS */}
         <Route path="pos" element={<PosTerminal />} />
 
-        {/* Products */}
+        {/* Products & Aliases */}
         <Route path="products" element={<ProductList />} />
         <Route path="products/new" element={<AddProduct />} />
         <Route path="products/edit/:id" element={<EditProduct />} />
         <Route path="products/:id/edit" element={<EditProduct />} />
         <Route path="products/:id" element={<ProductDetails />} />
         <Route path="products/categories" element={<Categories />} />
+        <Route path="categories" element={<Categories />} />
         <Route path="products/brands" element={<Brands />} />
+        <Route path="brands" element={<Brands />} />
         <Route path="products/units" element={<Units />} />
+        <Route path="units" element={<Units />} />
         <Route path="products/barcode-generator" element={<BarcodeGenerator />} />
+        <Route path="barcode-generator" element={<BarcodeGenerator />} />
 
         {/* Inventory */}
         <Route path="inventory" element={<InventoryOverview />} />
@@ -115,10 +119,12 @@ export default function App() {
         <Route path="expenses" element={<ExpenseList />} />
         <Route path="expenses/new" element={<AddExpense />} />
         <Route path="expenses/categories" element={<ExpenseCategories />} />
+        <Route path="expense-categories" element={<ExpenseCategories />} />
 
         {/* Accounting & Finance */}
         <Route path="accounting" element={<AccountingDashboard />} />
         <Route path="accounting/cash-flow" element={<CashFlow />} />
+        <Route path="cash-flow" element={<CashFlow />} />
         <Route path="reports" element={<Reports />} />
 
         {/* Administration */}

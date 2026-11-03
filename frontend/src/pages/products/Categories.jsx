@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../../context/LanguageContext';
 import { useToast } from '../../context/ToastContext';
-import { Layers, Plus, Edit, Trash2, Save, X } from 'lucide-react';
+import { Layers, Plus, Edit, Trash2, Save, X, Search, CheckCircle2 } from 'lucide-react';
 import api from '../../services/api';
 
 export const Categories = () => {
-  const { t } = useLanguage();
+  const { t, lang, formatNumber } = useLanguage();
   const { success, error } = useToast();
 
   const [categories, setCategories] = useState([]);
@@ -14,19 +14,21 @@ export const Categories = () => {
   const [code, setCode] = useState('');
   const [status, setStatus] = useState('active');
   const [editingId, setEditingId] = useState(null);
+  const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [deleteConfirmId, setDeleteConfirmId] = useState(null);
 
   useEffect(() => {
     fetchCategories();
-  }, []);
+  }, [lang]);
 
   const fetchCategories = async () => {
     try {
       const res = await api.get('/categories');
       setCategories(res.data || []);
     } catch (e) {
-      error('ক্যাটাগরি তালিকা লোড করতে সমস্যা হয়েছে।');
+      error(lang === 'bn' ? 'ক্যাটাগরি তালিকা লোড করতে সমস্যা হয়েছে।' : 'Failed to load categories.');
     } finally {
       setLoading(false);
     }
@@ -61,7 +63,7 @@ export const Categories = () => {
           code,
           status,
         });
-        success('ক্যাটাগরি সফলভাবে আপডেট করা হয়েছে!');
+        success(lang === 'bn' ? 'ক্যাটাগরি সফলভাবে আপডেট করা হয়েছে!' : 'Category updated successfully!');
       } else {
         await api.post('/categories', {
           name,
@@ -69,12 +71,12 @@ export const Categories = () => {
           code,
           status,
         });
-        success('নতুন ক্যাটাগরি তৈরি করা হয়েছে!');
+        success(lang === 'bn' ? 'নতুন ক্যাটাগরি তৈরি করা হয়েছে!' : 'New category created successfully!');
       }
       handleCancel();
       fetchCategories();
     } catch (err) {
-      error(err.response?.data?.message || 'সংরক্ষণ ব্যর্থ হয়েছে।');
+      error(err.response?.data?.message || (lang === 'bn' ? 'সংরক্ষণ ব্যর্থ হয়েছে।' : 'Failed to save.'));
     } finally {
       setIsSubmitting(false);
     }
@@ -83,31 +85,69 @@ export const Categories = () => {
   const handleDelete = async (id) => {
     try {
       await api.delete(`/categories/${id}`);
-      success('ক্যাটাগরি মুছে ফেলা হয়েছে।');
+      success(lang === 'bn' ? 'ক্যাটাগরি মুছে ফেলা হয়েছে।' : 'Category deleted successfully.');
+      setDeleteConfirmId(null);
       fetchCategories();
     } catch (err) {
-      error(err.response?.data?.message || 'মুছে ফেলতে ব্যর্থ হয়েছে।');
+      error(err.response?.data?.message || (lang === 'bn' ? 'মুছে ফেলতে ব্যর্থ হয়েছে।' : 'Failed to delete.'));
     }
   };
+
+  const filteredCategories = categories.filter((c) => {
+    if (!search) return true;
+    const q = search.toLowerCase();
+    return (
+      c.name?.toLowerCase().includes(q) ||
+      c.name_bn?.toLowerCase().includes(q) ||
+      c.code?.toLowerCase().includes(q)
+    );
+  });
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+        <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2.5">
+          <Layers className="w-7 h-7 text-indigo-600" />
           {t('categories')}
         </h1>
-        <p className="text-sm text-slate-500">পণ্য ক্যাটাগরি তৈরি ও পরিচালনা করুন</p>
+        <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+          {lang === 'bn' ? 'পণ্য ক্যাটাগরি তৈরি ও পরিচালনা করুন' : 'Create and manage product categories'}
+        </p>
       </div>
+
+      {deleteConfirmId && (
+        <div className="p-4 rounded-2xl bg-rose-50 dark:bg-rose-950/80 border border-rose-300 dark:border-rose-800 flex items-center justify-between">
+          <span className="text-xs font-bold text-rose-900 dark:text-rose-200">
+            {lang === 'bn' ? 'আপনি কি নিশ্চিতভাবে এই ক্যাটাগরি মুছে ফেলতে চান?' : 'Are you sure you want to delete this category?'}
+          </span>
+          <div className="flex gap-2">
+            <button
+              onClick={() => handleDelete(deleteConfirmId)}
+              className="py-1 px-3 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold transition"
+            >
+              {lang === 'bn' ? 'হ্যাঁ, মুছুন' : 'Yes, Delete'}
+            </button>
+            <button
+              onClick={() => setDeleteConfirmId(null)}
+              className="py-1 px-3 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-semibold"
+            >
+              {t('cancel')}
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Left: Dedicated Form Card (NO MODAL POLICY) */}
         <div className="lg:col-span-4 p-6 rounded-3xl bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 shadow-card space-y-4">
           <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
             <h2 className="text-sm font-bold text-slate-900 dark:text-white">
-              {editingId ? 'ক্যাটাগরি সম্পাদনা' : 'নতুন ক্যাটাগরি যোগ করুন'}
+              {editingId
+                ? (lang === 'bn' ? 'ক্যাটাগরি সম্পাদন' : 'Edit Category')
+                : (lang === 'bn' ? 'নতুন ক্যাটাগরি যোগ করুন' : 'Add New Category')}
             </h2>
             {editingId && (
-              <button onClick={handleCancel} className="text-slate-400 hover:text-slate-600">
+              <button onClick={handleCancel} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
                 <X className="w-4 h-4" />
               </button>
             )}
@@ -115,48 +155,56 @@ export const Categories = () => {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-1">
-              <label className="text-xs font-bold text-slate-700 dark:text-slate-300">নাম (English) *</label>
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                {lang === 'bn' ? 'নাম (English) *' : 'Name (English) *'}
+              </label>
               <input
                 type="text"
                 required
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="e.g. Mobile Accessories"
-                className="w-full py-2 px-3 text-xs rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white"
+                className="w-full py-2 px-3 text-xs rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs font-bold text-slate-700 dark:text-slate-300">নাম (বাংলা)</label>
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                {lang === 'bn' ? 'নাম (বাংলা)' : 'Name (Bangla)'}
+              </label>
               <input
                 type="text"
                 value={nameBn}
                 onChange={(e) => setNameBn(e.target.value)}
                 placeholder="যেমন: মোবাইল এক্সেসরিজ"
-                className="w-full py-2 px-3 text-xs rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white"
+                className="w-full py-2 px-3 text-xs rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs font-bold text-slate-700 dark:text-slate-300">কোড (ঐচ্ছিক)</label>
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                {lang === 'bn' ? 'কোড (ঐচ্ছিক)' : 'Code (Optional)'}
+              </label>
               <input
                 type="text"
                 value={code}
                 onChange={(e) => setCode(e.target.value)}
                 placeholder="e.g. CAT-MOB"
-                className="w-full py-2 px-3 text-xs font-mono rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white"
+                className="w-full py-2 px-3 text-xs font-mono rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs font-bold text-slate-700 dark:text-slate-300">অবস্থা (Status)</label>
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                {t('status')}
+              </label>
               <select
                 value={status}
                 onChange={(e) => setStatus(e.target.value)}
-                className="w-full py-2 px-3 text-xs rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white"
+                className="w-full py-2 px-3 text-xs rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
               >
-                <option value="active">সক্রিয় (Active)</option>
-                <option value="inactive">নিষ্ক্রিয় (Inactive)</option>
+                <option value="active">{t('active')}</option>
+                <option value="inactive">{t('inactive')}</option>
               </select>
             </div>
 
@@ -164,18 +212,22 @@ export const Categories = () => {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="flex-1 py-2.5 px-4 rounded-xl font-bold text-xs bg-indigo-600 hover:bg-indigo-700 text-white shadow-md flex items-center justify-center gap-1.5 transition"
+                className="flex-1 py-2.5 px-4 rounded-xl font-bold text-xs bg-indigo-600 hover:bg-indigo-700 text-white shadow-md flex items-center justify-center gap-1.5 transition disabled:opacity-60"
               >
                 <Save className="w-3.5 h-3.5" />
-                <span>{editingId ? 'আপডেট করুন' : 'যোগ করুন'}</span>
+                <span>
+                  {editingId
+                    ? (lang === 'bn' ? 'আপডেট করুন' : 'Update')
+                    : (lang === 'bn' ? 'যোগ করুন' : 'Add Category')}
+                </span>
               </button>
               {editingId && (
                 <button
                   type="button"
                   onClick={handleCancel}
-                  className="py-2.5 px-3 rounded-xl text-xs font-bold border border-slate-200 dark:border-slate-700 text-slate-600"
+                  className="py-2.5 px-3 rounded-xl text-xs font-bold border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100"
                 >
-                  বাতিল
+                  {t('cancel')}
                 </button>
               )}
             </div>
@@ -184,63 +236,93 @@ export const Categories = () => {
 
         {/* Right: Categories Table */}
         <div className="lg:col-span-8 rounded-3xl bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 shadow-card overflow-hidden">
-          <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+          <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-              মোট {categories.length} টি ক্যাটাগরি
+              {lang === 'bn' ? `মোট ${formatNumber(categories.length)} টি ক্যাটাগরি` : `Total ${formatNumber(categories.length)} Categories`}
             </span>
+            <div className="relative w-full sm:w-56">
+              <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                placeholder={lang === 'bn' ? 'ক্যাটাগরি খুঁজুন...' : 'Search categories...'}
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full pl-8 pr-3 py-1.5 text-xs rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+            </div>
           </div>
 
-          <table className="w-full text-left text-xs border-collapse">
-            <thead>
-              <tr className="bg-slate-50 dark:bg-slate-800 text-slate-500 font-bold uppercase border-b border-slate-200 dark:border-slate-700">
-                <th className="p-3.5">নাম</th>
-                <th className="p-3.5">কোড</th>
-                <th className="p-3.5 text-center">পণ্য সংখ্যা</th>
-                <th className="p-3.5 text-center">অবস্থা</th>
-                <th className="p-3.5 text-right">পদক্ষেপ</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-              {loading ? (
-                <tr><td colSpan="5" className="p-6 text-center text-slate-400">লোড হচ্ছে...</td></tr>
-              ) : categories.length === 0 ? (
-                <tr><td colSpan="5" className="p-6 text-center text-slate-400">কোনো ক্যাটাগরি নেই।</td></tr>
-              ) : (
-                categories.map((c) => (
-                  <tr key={c.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
-                    <td className="p-3.5">
-                      <div className="font-bold text-slate-900 dark:text-white">{c.name}</div>
-                      {c.name_bn && <div className="text-[11px] text-slate-400">{c.name_bn}</div>}
-                    </td>
-                    <td className="p-3.5 font-mono text-slate-500">{c.code || '—'}</td>
-                    <td className="p-3.5 text-center font-bold text-indigo-600">{c.products_count}</td>
-                    <td className="p-3.5 text-center">
-                      <span className={`inline-block w-2 h-2 rounded-full ${c.status === 'active' ? 'bg-emerald-500' : 'bg-slate-300'}`} />
-                    </td>
-                    <td className="p-3.5 text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <button
-                          onClick={() => handleEditClick(c)}
-                          className="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(c.id)}
-                          className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="bg-slate-50 dark:bg-slate-800 text-slate-500 font-bold uppercase border-b border-slate-200 dark:border-slate-700">
+                  <th className="p-3.5">{lang === 'bn' ? 'ক্যাটাগরি নাম' : 'Category Name'}</th>
+                  <th className="p-3.5">{lang === 'bn' ? 'কোড' : 'Code'}</th>
+                  <th className="p-3.5 text-center">{lang === 'bn' ? 'পণ্য সংখ্যা' : 'Products'}</th>
+                  <th className="p-3.5 text-center">{t('status')}</th>
+                  <th className="p-3.5 text-right">{t('actions')}</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                {loading ? (
+                  <tr>
+                    <td colSpan="5" className="p-8 text-center text-slate-400">
+                      {t('loading')}
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : filteredCategories.length === 0 ? (
+                  <tr>
+                    <td colSpan="5" className="p-8 text-center text-slate-400">
+                      {t('noData')}
+                    </td>
+                  </tr>
+                ) : (
+                  filteredCategories.map((cat) => (
+                    <tr key={cat.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition">
+                      <td className="p-3.5 font-bold text-slate-900 dark:text-white">
+                        <div>{cat.name}</div>
+                        {cat.name_bn && <div className="text-[11px] font-normal text-slate-400">{cat.name_bn}</div>}
+                      </td>
+                      <td className="p-3.5 font-mono text-slate-500">
+                        {cat.code || '—'}
+                      </td>
+                      <td className="p-3.5 text-center font-bold text-indigo-600">
+                        {cat.products_count || 0}
+                      </td>
+                      <td className="p-3.5 text-center">
+                        <span
+                          className={`inline-block w-2 h-2 rounded-full ${
+                            cat.status === 'active' ? 'bg-emerald-500' : 'bg-slate-400'
+                          }`}
+                        />
+                      </td>
+                      <td className="p-3.5 text-right">
+                        <div className="flex items-center justify-end gap-1.5">
+                          <button
+                            onClick={() => handleEditClick(cat)}
+                            className="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-slate-800 rounded-lg transition"
+                            title={t('edit')}
+                          >
+                            <Edit className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => setDeleteConfirmId(cat.id)}
+                            className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-slate-800 rounded-lg transition"
+                            title={t('delete')}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>
   );
 };
-
+export default Categories;

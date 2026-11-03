@@ -1,12 +1,42 @@
-import React, { useState } from 'react';
-import { Outlet, Navigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Outlet, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { Sidebar } from './Sidebar';
 import { TopNavbar } from './TopNavbar';
 
 export const AppLayout = () => {
-  const { isAuthenticated, loading } = useAuth();
+  const { user, isAuthenticated, loading } = useAuth();
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  // Strict Role Redirection & Guard
+  useEffect(() => {
+    if (!loading && isAuthenticated && user) {
+      const roleSlug = user?.role?.slug;
+      const path = location.pathname;
+
+      // Cashier is strictly restricted to POS, Sales, Customers, and Profile
+      if (roleSlug === 'cashier') {
+        const allowedPaths = ['/pos', '/sales', '/customers', '/profile'];
+        const isAllowed = allowedPaths.some((p) => path.startsWith(p));
+        if (!isAllowed) {
+          navigate('/pos', { replace: true });
+        }
+      }
+
+      // Store Manager cannot access Employees, Activity Logs, or System Settings
+      if (roleSlug === 'manager' || roleSlug === 'store-manager') {
+        if (
+          path.startsWith('/employees') ||
+          path.startsWith('/activity-logs') ||
+          path.startsWith('/settings')
+        ) {
+          navigate('/dashboard', { replace: true });
+        }
+      }
+    }
+  }, [loading, isAuthenticated, user, location.pathname, navigate]);
 
   if (loading) {
     return (
@@ -14,7 +44,7 @@ export const AppLayout = () => {
         <div className="flex flex-col items-center gap-3">
           <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
           <span className="text-xs font-semibold text-slate-500 tracking-wide">
-            ইসরাফিল বিডি শপ লোড হচ্ছে...
+            ISRAFIL BD SHOP...
           </span>
         </div>
       </div>
@@ -36,7 +66,7 @@ export const AppLayout = () => {
           isCollapsed ? 'pl-20' : 'pl-72'
         }`}
       >
-        <div className="p-6 md:p-8 max-w-7xl mx-auto">
+        <div className="p-4 sm:p-6 md:p-8 max-w-7xl mx-auto">
           <Outlet />
         </div>
       </main>
@@ -44,3 +74,4 @@ export const AppLayout = () => {
   );
 };
 
+export default AppLayout;

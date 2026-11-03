@@ -143,6 +143,16 @@ class ProductController extends Controller
     {
         $product = Product::findOrFail($id);
 
+        if ($request->input('brand_id') === '' || $request->input('brand_id') === 'null') {
+            $request->merge(['brand_id' => null]);
+        }
+        if ($request->input('wholesale_price') === '' || $request->input('wholesale_price') === 'null') {
+            $request->merge(['wholesale_price' => null]);
+        }
+        if ($request->input('description') === '' || $request->input('description') === 'null') {
+            $request->merge(['description' => null]);
+        }
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'name_bn' => 'nullable|string|max:255',
