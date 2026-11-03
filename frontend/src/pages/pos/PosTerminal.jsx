@@ -30,6 +30,7 @@ import {
   Package,
 } from 'lucide-react';
 import api from '../../services/api';
+import { playBarcodeBeep, playCheckoutSuccessSound } from '../../utils/sound';
 
 export const PosTerminal = () => {
   const { t, lang, formatCurrency, formatNumber } = useLanguage();
@@ -96,6 +97,7 @@ export const PosTerminal = () => {
     try {
       const res = await api.get(`/products/barcode/${encodeURIComponent(code)}`);
       addToCart(res.data);
+      playBarcodeBeep(0.3);
       setBarcodeInput('');
     } catch (err) {
       error(
@@ -241,6 +243,7 @@ export const PosTerminal = () => {
 
       const res = await api.post('/pos/checkout', payload);
       setCompletedSale(res.data.sale);
+      playCheckoutSuccessSound(0.35);
       success(t('invoiceSuccess'));
       clearCart();
     } catch (err) {

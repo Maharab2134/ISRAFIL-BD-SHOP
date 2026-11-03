@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
 import { CheckCircle2, AlertTriangle, XCircle, Info, X } from 'lucide-react';
+import { playNotificationChime } from '../utils/sound';
 
 const ToastContext = createContext();
 
@@ -9,6 +10,14 @@ export const ToastProvider = ({ children }) => {
   const addToast = useCallback((message, type = 'success', duration = 4000) => {
     const id = Date.now() + Math.random().toString(36).substring(2, 7);
     setToasts((prev) => [...prev, { id, message, type, duration }]);
+
+    if (type === 'error' || type === 'warning') {
+      try {
+        if (localStorage.getItem('israfil_sound_enabled') !== 'false') {
+          playNotificationChime(0.25);
+        }
+      } catch (e) {}
+    }
 
     setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== id));
