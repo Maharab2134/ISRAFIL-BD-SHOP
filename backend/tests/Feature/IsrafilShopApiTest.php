@@ -123,6 +123,48 @@ class IsrafilShopApiTest extends TestCase
         $this->assertEquals($stockBefore - 2, (float) $product->current_stock);
     }
 
+    public function test_product_auto_discount_in_pos_checkout()
+    {
+        $user = User::where('email', 'cashier@israfilbd.com')->first();
+        $unit = \App\Models\Unit::first();
+        $cat = \App\Models\Category::first();
+
+        $discountedProduct = Product::create([
+            'name' => 'Auto Discount Product',
+            'barcode' => '894999999001',
+            'sku' => 'DISC-001',
+            'category_id' => $cat->id,
+            'unit_id' => $unit->id,
+            'purchase_price' => 200,
+            'selling_price' => 500,
+            'current_stock' => 10,
+            'alert_stock' => 2,
+            'discount_type' => 'percentage',
+            'discount_value' => 20, // 20% of 500 = 100 discount per unit
+        ]);
+
+        $payload = [
+            'customer_name' => 'Discount Buyer',
+            'items' => [
+                [
+                    'product_id' => $discountedProduct->id,
+                    'quantity' => 1,
+                ]
+            ],
+            'paid_amount' => 400,
+            'payment_method' => 'cash',
+        ];
+
+        $response = $this->actingAs($user, 'sanctum')
+            ->postJson('/api/pos/checkout', $payload);
+
+        $response->assertStatus(201)
+            ->assertJsonPath('sale.product_discount_total', '100.00')
+            ->assertJsonPath('sale.grand_total', '400.00');
+
+        $discountedProduct->delete();
+    }
+
     public function test_inventory_overview()
     {
         $user = User::where('email', 'admin@israfilbd.com')->first();

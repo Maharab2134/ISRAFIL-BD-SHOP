@@ -77,8 +77,20 @@ class PosService
 
                 $unitPrice = (float) ($item['unit_price'] ?? $product->selling_price);
                 $purchaseCost = (float) $product->purchase_price;
-                $itemDiscount = (float) ($item['discount_amount'] ?? 0);
-                $itemSubtotal = ($unitPrice * $qty) - $itemDiscount;
+                
+                $itemDiscount = isset($item['discount_amount']) ? (float) $item['discount_amount'] : null;
+                if ($itemDiscount === null || $itemDiscount <= 0) {
+                    if ((float) ($product->discount_value ?? 0) > 0) {
+                        if ($product->discount_type === 'percentage') {
+                            $itemDiscount = round((($unitPrice * $qty) * (float) $product->discount_value) / 100, 2);
+                        } else {
+                            $itemDiscount = round((float) $product->discount_value * $qty, 2);
+                        }
+                    } else {
+                        $itemDiscount = 0.0;
+                    }
+                }
+                $itemSubtotal = max(0, ($unitPrice * $qty) - $itemDiscount);
                 
                 // Item tax
                 $taxPercent = (float) ($product->tax_percent ?? 0);

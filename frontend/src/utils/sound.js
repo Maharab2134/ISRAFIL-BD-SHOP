@@ -126,3 +126,4 @@ export const playCheckoutSuccessSound = (volume = 0.3) => {
     console.debug('Checkout sound error:', e);
   }
 };
+

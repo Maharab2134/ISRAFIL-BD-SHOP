@@ -128,11 +128,29 @@ export const ProductDetails = () => {
 
             <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800">
               <span className="text-[11px] text-slate-400 block">
-                {lang === 'bn' ? 'বিক্রয় মূল্য' : 'Selling Price'}
+                {lang === 'bn' ? 'বিক্রয় মূল্য ও ডিসকাউন্ট' : 'Selling Price & Discount'}
               </span>
-              <span className="text-lg font-bold text-emerald-600">
-                {formatCurrency(product.selling_price)}
-              </span>
+              <div className="flex items-baseline gap-2">
+                <span className="text-lg font-bold text-emerald-600">
+                  {product.discount_type && Number(product.discount_value) > 0
+                    ? formatCurrency(
+                        product.discount_type === 'percentage'
+                          ? Math.max(0, product.selling_price - (product.selling_price * product.discount_value) / 100)
+                          : Math.max(0, product.selling_price - product.discount_value)
+                      )
+                    : formatCurrency(product.selling_price)}
+                </span>
+                {product.discount_type && Number(product.discount_value) > 0 && (
+                  <span className="text-xs text-slate-400 line-through">
+                    {formatCurrency(product.selling_price)}
+                  </span>
+                )}
+              </div>
+              {product.discount_type && Number(product.discount_value) > 0 && (
+                <span className="inline-block mt-1 px-2 py-0.5 rounded-md bg-rose-100 dark:bg-rose-950 text-rose-600 font-bold text-[10px]">
+                  🏷️ {lang === 'bn' ? 'পিওএস স্বয়ংক্রিয় ছাড়:' : 'POS Auto Discount:'} {product.discount_type === 'percentage' ? `${product.discount_value}%` : `৳${product.discount_value}`}
+                </span>
+              )}
             </div>
 
             <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800">

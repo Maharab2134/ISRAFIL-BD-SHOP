@@ -109,6 +109,33 @@ export const PosTerminal = () => {
     }
   };
 
+  // Helper to extract product discount info (configured during Add/Edit Product)
+  const getProductDiscountInfo = (product) => {
+    const sp = Number(product.selling_price) || 0;
+    const type = product.discount_type;
+    const val = Number(product.discount_value) || 0;
+    if (!type || type === 'none' || val <= 0) {
+      return { hasDiscount: false, discountAmount: 0, finalPrice: sp, badge: null };
+    }
+    let discountAmt = 0;
+    let badge = '';
+    if (type === 'percentage') {
+      discountAmt = (sp * val) / 100;
+      badge = `-${val}%`;
+    } else {
+      discountAmt = Math.min(sp, val);
+      badge = `-৳${val}`;
+    }
+    return {
+      hasDiscount: true,
+      discountAmount: discountAmt,
+      finalPrice: Math.max(0, sp - discountAmt),
+      badge,
+      type,
+      rate: val,
+    };
+  };
+
   // Cart Operations
   const addToCart = (product) => {
     if (Number(product.current_stock) <= 0) {
@@ -118,6 +145,9 @@ export const PosTerminal = () => {
           : `Warning: '${product.name}' is currently out of stock!`
       );
     }
+
+    const discountInfo = getProductDiscountInfo(product);
+    const unitDiscount = discountInfo.discountAmount;
 
     setCart((prev) => {
       const existing = prev.find((item) => item.product_id === product.id);
@@ -129,8 +159,12 @@ export const PosTerminal = () => {
               : `Limited stock remaining for '${product.name}' (${product.current_stock})`
           );
         }
+        const newQty = existing.quantity + 1;
+        const newDiscountAmt = (existing.unit_discount || 0) * newQty;
         return prev.map((item) =>
-          item.product_id === product.id ? { ...item, quantity: item.quantity + 1 } : item
+          item.product_id === product.id
+            ? { ...item, quantity: newQty, discount_amount: newDiscountAmt }
+            : item
         );
       } else {
         return [
@@ -145,7 +179,12 @@ export const PosTerminal = () => {
             tax_percent: Number(product.tax_percent || 0),
             unit: lang === 'bn' ? (product.unit?.name_bn || 'পিস') : (product.unit?.name || 'pcs'),
             quantity: 1,
-            discount_amount: 0,
+            discount_type: product.discount_type || 'fixed',
+            discount_value: Number(product.discount_value) || 0,
+            unit_discount: unitDiscount,
+            discount_amount: unitDiscount * 1, // Auto-applied from Add/Edit product!
+            has_discount: discountInfo.hasDiscount,
+            discount_badge: discountInfo.badge,
             current_stock: Number(product.current_stock),
             image_url: product.image_url,
           },
@@ -160,7 +199,9 @@ export const PosTerminal = () => {
         .map((item) => {
           if (item.product_id === productId) {
             const newQty = item.quantity + delta;
-            return newQty > 0 ? { ...item, quantity: newQty } : null;
+            if (newQty <= 0) return null;
+            const newDiscountAmt = (item.unit_discount || 0) * newQty;
+            return { ...item, quantity: newQty, discount_amount: newDiscountAmt };
           }
           return item;
         })
@@ -171,7 +212,13 @@ export const PosTerminal = () => {
   const setExplicitQuantity = (productId, qty) => {
     const parsed = Math.max(1, parseInt(qty, 10) || 1);
     setCart((prev) =>
-      prev.map((item) => (item.product_id === productId ? { ...item, quantity: parsed } : item))
+      prev.map((item) => {
+        if (item.product_id === productId) {
+          const newDiscountAmt = (item.unit_discount || 0) * parsed;
+          return { ...item, quantity: parsed, discount_amount: newDiscountAmt };
+        }
+        return item;
+      })
     );
   };
 
@@ -189,17 +236,19 @@ export const PosTerminal = () => {
 
   // Financial Calculations
   const subtotal = cart.reduce((acc, item) => acc + item.unit_price * item.quantity, 0);
+  const totalItemDiscount = cart.reduce((acc, item) => acc + (item.discount_amount || 0), 0);
   const totalTax = cart.reduce(
-    (acc, item) => acc + (item.unit_price * item.quantity * item.tax_percent) / 100,
+    (acc, item) =>
+      acc + (((item.unit_price * item.quantity) - (item.discount_amount || 0)) * item.tax_percent) / 100,
     0
   );
 
-  let discountAmount = Number(orderDiscountValue) || 0;
-  if (orderDiscountType === 'percentage' && discountAmount > 0) {
-    discountAmount = (subtotal * discountAmount) / 100;
+  let orderDiscountAmount = Number(orderDiscountValue) || 0;
+  if (orderDiscountType === 'percentage' && orderDiscountAmount > 0) {
+    orderDiscountAmount = (Math.max(0, subtotal - totalItemDiscount) * orderDiscountAmount) / 100;
   }
 
-  const grandTotal = Math.max(0, subtotal - discountAmount + totalTax);
+  const grandTotal = Math.max(0, subtotal - totalItemDiscount - orderDiscountAmount + totalTax);
   const numericTendered = tenderedAmount === '' ? grandTotal : Number(tenderedAmount);
   const changeAmount = Math.max(0, numericTendered - grandTotal);
   const dueAmount = Math.max(0, grandTotal - numericTendered);
@@ -231,11 +280,12 @@ export const PosTerminal = () => {
           product_id: item.product_id,
           quantity: item.quantity,
           unit_price: item.unit_price,
-          discount_amount: item.discount_amount,
+          discount_type: item.discount_type || 'fixed',
+          discount_amount: item.discount_amount || 0,
         })),
         discount_type: orderDiscountType,
         discount_rate: orderDiscountType === 'percentage' ? orderDiscountValue : 0,
-        discount_amount: discountAmount,
+        discount_amount: orderDiscountAmount,
         paid_amount: numericTendered,
         payment_method: paymentMethod,
         transaction_reference: txReference,
@@ -672,6 +722,7 @@ export const PosTerminal = () => {
                   const stock = Number(prod.current_stock);
                   const isOutOfStock = stock <= 0;
                   const isLowStock = stock <= Number(prod.alert_stock);
+                  const discountInfo = getProductDiscountInfo(prod);
 
                   return (
                     <div
@@ -705,6 +756,14 @@ export const PosTerminal = () => {
                           </span>
                         </div>
 
+                        {/* Product Auto Discount Badge at Top-Left */}
+                        {discountInfo.hasDiscount && (
+                          <span className="absolute top-1.5 left-1.5 px-2 py-0.5 rounded-lg text-[10px] font-black bg-rose-500 text-white shadow-sm flex items-center gap-1 backdrop-blur-md animate-pulse">
+                            <Tag className="w-2.5 h-2.5" />
+                            <span>{discountInfo.badge}</span>
+                          </span>
+                        )}
+
                         {/* Stock Status Badge at Top-Right */}
                         <span
                           className={`absolute top-1.5 right-1.5 px-2 py-0.5 rounded-lg text-[10px] font-bold shadow-sm backdrop-blur-md ${
@@ -732,9 +791,16 @@ export const PosTerminal = () => {
 
                       {/* Price & Add Action */}
                       <div className="mt-2.5 pt-2 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between">
-                        <span className="text-sm font-black text-indigo-600 dark:text-indigo-400">
-                          {formatCurrency(prod.selling_price)}
-                        </span>
+                        <div>
+                          <div className="text-sm font-black text-indigo-600 dark:text-indigo-400">
+                            {formatCurrency(discountInfo.finalPrice)}
+                          </div>
+                          {discountInfo.hasDiscount && (
+                            <div className="text-[10px] text-slate-400 line-through">
+                              {formatCurrency(prod.selling_price)}
+                            </div>
+                          )}
+                        </div>
                         <button
                           type="button"
                           className="w-7 h-7 rounded-xl bg-indigo-50 dark:bg-indigo-950/80 text-indigo-600 dark:text-indigo-300 flex items-center justify-center group-hover:bg-indigo-600 group-hover:text-white transition shadow-sm"
@@ -812,8 +878,14 @@ export const PosTerminal = () => {
                       <div className="font-bold text-slate-900 dark:text-white line-clamp-1">
                         {lang === 'bn' ? (item.name_bn || item.name) : item.name}
                       </div>
-                      <div className="text-[11px] text-slate-400">
-                        {formatCurrency(item.unit_price)} × {item.quantity} {item.unit}
+                      <div className="text-[11px] text-slate-400 flex items-center gap-1.5 flex-wrap">
+                        <span>{formatCurrency(item.unit_price)} × {item.quantity} {item.unit}</span>
+                        {item.discount_amount > 0 && (
+                          <span className="px-1.5 py-0.2 rounded bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 font-bold text-[10px] flex items-center gap-0.5">
+                            <Tag className="w-2.5 h-2.5" />
+                            <span>-{formatCurrency(item.discount_amount)} {item.discount_badge ? `(${item.discount_badge})` : ''}</span>
+                          </span>
+                        )}
                       </div>
                     </div>
 
@@ -842,8 +914,15 @@ export const PosTerminal = () => {
                       </button>
                     </div>
 
-                    <div className="w-16 text-right font-black text-slate-900 dark:text-white">
-                      {formatCurrency(item.unit_price * item.quantity)}
+                    <div className="w-20 text-right">
+                      <div className="font-black text-slate-900 dark:text-white">
+                        {formatCurrency(item.unit_price * item.quantity - (item.discount_amount || 0))}
+                      </div>
+                      {item.discount_amount > 0 && (
+                        <div className="text-[10px] text-slate-400 line-through">
+                          {formatCurrency(item.unit_price * item.quantity)}
+                        </div>
+                      )}
                     </div>
 
                     <button
@@ -866,9 +945,20 @@ export const PosTerminal = () => {
                 <span className="font-semibold text-slate-800 dark:text-slate-200">{formatCurrency(subtotal)}</span>
               </div>
 
+              {/* Product Auto Discounts from Add/Edit Product */}
+              {totalItemDiscount > 0 && (
+                <div className="flex justify-between text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-50/70 dark:bg-emerald-950/30 px-2.5 py-1 rounded-xl border border-emerald-200/60 dark:border-emerald-800/40">
+                  <span className="flex items-center gap-1">
+                    <Tag className="w-3 h-3" />
+                    <span>{lang === 'bn' ? 'পণ্য বিশেষ ছাড় (Auto Discount):' : 'Item Auto Discounts:'}</span>
+                  </span>
+                  <span>-{formatCurrency(totalItemDiscount)}</span>
+                </div>
+              )}
+
               {/* Order Discount Row */}
               <div className="flex items-center justify-between gap-2">
-                <span className="text-slate-500 dark:text-slate-400">{t('discount')}:</span>
+                <span className="text-slate-500 dark:text-slate-400">{lang === 'bn' ? 'অতিরিক্ত মেমো ছাড়:' : 'Order Discount:'}</span>
                 <div className="flex items-center gap-1">
                   <select
                     value={orderDiscountType}
@@ -887,6 +977,13 @@ export const PosTerminal = () => {
                   />
                 </div>
               </div>
+
+              {orderDiscountAmount > 0 && orderDiscountType === 'percentage' && (
+                <div className="flex justify-between text-[11px] text-amber-600 dark:text-amber-400">
+                  <span>{lang === 'bn' ? 'অর্ডার ছাড় হিসাব:' : 'Order Discount Calc:'}</span>
+                  <span>-{formatCurrency(orderDiscountAmount)} ({orderDiscountValue}%)</span>
+                </div>
+              )}
 
               {totalTax > 0 && (
                 <div className="flex justify-between text-slate-500 dark:text-slate-400">

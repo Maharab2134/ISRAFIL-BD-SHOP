@@ -266,8 +266,24 @@ export const ProductList = () => {
                         {formatCurrency(p.purchase_price)}
                       </td>
 
-                      <td className="p-4 text-right font-bold text-indigo-600 dark:text-indigo-400">
-                        {formatCurrency(p.selling_price)}
+                      <td className="p-4 text-right">
+                        <div className="font-bold text-indigo-600 dark:text-indigo-400">
+                          {p.discount_type && Number(p.discount_value) > 0
+                            ? formatCurrency(
+                                p.discount_type === 'percentage'
+                                  ? Math.max(0, p.selling_price - (p.selling_price * p.discount_value) / 100)
+                                  : Math.max(0, p.selling_price - p.discount_value)
+                              )
+                            : formatCurrency(p.selling_price)}
+                        </div>
+                        {p.discount_type && Number(p.discount_value) > 0 && (
+                          <div className="flex items-center justify-end gap-1 text-[10px] mt-0.5">
+                            <span className="line-through text-slate-400">{formatCurrency(p.selling_price)}</span>
+                            <span className="px-1.5 py-0.5 rounded-md bg-rose-100 dark:bg-rose-950 text-rose-600 dark:text-rose-400 font-black">
+                              {p.discount_type === 'percentage' ? `-${p.discount_value}%` : `-৳${p.discount_value}`}
+                            </span>
+                          </div>
+                        )}
                       </td>
 
                       <td className="p-4 text-center">

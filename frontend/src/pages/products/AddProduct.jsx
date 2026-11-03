@@ -10,6 +10,8 @@ import {
   Save,
   Check,
   Sparkles,
+  Tag,
+  Percent,
 } from 'lucide-react';
 import api from '../../services/api';
 
@@ -33,6 +35,8 @@ export const AddProduct = () => {
   const [purchasePrice, setPurchasePrice] = useState('');
   const [sellingPrice, setSellingPrice] = useState('');
   const [wholesalePrice, setWholesalePrice] = useState('');
+  const [discountType, setDiscountType] = useState('none'); // 'none' | 'fixed' | 'percentage'
+  const [discountValue, setDiscountValue] = useState('');
   const [currentStock, setCurrentStock] = useState('0');
   const [alertStock, setAlertStock] = useState('5');
   const [taxPercent, setTaxPercent] = useState('0');
@@ -73,6 +77,30 @@ export const AddProduct = () => {
     }
   };
 
+  const calculateDiscountPreview = () => {
+    const sp = parseFloat(sellingPrice) || 0;
+    const dv = parseFloat(discountValue) || 0;
+    if (discountType === 'percentage' && dv > 0) {
+      const discountAmt = (sp * dv) / 100;
+      return {
+        amount: discountAmt,
+        finalPrice: Math.max(0, sp - discountAmt),
+        text: `${dv}% (${lang === 'bn' ? 'সাশ্রয় ৳' : 'Save ৳'}${discountAmt.toFixed(2)})`,
+      };
+    }
+    if (discountType === 'fixed' && dv > 0) {
+      const discountAmt = Math.min(sp, dv);
+      return {
+        amount: discountAmt,
+        finalPrice: Math.max(0, sp - discountAmt),
+        text: `৳${discountAmt.toFixed(2)}`,
+      };
+    }
+    return { amount: 0, finalPrice: sp, text: '৳0.00' };
+  };
+
+  const discountPreview = calculateDiscountPreview();
+
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -97,6 +125,13 @@ export const AddProduct = () => {
       formData.append('purchase_price', purchasePrice);
       formData.append('selling_price', sellingPrice);
       if (wholesalePrice) formData.append('wholesale_price', wholesalePrice);
+      if (discountType !== 'none' && Number(discountValue) > 0) {
+        formData.append('discount_type', discountType);
+        formData.append('discount_value', discountValue);
+      } else {
+        formData.append('discount_type', 'fixed');
+        formData.append('discount_value', 0);
+      }
       formData.append('current_stock', currentStock || 0);
       formData.append('alert_stock', alertStock || 5);
       formData.append('tax_percent', taxPercent || 0);
@@ -301,6 +336,92 @@ export const AddProduct = () => {
               placeholder="0.00"
               className="w-full py-2.5 px-3.5 text-sm font-bold text-indigo-600 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
             />
+          </div>
+
+          {/* Product Auto Discount Section */}
+          <div className="col-span-full rounded-2xl p-4 bg-gradient-to-r from-emerald-50/70 via-teal-50/50 to-indigo-50/40 dark:from-emerald-950/25 dark:via-teal-950/20 dark:to-indigo-950/15 border border-emerald-200/80 dark:border-emerald-800/60 space-y-3 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold">
+                  <Tag className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <span>{lang === 'bn' ? 'পণ্য ভিত্তিক বিশেষ ছাড় (POS Auto Discount)' : 'Product Discount (POS Auto Discount)'}</span>
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 font-bold uppercase tracking-wider">
+                      {lang === 'bn' ? 'পিওএস-এ অটো অ্যাপ্লাই' : 'Auto in POS'}
+                    </span>
+                  </h3>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                    {lang === 'bn'
+                      ? 'এখানে ছাড় নির্ধারণ করলে পিওএস টার্মিনালে পণ্যটি স্ক্যান বা সিলেক্ট করলেই স্বয়ংক্রিয়ভাবে ছাড়টি যুক্ত হবে।'
+                      : 'Setting a discount here will automatically apply it in POS Terminal whenever this product is selected or scanned.'}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-1">
+              {/* Discount Type */}
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                  {lang === 'bn' ? 'ছাড়ের ধরন (Discount Type)' : 'Discount Type'}
+                </label>
+                <select
+                  value={discountType}
+                  onChange={(e) => setDiscountType(e.target.value)}
+                  className="w-full py-2 px-3 text-xs font-semibold rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+                >
+                  <option value="none">{lang === 'bn' ? 'কোনো ছাড় নেই (No Discount)' : 'No Discount'}</option>
+                  <option value="percentage">{lang === 'bn' ? 'শতকরা ছাড় (% Percentage)' : 'Percentage (%)'}</option>
+                  <option value="fixed">{lang === 'bn' ? 'নির্দিষ্ট টাকা (Fixed ৳)' : 'Fixed Amount (৳)'}</option>
+                </select>
+              </div>
+
+              {/* Discount Value */}
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                  {discountType === 'percentage'
+                    ? (lang === 'bn' ? 'ছাড়ের শতকরা হার (%)' : 'Discount Rate (%)')
+                    : (lang === 'bn' ? 'ছাড়ের পরিমাণ (৳)' : 'Discount Amount (৳)')}
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  max={discountType === 'percentage' ? '100' : undefined}
+                  disabled={discountType === 'none'}
+                  value={discountValue}
+                  onChange={(e) => setDiscountValue(e.target.value)}
+                  placeholder={discountType === 'percentage' ? 'e.g. 10%' : 'e.g. 50 ৳'}
+                  className="w-full py-2 px-3 text-xs font-bold rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white disabled:opacity-50 disabled:bg-slate-100 dark:disabled:bg-slate-800/40 focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+                />
+              </div>
+
+              {/* Live Preview Card */}
+              <div className="space-y-1 flex flex-col justify-end">
+                <div className="p-2.5 rounded-xl bg-white/90 dark:bg-slate-800/90 border border-emerald-200/80 dark:border-emerald-700/80 flex items-center justify-between text-xs">
+                  <div>
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400 block font-medium">
+                      {lang === 'bn' ? 'পিওএস ফাইনাল বিক্রয়মূল্য' : 'POS Effective Price'}
+                    </span>
+                    <span className="text-sm font-black text-emerald-600 dark:text-emerald-400">
+                      ৳{discountPreview.finalPrice.toFixed(2)}
+                    </span>
+                  </div>
+                  {discountType !== 'none' && Number(discountValue) > 0 && (
+                    <div className="text-right">
+                      <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold block">
+                        -{discountPreview.text}
+                      </span>
+                      <span className="text-[10px] text-slate-400 line-through">
+                        ৳{parseFloat(sellingPrice || 0).toFixed(2)}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Current Stock */}
