@@ -795,3 +795,4 @@ export const PosTerminal = () => {
     </div>
   );
 };
+

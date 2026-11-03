@@ -112,3 +112,4 @@ export const PurchaseDetails = () => {
     </div>
   );
 };
+

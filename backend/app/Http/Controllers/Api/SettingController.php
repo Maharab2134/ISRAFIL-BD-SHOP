@@ -94,3 +94,4 @@ class SettingController extends Controller
         return response()->json(['message' => 'ব্যাকআপ ফাইল তৈরি করতে ব্যর্থ হয়েছে।'], 500);
     }
 }
+

@@ -150,3 +150,4 @@ export const BarcodeGenerator = () => {
     </div>
   );
 };
+

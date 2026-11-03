@@ -39,3 +39,4 @@ class CashTransaction extends Model
         return $this->morphTo();
     }
 }
+

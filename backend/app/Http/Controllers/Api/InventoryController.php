@@ -101,3 +101,4 @@ class InventoryController extends Controller
         return response()->json($movements);
     }
 }
+

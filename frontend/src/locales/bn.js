@@ -122,3 +122,4 @@ export const bn = {
   totalProducts: "মোট পণ্য",
   lowStock: "কম স্টক সতর্কতা",
 };
+

@@ -14,6 +14,7 @@ import {
   Zap,
   BarChart3,
   CheckCircle2,
+  Sparkles,
 } from 'lucide-react';
 
 export const Login = () => {
@@ -274,3 +275,4 @@ export const Login = () => {
     </div>
   );
 };
+

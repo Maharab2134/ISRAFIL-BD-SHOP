@@ -204,3 +204,4 @@ export const InventoryOverview = () => {
     </div>
   );
 };
+

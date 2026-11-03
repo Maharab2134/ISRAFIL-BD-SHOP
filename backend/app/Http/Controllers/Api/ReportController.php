@@ -87,3 +87,4 @@ class ReportController extends Controller
         return response()->json($products);
     }
 }
+

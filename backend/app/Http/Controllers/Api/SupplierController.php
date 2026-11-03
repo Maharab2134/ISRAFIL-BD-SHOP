@@ -153,3 +153,4 @@ class SupplierController extends Controller
         return response()->json(['message' => 'সরবরাহকারী সফলভাবে মুছে ফেলা হয়েছে।']);
     }
 }
+

@@ -41,3 +41,4 @@ class PurchasePayment extends Model
         return $this->belongsTo(User::class);
     }
 }
+

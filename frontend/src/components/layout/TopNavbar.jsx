@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
@@ -14,6 +14,7 @@ import {
   Calendar,
   Clock,
   Sparkles,
+  X,
 } from 'lucide-react';
 import api from '../../services/api';
 
@@ -29,6 +30,38 @@ export const TopNavbar = ({ isCollapsed }) => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
+
+  const notificationRef = useRef(null);
+  const userMenuRef = useRef(null);
+
+  // Close menus on outside click or Escape key
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (notificationRef.current && !notificationRef.current.contains(event.target)) {
+        setShowNotifications(false);
+      }
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
+        setShowUserMenu(false);
+      }
+    };
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        setShowNotifications(false);
+        setShowUserMenu(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -140,9 +173,14 @@ export const TopNavbar = ({ isCollapsed }) => {
         </button>
 
         {/* Notification Center */}
-        <div className="relative">
+        <div className="relative" ref={notificationRef}>
           <button
-            onClick={() => setShowNotifications(!showNotifications)}
+            onClick={() => {
+              setShowNotifications((prev) => {
+                if (!prev) setShowUserMenu(false);
+                return !prev;
+              });
+            }}
             className="p-2 rounded-xl text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition relative"
             title={t('notifications')}
           >
@@ -155,14 +193,24 @@ export const TopNavbar = ({ isCollapsed }) => {
           </button>
 
           {showNotifications && (
-            <div className="absolute right-0 mt-2 w-80 rounded-2xl bg-white dark:bg-slate-800 shadow-dropdown border border-slate-200 dark:border-slate-700 py-3 z-50">
+            <div className="absolute right-0 mt-2 w-80 rounded-2xl bg-white dark:bg-slate-800 shadow-dropdown border border-slate-200 dark:border-slate-700 py-3 z-50 animate-in fade-in zoom-in-95 duration-150">
               <div className="px-4 pb-2 border-b border-slate-100 dark:border-slate-700/80 flex items-center justify-between">
-                <span className="font-semibold text-xs text-slate-900 dark:text-white">
-                  {t('notifications')}
-                </span>
-                <span className="text-[10px] bg-rose-100 dark:bg-rose-950 text-rose-600 dark:text-rose-300 font-bold px-1.5 py-0.5 rounded-full">
-                  {notifications.length} {t('lowStock')}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold text-xs text-slate-900 dark:text-white">
+                    {t('notifications')}
+                  </span>
+                  <span className="text-[10px] bg-rose-100 dark:bg-rose-950 text-rose-600 dark:text-rose-300 font-bold px-1.5 py-0.5 rounded-full">
+                    {notifications.length} {t('lowStock')}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowNotifications(false)}
+                  className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition"
+                  title="Close"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
               </div>
               <div className="max-h-60 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-700/50">
                 {notifications.length === 0 ? (
@@ -195,9 +243,14 @@ export const TopNavbar = ({ isCollapsed }) => {
         </div>
 
         {/* User Profile Pill */}
-        <div className="relative">
+        <div className="relative" ref={userMenuRef}>
           <button
-            onClick={() => setShowUserMenu(!showUserMenu)}
+            onClick={() => {
+              setShowUserMenu((prev) => {
+                if (!prev) setShowNotifications(false);
+                return !prev;
+              });
+            }}
             className="flex items-center gap-2 p-1.5 pr-3 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition"
           >
             <div className="w-7 h-7 rounded-lg bg-indigo-600 text-white font-bold flex items-center justify-center text-xs shadow-sm">
@@ -209,10 +262,20 @@ export const TopNavbar = ({ isCollapsed }) => {
           </button>
 
           {showUserMenu && (
-            <div className="absolute right-0 mt-2 w-48 rounded-2xl bg-white dark:bg-slate-800 shadow-dropdown border border-slate-200 dark:border-slate-700 py-2 z-50">
-              <div className="px-4 py-2 border-b border-slate-100 dark:border-slate-700">
-                <div className="text-xs font-bold text-slate-900 dark:text-white truncate">{user?.name}</div>
-                <div className="text-[10px] text-slate-400 truncate">{user?.email}</div>
+            <div className="absolute right-0 mt-2 w-56 rounded-2xl bg-white dark:bg-slate-800 shadow-dropdown border border-slate-200 dark:border-slate-700 py-2 z-50 animate-in fade-in zoom-in-95 duration-150">
+              <div className="px-4 py-2 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
+                <div className="truncate pr-2">
+                  <div className="text-xs font-bold text-slate-900 dark:text-white truncate">{user?.name}</div>
+                  <div className="text-[10px] text-slate-400 truncate">{user?.email}</div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowUserMenu(false)}
+                  className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition shrink-0"
+                  title="Close"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
               </div>
               <Link
                 to="/profile"
@@ -240,3 +303,4 @@ export const TopNavbar = ({ isCollapsed }) => {
     </header>
   );
 };
+

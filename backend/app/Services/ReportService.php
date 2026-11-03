@@ -129,3 +129,4 @@ class ReportService
         return array_values($dates);
     }
 }
+

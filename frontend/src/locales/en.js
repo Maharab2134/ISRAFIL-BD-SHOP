@@ -122,3 +122,4 @@ export const en = {
   totalProducts: "Total Products",
   lowStock: "Low Stock Alert",
 };
+

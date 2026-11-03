@@ -87,3 +87,4 @@ class Product extends Model
         return $query->whereRaw('current_stock <= alert_stock');
     }
 }
+

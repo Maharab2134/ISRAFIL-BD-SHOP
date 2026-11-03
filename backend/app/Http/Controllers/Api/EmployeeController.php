@@ -109,3 +109,4 @@ class EmployeeController extends Controller
         return response()->json($logs);
     }
 }
+

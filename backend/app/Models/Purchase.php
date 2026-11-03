@@ -59,3 +59,4 @@ class Purchase extends Model
         return $this->hasMany(PurchasePayment::class);
     }
 }
+
