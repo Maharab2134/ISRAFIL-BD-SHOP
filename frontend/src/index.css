@@ -1,0 +1,81 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --primary: 79 70 229;
+    --background: 248 250 252;
+  }
+
+  body {
+    @apply antialiased overflow-x-hidden;
+  }
+
+  /* Custom subtle scrollbars */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-slate-300 dark:bg-slate-700 rounded-full;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-slate-400 dark:bg-slate-600;
+  }
+}
+
+/* Print Styles for Invoices & Receipts */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #printable-area, #printable-area * {
+    visibility: visible;
+  }
+  #printable-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    background: white !important;
+    color: black !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+}
+
+/* Thermal Receipt 80mm format helper */
+.receipt-80mm {
+  width: 76mm;
+  font-size: 11px;
+  line-height: 1.35;
+  margin: 0 auto;
+  color: #000;
+  font-family: 'Inter', 'Courier New', monospace;
+}
+
+/* Thermal Receipt 58mm format helper */
+.receipt-58mm {
+  width: 54mm;
+  font-size: 9.5px;
+  line-height: 1.25;
+  margin: 0 auto;
+  color: #000;
+  font-family: 'Inter', 'Courier New', monospace;
+}
+
+/* A4 Invoice format helper */
+.invoice-a4 {
+  width: 210mm;
+  min-height: 297mm;
+  margin: 0 auto;
+  background: white;
+  color: #1e293b;
+}
