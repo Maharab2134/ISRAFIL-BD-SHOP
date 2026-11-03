@@ -126,8 +126,8 @@ class IsrafilShopApiTest extends TestCase
     public function test_product_auto_discount_in_pos_checkout()
     {
         $user = User::where('email', 'cashier@israfilbd.com')->first();
-        $unit = \App\Models\Unit::first();
-        $cat = \App\Models\Category::first();
+        $unit = \App\Models\Unit::first() ?? \App\Models\Unit::create(['name' => 'Piece', 'name_bn' => 'পিস', 'code' => 'pcs']);
+        $cat = \App\Models\Category::first() ?? \App\Models\Category::create(['name' => 'General', 'name_bn' => 'সাধারণ', 'slug' => 'general']);
 
         $discountedProduct = Product::create([
             'name' => 'Auto Discount Product',
