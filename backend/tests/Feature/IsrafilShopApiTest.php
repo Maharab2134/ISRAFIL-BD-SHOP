@@ -296,11 +296,11 @@ class IsrafilShopApiTest extends TestCase
     {
         $user = User::where('email', 'admin@israfilbd.com')->first();
 
-        // 1. Categories JSON import
+        // 1. Categories JSON import with user's schema (name_en, slug, is_active, etc.)
         $catPayload = [
             'categories' => [
-                ['name' => 'Imported Electronics', 'name_bn' => 'ইমপোর্টেড ইলেকট্রনিক্স', 'code' => 'IMP-ELEC'],
-                ['name' => 'Imported Snacks', 'name_bn' => 'ইমপোর্টেড স্ন্যাক্স', 'code' => 'IMP-SNK'],
+                ['id' => 101, 'name_en' => 'Imported Electronics', 'name_bn' => 'ইমপোর্টেড ইলেকট্রনিক্স', 'slug' => 'imported-electronics', 'is_active' => true],
+                ['id' => 102, 'name_en' => 'Imported Snacks', 'name_bn' => 'ইমপোর্টেড স্ন্যাক্স', 'slug' => 'imported-snacks', 'is_active' => true],
             ]
         ];
         $catRes = $this->actingAs($user, 'sanctum')->postJson('/api/categories/import-json', $catPayload);
@@ -309,35 +309,52 @@ class IsrafilShopApiTest extends TestCase
         // 2. Brands JSON import
         $brandPayload = [
             'brands' => [
-                ['name' => 'Apex Import', 'name_bn' => 'এপেক্স ইমপোর্ট'],
-                ['name' => 'Samsung Import', 'name_bn' => 'স্যামসাং ইমপোর্ট'],
+                ['id' => 951, 'name_en' => 'Apex Import Unique', 'name_bn' => 'এপেক্স ইমপোর্ট ইউনিক', 'is_active' => true],
+                ['id' => 952, 'name_en' => 'Samsung Import Unique', 'name_bn' => 'স্যামসাং ইমপোর্ট ইউনিক', 'is_active' => true],
             ]
         ];
         $brandRes = $this->actingAs($user, 'sanctum')->postJson('/api/brands/import-json', $brandPayload);
         $brandRes->assertStatus(200)->assertJsonPath('inserted', 2);
 
-        // 3. Products JSON import (including Google Drive image link)
+        // 3. Products JSON import (user's exact schema: envelope { store, products }, name_en, purchase_cost, selling_price, discount object, unit string, brand string, etc.)
         $prodPayload = [
+            'store' => ['currency' => 'BDT'],
             'products' => [
                 [
-                    'name' => 'Bulk Product 1',
-                    'barcode' => '894888888001',
-                    'sku' => 'BLK-001',
-                    'category_name' => 'Imported Electronics',
-                    'brand_name' => 'Samsung Import',
-                    'purchase_price' => 500,
-                    'selling_price' => 750,
-                    'current_stock' => 15,
+                    'id' => 1001,
+                    'name_en' => 'Miniket Rice 5kg Spec',
+                    'name_bn' => 'মিনিকেট চাল ৫ কেজি টেস্ট',
+                    'barcode' => '8941100001001',
+                    'sku' => 'POS-01-001',
+                    'category_id' => 101,
+                    'brand' => 'Fresh Spec',
+                    'unit' => 'bag',
+                    'purchase_cost' => 420,
+                    'selling_price' => 465,
+                    'discount' => [
+                        'type' => 'none',
+                        'value' => 0
+                    ],
+                    'stock_quantity' => 35,
+                    'alert_level' => 8,
                     'image_url' => 'https://drive.google.com/file/d/1uTZCWKh6PftTikrXZOde-l4spvCPWBEM/view?usp=drive_link',
+                    'description' => 'Premium miniket rice, 5 kg pack.',
+                    'is_active' => true,
                 ],
             ]
         ];
         $prodRes = $this->actingAs($user, 'sanctum')->postJson('/api/products/import-json', $prodPayload);
         $prodRes->assertStatus(200)->assertJsonPath('inserted', 1);
 
-        // Verify product in database has normalized lh3 Google Drive direct link
-        $product = Product::where('barcode', '894888888001')->first();
+        // Verify product in database
+        $product = Product::where('barcode', '8941100001001')->first();
         $this->assertNotNull($product);
+        $this->assertEquals('Miniket Rice 5kg Spec', $product->name);
+        $this->assertEquals(420, (float) $product->purchase_price);
+        $this->assertEquals(465, (float) $product->selling_price);
+        $this->assertEquals(35, (float) $product->current_stock);
+        $this->assertEquals(8, (float) $product->alert_stock);
+        $this->assertEquals('active', $product->status);
         $this->assertEquals('https://lh3.googleusercontent.com/d/1uTZCWKh6PftTikrXZOde-l4spvCPWBEM', $product->image_url);
     }
 }

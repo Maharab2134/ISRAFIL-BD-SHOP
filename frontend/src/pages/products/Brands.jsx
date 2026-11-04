@@ -3,7 +3,7 @@ import { useLanguage } from '../../context/LanguageContext';
 import { useToast } from '../../context/ToastContext';
 import { FolderTree, Plus, Edit, Trash2, Save, X, Search, FileJson } from 'lucide-react';
 import api from '../../services/api';
-import InlineJsonImport from '../../components/common/InlineJsonImport';
+import { InlineJsonImport } from '../../components/common/InlineJsonImport';
 
 export const Brands = () => {
   const { t, lang, formatNumber } = useLanguage();

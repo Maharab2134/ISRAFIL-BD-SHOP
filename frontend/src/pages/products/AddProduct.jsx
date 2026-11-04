@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 import api from '../../services/api';
 import { normalizeImageUrl } from '../../utils/imageHelper';
-import InlineJsonImport from '../../components/common/InlineJsonImport';
+import { InlineJsonImport } from '../../components/common/InlineJsonImport';
 
 export const AddProduct = () => {
   const { t, lang } = useLanguage();

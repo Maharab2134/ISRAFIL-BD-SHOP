@@ -20,7 +20,6 @@ import {
 import api from '../../services/api';
 import { normalizeImageUrl } from '../../utils/imageHelper';
 import InlineJsonImport from '../../components/common/InlineJsonImport';
-
 export const ProductList = () => {
   const { t, lang, formatCurrency, formatNumber } = useLanguage();
   const { success, error } = useToast();
@@ -155,11 +154,10 @@ export const ProductList = () => {
           <button
             type="button"
             onClick={() => setShowImport(!showImport)}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs transition border ${
-              showImport
-                ? 'bg-indigo-600 text-white border-indigo-600 shadow-md'
-                : 'bg-white dark:bg-[#1E293B] border-slate-200 dark:border-slate-800 text-indigo-600 dark:text-indigo-400 hover:border-indigo-400 shadow-sm'
-            }`}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs transition border ${showImport
+              ? 'bg-indigo-600 text-white border-indigo-600 shadow-md'
+              : 'bg-white dark:bg-[#1E293B] border-slate-200 dark:border-slate-800 text-indigo-600 dark:text-indigo-400 hover:border-indigo-400 shadow-sm'
+              }`}
           >
             <FileJson className="w-4 h-4" />
             <span>{lang === 'bn' ? 'products.json ইমপোর্ট' : 'Import products.json'}</span>
@@ -234,11 +232,10 @@ export const ProductList = () => {
         <button
           type="button"
           onClick={() => setLowStockOnly(!lowStockOnly)}
-          className={`py-2 px-3 rounded-xl text-xs font-bold border transition flex items-center justify-center gap-1.5 ${
-            lowStockOnly
-              ? 'bg-rose-50 border-rose-300 text-rose-700 dark:bg-rose-950/60 dark:border-rose-800 dark:text-rose-300'
-              : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100'
-          }`}
+          className={`py-2 px-3 rounded-xl text-xs font-bold border transition flex items-center justify-center gap-1.5 ${lowStockOnly
+            ? 'bg-rose-50 border-rose-300 text-rose-700 dark:bg-rose-950/60 dark:border-rose-800 dark:text-rose-300'
+            : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100'
+            }`}
         >
           <AlertTriangle className="w-3.5 h-3.5" />
           <span>{lang === 'bn' ? 'কম স্টক ফিল্টার' : 'Low Stock Filter'}</span>
@@ -349,10 +346,10 @@ export const ProductList = () => {
                         <div className="font-bold text-indigo-600 dark:text-indigo-400">
                           {p.discount_type && Number(p.discount_value) > 0
                             ? formatCurrency(
-                                p.discount_type === 'percentage'
-                                  ? Math.max(0, p.selling_price - (p.selling_price * p.discount_value) / 100)
-                                  : Math.max(0, p.selling_price - p.discount_value)
-                              )
+                              p.discount_type === 'percentage'
+                                ? Math.max(0, p.selling_price - (p.selling_price * p.discount_value) / 100)
+                                : Math.max(0, p.selling_price - p.discount_value)
+                            )
                             : formatCurrency(p.selling_price)}
                         </div>
                         {p.discount_type && Number(p.discount_value) > 0 && (
@@ -367,11 +364,10 @@ export const ProductList = () => {
 
                       <td className="p-4 text-center">
                         <span
-                          className={`inline-block px-2.5 py-1 rounded-xl text-xs font-bold ${
-                            isLow
-                              ? 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300'
-                              : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'
-                          }`}
+                          className={`inline-block px-2.5 py-1 rounded-xl text-xs font-bold ${isLow
+                            ? 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300'
+                            : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'
+                            }`}
                         >
                           {p.current_stock} {lang === 'bn' ? (p.unit?.name_bn || 'পিস') : (p.unit?.name || p.unit?.code || 'pcs')}
                         </span>
@@ -379,9 +375,8 @@ export const ProductList = () => {
 
                       <td className="p-4 text-center">
                         <span
-                          className={`inline-block w-2 h-2 rounded-full ${
-                            p.status === 'active' ? 'bg-emerald-500' : 'bg-slate-400'
-                          }`}
+                          className={`inline-block w-2 h-2 rounded-full ${p.status === 'active' ? 'bg-emerald-500' : 'bg-slate-400'
+                            }`}
                         />
                       </td>
 

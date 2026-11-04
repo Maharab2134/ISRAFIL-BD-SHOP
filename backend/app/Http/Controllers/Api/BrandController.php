@@ -116,16 +116,34 @@ class BrandController extends Controller
         $failed = 0;
 
         foreach ($data as $item) {
-            if (!is_array($item) || empty($item['name'])) {
+            if (!is_array($item)) {
                 $failed++;
                 continue;
             }
 
-            $name = trim($item['name']);
-            $nameBn = !empty($item['name_bn']) ? trim($item['name_bn']) : null;
-            $status = in_array($item['status'] ?? '', ['active', 'inactive']) ? $item['status'] : 'active';
+            $name = trim($item['name'] ?? $item['name_en'] ?? $item['title'] ?? '');
+            if (empty($name)) {
+                $failed++;
+                continue;
+            }
 
-            $brand = Brand::whereRaw('LOWER(name) = ?', [strtolower($name)])->first();
+            $nameBn = !empty($item['name_bn']) ? trim($item['name_bn']) : null;
+            $slug = !empty($item['slug']) ? trim($item['slug']) : (Str::slug($name) . '-' . uniqid());
+
+            $status = 'active';
+            if (isset($item['is_active'])) {
+                $status = $item['is_active'] ? 'active' : 'inactive';
+            } elseif (isset($item['status']) && in_array($item['status'], ['active', 'inactive'])) {
+                $status = $item['status'];
+            }
+
+            $brand = null;
+            if (!empty($item['id'])) {
+                $brand = Brand::find($item['id']);
+            }
+            if (!$brand) {
+                $brand = Brand::whereRaw('LOWER(name) = ?', [strtolower($name)])->first();
+            }
 
             if ($brand) {
                 $brand->update([
@@ -135,12 +153,16 @@ class BrandController extends Controller
                 ]);
                 $updated++;
             } else {
-                Brand::create([
+                $createData = [
                     'name' => $name,
                     'name_bn' => $nameBn,
-                    'slug' => Str::slug($name) . '-' . uniqid(),
+                    'slug' => $slug,
                     'status' => $status,
-                ]);
+                ];
+                if (!empty($item['id']) && !Brand::where('id', $item['id'])->exists()) {
+                    $createData['id'] = $item['id'];
+                }
+                Brand::create($createData);
                 $inserted++;
             }
         }

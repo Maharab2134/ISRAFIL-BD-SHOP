@@ -247,23 +247,69 @@ class ProductController extends Controller
         $failed = 0;
 
         foreach ($data as $item) {
-            if (!is_array($item) || empty($item['name']) || !isset($item['selling_price'])) {
+            if (!is_array($item)) {
                 $failed++;
                 continue;
             }
 
-            $name = trim($item['name']);
+            $name = trim($item['name'] ?? $item['name_en'] ?? $item['title'] ?? '');
+            if (empty($name)) {
+                $failed++;
+                continue;
+            }
+
             $nameBn = !empty($item['name_bn']) ? trim($item['name_bn']) : null;
-            $sellingPrice = (float) $item['selling_price'];
-            $purchasePrice = isset($item['purchase_price']) ? (float) $item['purchase_price'] : ($sellingPrice * 0.8);
+            $sellingPrice = isset($item['selling_price'])
+                ? (float) $item['selling_price']
+                : (isset($item['price']) ? (float) $item['price'] : (isset($item['sale_price']) ? (float) $item['sale_price'] : 0));
+
+            $purchasePrice = isset($item['purchase_price'])
+                ? (float) $item['purchase_price']
+                : (isset($item['purchase_cost'])
+                    ? (float) $item['purchase_cost']
+                    : (isset($item['cost'])
+                        ? (float) $item['cost']
+                        : ($sellingPrice > 0 ? $sellingPrice * 0.8 : 0)));
+
             $wholesalePrice = isset($item['wholesale_price']) && is_numeric($item['wholesale_price']) ? (float) $item['wholesale_price'] : null;
-            $currentStock = isset($item['current_stock']) ? (float) $item['current_stock'] : 0;
-            $alertStock = isset($item['alert_stock']) ? (float) $item['alert_stock'] : 5;
+
+            $currentStock = isset($item['current_stock'])
+                ? (float) $item['current_stock']
+                : (isset($item['stock_quantity'])
+                    ? (float) $item['stock_quantity']
+                    : (isset($item['stock']) ? (float) $item['stock'] : 0));
+
+            $alertStock = isset($item['alert_stock'])
+                ? (float) $item['alert_stock']
+                : (isset($item['alert_level'])
+                    ? (float) $item['alert_level']
+                    : (isset($item['min_stock']) ? (float) $item['min_stock'] : 5));
+
             $taxPercent = isset($item['tax_percent']) ? (float) $item['tax_percent'] : 0;
-            $discountType = in_array($item['discount_type'] ?? '', ['fixed', 'percentage']) ? $item['discount_type'] : null;
-            $discountValue = isset($item['discount_value']) ? (float) $item['discount_value'] : 0;
+
+            // Handle discount
+            $discountType = null;
+            $discountValue = 0;
+            if (isset($item['discount']) && is_array($item['discount'])) {
+                $dt = $item['discount']['type'] ?? 'none';
+                if (in_array($dt, ['fixed', 'percentage'])) {
+                    $discountType = $dt;
+                    $discountValue = (float) ($item['discount']['value'] ?? 0);
+                }
+            } elseif (!empty($item['discount_type']) && in_array($item['discount_type'], ['fixed', 'percentage'])) {
+                $discountType = $item['discount_type'];
+                $discountValue = isset($item['discount_value']) ? (float) $item['discount_value'] : 0;
+            }
+
             $description = $item['description'] ?? null;
-            $status = in_array($item['status'] ?? '', ['active', 'inactive']) ? $item['status'] : 'active';
+
+            // Handle status
+            $status = 'active';
+            if (isset($item['is_active'])) {
+                $status = $item['is_active'] ? 'active' : 'inactive';
+            } elseif (isset($item['status']) && in_array($item['status'], ['active', 'inactive'])) {
+                $status = $item['status'];
+            }
 
             // Barcode & SKU
             $barcode = !empty($item['barcode']) ? trim((string)$item['barcode']) : ('894' . mt_rand(100000000, 999999999));
@@ -304,8 +350,8 @@ class ProductController extends Controller
             } elseif (!empty($item['unit_name']) || !empty($item['unit'])) {
                 $uName = trim($item['unit_name'] ?? $item['unit']);
                 $unit = Unit::firstOrCreate(
-                    ['name' => $uName],
-                    ['code' => Str::slug($uName), 'status' => 'active']
+                    ['code' => Str::slug($uName)],
+                    ['name' => ucfirst($uName), 'status' => 'active']
                 );
                 $unitId = $unit->id;
             } else {
@@ -319,6 +365,9 @@ class ProductController extends Controller
             }
 
             $product = Product::where('barcode', $barcode)->orWhere('sku', $sku)->first();
+            if (!$product && !empty($item['id'])) {
+                $product = Product::find($item['id']);
+            }
 
             if ($product) {
                 $product->update([
@@ -341,7 +390,7 @@ class ProductController extends Controller
                 ]);
                 $updated++;
             } else {
-                $product = Product::create([
+                $createData = [
                     'name' => $name,
                     'name_bn' => $nameBn,
                     'barcode' => $barcode,
@@ -360,7 +409,11 @@ class ProductController extends Controller
                     'description' => $description,
                     'image_url' => $imageUrl,
                     'status' => $status,
-                ]);
+                ];
+                if (!empty($item['id']) && !Product::where('id', $item['id'])->exists()) {
+                    $createData['id'] = $item['id'];
+                }
+                $product = Product::create($createData);
 
                 if ($product->current_stock > 0) {
                     StockMovement::create([

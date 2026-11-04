@@ -118,19 +118,34 @@ class CategoryController extends Controller
         $failed = 0;
 
         foreach ($data as $item) {
-            if (!is_array($item) || empty($item['name'])) {
+            if (!is_array($item)) {
                 $failed++;
                 continue;
             }
 
-            $name = trim($item['name']);
+            $name = trim($item['name'] ?? $item['name_en'] ?? $item['title'] ?? '');
+            if (empty($name)) {
+                $failed++;
+                continue;
+            }
+
             $nameBn = !empty($item['name_bn']) ? trim($item['name_bn']) : null;
-            $code = !empty($item['code']) ? trim($item['code']) : null;
-            $status = in_array($item['status'] ?? '', ['active', 'inactive']) ? $item['status'] : 'active';
+            $code = !empty($item['code']) ? trim($item['code']) : (!empty($item['slug']) ? trim($item['slug']) : null);
+            $slug = !empty($item['slug']) ? trim($item['slug']) : (Str::slug($name) . '-' . uniqid());
+
+            $status = 'active';
+            if (isset($item['is_active'])) {
+                $status = $item['is_active'] ? 'active' : 'inactive';
+            } elseif (isset($item['status']) && in_array($item['status'], ['active', 'inactive'])) {
+                $status = $item['status'];
+            }
 
             $category = null;
-            if ($code) {
-                $category = Category::where('code', $code)->first();
+            if (!empty($item['id'])) {
+                $category = Category::find($item['id']);
+            }
+            if (!$category && $code) {
+                $category = Category::where('code', $code)->orWhere('slug', $code)->first();
             }
             if (!$category) {
                 $category = Category::whereRaw('LOWER(name) = ?', [strtolower($name)])->first();
@@ -145,13 +160,17 @@ class CategoryController extends Controller
                 ]);
                 $updated++;
             } else {
-                Category::create([
+                $createData = [
                     'name' => $name,
                     'name_bn' => $nameBn,
                     'code' => $code,
-                    'slug' => Str::slug($name) . '-' . uniqid(),
+                    'slug' => $slug,
                     'status' => $status,
-                ]);
+                ];
+                if (!empty($item['id']) && !Category::where('id', $item['id'])->exists()) {
+                    $createData['id'] = $item['id'];
+                }
+                Category::create($createData);
                 $inserted++;
             }
         }
