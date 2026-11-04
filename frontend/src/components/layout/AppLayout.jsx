@@ -68,7 +68,7 @@ export const AppLayout = () => {
           isCollapsed ? 'pl-20' : 'pl-72'
         }`}
       >
-        <div className={isPos ? "p-3 sm:p-4 w-full" : "p-4 sm:p-6 md:p-8 max-w-[1600px] w-full mx-auto"}>
+        <div className={isPos ? "p-3 sm:p-4 w-full" : "p-4 sm:p-6 w-full"}>
           <Outlet />
         </div>
       </main>

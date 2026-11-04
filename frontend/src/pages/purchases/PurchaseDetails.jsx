@@ -31,7 +31,7 @@ export const PurchaseDetails = () => {
   if (!purchase) return <div className="p-12 text-center text-rose-500">চালান পাওয়া যায়নি।</div>;
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
+    <div className="w-full space-y-6">
       <div className="flex items-center justify-between no-print">
         <div className="flex items-center gap-3">
           <Link

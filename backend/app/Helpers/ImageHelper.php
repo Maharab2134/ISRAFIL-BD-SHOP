@@ -41,3 +41,4 @@ class ImageHelper
         return $url;
     }
 }
+
