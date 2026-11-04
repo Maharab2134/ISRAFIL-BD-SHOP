@@ -64,11 +64,11 @@ export const AppLayout = () => {
 
       {/* Main Content Area */}
       <main
-        className={`pt-16 min-h-screen transition-all duration-300 ${
+        className={`pt-16 min-h-screen transition-all duration-300 print:p-0 print:m-0 print:pt-0 print:pl-0 ${
           isCollapsed ? 'pl-20' : 'pl-72'
         }`}
       >
-        <div className={isPos ? "p-3 sm:p-4 w-full" : "p-4 sm:p-6 w-full"}>
+        <div className={isPos ? "p-3 sm:p-4 w-full print:p-0 print:m-0" : "p-4 sm:p-6 w-full print:p-0 print:m-0"}>
           <Outlet />
         </div>
       </main>

@@ -37,26 +37,76 @@
   scrollbar-width: none;
 }
 
-/* Print Styles for Invoices & Receipts */
+/* Print Styles for Invoices, Receipts, Barcodes & Reports */
 @media print {
-  body * {
+  @page {
+    margin: 6mm;
+    size: auto;
+  }
+
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Completely remove non-printable elements from layout flow */
+  .no-print,
+  .no-print *,
+  aside,
+  nav,
+  header {
+    display: none !important;
+    height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+  }
+
+  html, body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+
+  main {
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: auto !important;
+  }
+
+  /* If page defines #printable-area, only that section is visible */
+  body:has(#printable-area) * {
     visibility: hidden;
   }
-  #printable-area, #printable-area * {
+
+  body:has(#printable-area) #printable-area,
+  body:has(#printable-area) #printable-area * {
     visibility: visible;
   }
+
   #printable-area {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100%;
-    margin: 0;
-    padding: 0;
-    background: white !important;
-    color: black !important;
+    visibility: visible !important;
+    position: relative !important;
+    left: auto !important;
+    top: auto !important;
+    width: 100% !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    display: block !important;
   }
-  .no-print {
-    display: none !important;
+
+  .page-break-inside-avoid {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
   }
 }
 

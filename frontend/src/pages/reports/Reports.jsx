@@ -175,9 +175,11 @@ export const Reports = () => {
         )}
       </div>
 
-      {/* Daily/Monthly/Yearly Summary Cards */}
-      {['daily', 'monthly', 'yearly'].includes(activeTab) && reportData && (
-        <div className="space-y-6">
+      {/* Printable Report Content */}
+      <div id="printable-area" className="space-y-6">
+        {/* Daily/Monthly/Yearly Summary Cards */}
+        {['daily', 'monthly', 'yearly'].includes(activeTab) && reportData && (
+          <div className="space-y-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="p-5 rounded-2xl bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 shadow-card">
               <span className="text-xs text-slate-500 font-semibold">{lang === 'bn' ? 'মোট বিক্রয় বিলিং' : 'Gross Sales'}</span>
@@ -295,6 +297,7 @@ export const Reports = () => {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 };

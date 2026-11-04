@@ -317,15 +317,16 @@ class IsrafilShopApiTest extends TestCase
         $brandRes->assertStatus(200)->assertJsonPath('inserted', 2);
 
         // 3. Products JSON import (user's exact schema: envelope { store, products }, name_en, purchase_cost, selling_price, discount object, unit string, brand string, etc.)
+        $testBarcode = '894999' . mt_rand(100000, 999999);
         $prodPayload = [
             'store' => ['currency' => 'BDT'],
             'products' => [
                 [
-                    'id' => 1001,
+                    'id' => 9001,
                     'name_en' => 'Miniket Rice 5kg Spec',
                     'name_bn' => 'মিনিকেট চাল ৫ কেজি টেস্ট',
-                    'barcode' => '8941100001001',
-                    'sku' => 'POS-01-001',
+                    'barcode' => $testBarcode,
+                    'sku' => 'POS-SPEC-' . mt_rand(100, 999),
                     'category_id' => 101,
                     'brand' => 'Fresh Spec',
                     'unit' => 'bag',
@@ -347,7 +348,7 @@ class IsrafilShopApiTest extends TestCase
         $prodRes->assertStatus(200)->assertJsonPath('inserted', 1);
 
         // Verify product in database
-        $product = Product::where('barcode', '8941100001001')->first();
+        $product = Product::where('barcode', $testBarcode)->first();
         $this->assertNotNull($product);
         $this->assertEquals('Miniket Rice 5kg Spec', $product->name);
         $this->assertEquals(420, (float) $product->purchase_price);
