@@ -247,4 +247,48 @@ class IsrafilShopApiTest extends TestCase
         $logResponse->assertStatus(200)
             ->assertJsonStructure(['data', 'total']);
     }
+
+    public function test_product_creation_and_update_with_image_url()
+    {
+        $user = User::where('email', 'admin@israfilbd.com')->first();
+        $unit = \App\Models\Unit::first() ?? \App\Models\Unit::create(['name' => 'Piece', 'name_bn' => 'পিস', 'code' => 'pcs']);
+        $cat = \App\Models\Category::first() ?? \App\Models\Category::create(['name' => 'General', 'name_bn' => 'সাধারণ', 'slug' => 'general']);
+
+        $createResponse = $this->actingAs($user, 'sanctum')
+            ->postJson('/api/products', [
+                'name' => 'Image URL Test Product',
+                'name_bn' => 'ইমেজ টেস্ট পণ্য',
+                'barcode' => '894999999001',
+                'sku' => 'TEST-IMG-001',
+                'category_id' => $cat->id,
+                'unit_id' => $unit->id,
+                'purchase_price' => 120,
+                'selling_price' => 180,
+                'current_stock' => 10,
+                'alert_stock' => 2,
+                'image_url' => 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e',
+            ]);
+
+        $createResponse->assertStatus(201)
+            ->assertJsonPath('product.image_url', 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e');
+
+        $productId = $createResponse->json('product.id');
+
+        $updateResponse = $this->actingAs($user, 'sanctum')
+            ->putJson("/api/products/{$productId}", [
+                'name' => 'Image URL Test Product Updated',
+                'barcode' => '894999999001',
+                'sku' => 'TEST-IMG-001',
+                'category_id' => $cat->id,
+                'unit_id' => $unit->id,
+                'purchase_price' => 120,
+                'selling_price' => 180,
+                'alert_stock' => 2,
+                'status' => 'active',
+                'image_url' => 'https://images.unsplash.com/photo-1523275335684-37898b6baf30',
+            ]);
+
+        $updateResponse->assertStatus(200)
+            ->assertJsonPath('product.image_url', 'https://images.unsplash.com/photo-1523275335684-37898b6baf30');
+    }
 }

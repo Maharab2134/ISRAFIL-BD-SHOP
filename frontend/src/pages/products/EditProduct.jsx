@@ -11,6 +11,9 @@ import {
   Check,
   Tag,
   Percent,
+  Globe,
+  X,
+  Link2,
 } from 'lucide-react';
 import api from '../../services/api';
 
@@ -42,6 +45,9 @@ export const EditProduct = () => {
   const [description, setDescription] = useState('');
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
+  const [imageUrlInput, setImageUrlInput] = useState('');
+  const [imageTab, setImageTab] = useState('upload'); // 'upload' | 'url'
+  const [imageError, setImageError] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -76,7 +82,13 @@ export const EditProduct = () => {
         setTaxPercent(p.tax_percent);
         setStatus(p.status);
         setDescription(p.description || '');
-        setImagePreview(p.image_url);
+        if (p.image_url) {
+          setImagePreview(p.image_url);
+          setImageUrlInput(p.image_url);
+          if (p.image_url.startsWith('http://') || p.image_url.startsWith('https://')) {
+            setImageTab('url');
+          }
+        }
       } catch (e) {
         error(lang === 'bn' ? 'পণ্যের তথ্য লোড করতে ব্যর্থ হয়েছে।' : 'Failed to load product details.');
       } finally {
@@ -110,12 +122,32 @@ export const EditProduct = () => {
 
   const discountPreview = calculateDiscountPreview();
 
+  const handleUrlChange = (url) => {
+    setImageUrlInput(url);
+    setImageError(false);
+    if (url.trim()) {
+      setImageFile(null);
+      setImagePreview(url.trim());
+    } else {
+      setImagePreview(null);
+    }
+  };
+
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
       setImageFile(file);
+      setImageUrlInput('');
+      setImageError(false);
       setImagePreview(URL.createObjectURL(file));
     }
+  };
+
+  const handleClearImage = () => {
+    setImageFile(null);
+    setImageUrlInput('');
+    setImagePreview(null);
+    setImageError(false);
   };
 
   const handleSubmit = async (e) => {
@@ -146,7 +178,11 @@ export const EditProduct = () => {
       formData.append('tax_percent', taxPercent);
       formData.append('status', status);
       if (description) formData.append('description', description);
-      if (imageFile) formData.append('image', imageFile);
+      if (imageFile) {
+        formData.append('image', imageFile);
+      } else {
+        formData.append('image_url', imageUrlInput.trim());
+      }
 
       await api.post(`/products/${id}`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
@@ -448,25 +484,143 @@ export const EditProduct = () => {
           </div>
         </div>
 
-        {/* Image upload */}
-        <div className="space-y-2">
-          <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block">
-            {lang === 'bn' ? 'পণ্যের ছবি পরিবর্তন' : 'Change Product Image'}
-          </label>
-          <div className="flex items-center gap-4">
-            <div className="w-20 h-20 rounded-2xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 overflow-hidden shrink-0 flex items-center justify-center">
-              {imagePreview ? (
-                <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
+        {/* Image Selection Area (Dual-Mode: File Upload or Direct Image URL) */}
+        <div className="space-y-3 p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div>
+              <label className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                <Upload className="w-4 h-4 text-indigo-500" />
+                {lang === 'bn' ? 'পণ্যের ছবি (Image Upload / URL)' : 'Product Image (Upload / URL)'}
+              </label>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                {lang === 'bn'
+                  ? 'নতুন ফাইল আপলোড করুন অথবা যেকোনো অনলাইন ছবির সরাসরি লিংক দিন'
+                  : 'Upload a new image file or paste a direct web image link'}
+              </p>
+            </div>
+
+            {/* Mode Switcher Tabs */}
+            <div className="inline-flex p-1 rounded-xl bg-slate-200/80 dark:bg-slate-700/80 self-start sm:self-auto text-xs font-medium">
+              <button
+                type="button"
+                onClick={() => setImageTab('upload')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition ${
+                  imageTab === 'upload'
+                    ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 font-bold shadow-sm'
+                    : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                <Upload className="w-3.5 h-3.5" />
+                <span>{lang === 'bn' ? 'ফাইল আপলোড' : 'Upload File'}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setImageTab('url')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition ${
+                  imageTab === 'url'
+                    ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 font-bold shadow-sm'
+                    : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                <Link2 className="w-3.5 h-3.5" />
+                <span>{lang === 'bn' ? 'ছবির URL লিংক' : 'Image URL'}</span>
+              </button>
+            </div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 pt-1">
+            {/* Live Preview Box */}
+            <div className="relative group w-24 h-24 rounded-2xl bg-white dark:bg-slate-900 border-2 border-dashed border-slate-300 dark:border-slate-700 flex items-center justify-center overflow-hidden shrink-0 shadow-inner">
+              {imagePreview && !imageError ? (
+                <>
+                  <img
+                    src={imagePreview}
+                    alt="Preview"
+                    onError={() => setImageError(true)}
+                    className="w-full h-full object-cover"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleClearImage}
+                    title={lang === 'bn' ? 'ছবি মুছুন' : 'Remove Image'}
+                    className="absolute top-1 right-1 p-1 rounded-full bg-rose-600 text-white shadow hover:bg-rose-700 transition"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </>
               ) : (
-                <Upload className="w-6 h-6 text-slate-400" />
+                <div className="flex flex-col items-center justify-center p-2 text-center">
+                  <Upload className="w-6 h-6 text-slate-400 dark:text-slate-500 mb-1" />
+                  <span className="text-[10px] text-slate-400 dark:text-slate-500">
+                    {imageError
+                      ? (lang === 'bn' ? 'ভুল লিংক' : 'Load Failed')
+                      : (lang === 'bn' ? 'ছবি নেই' : 'No Image')}
+                  </span>
+                </div>
               )}
             </div>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleImageChange}
-              className="text-xs file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 dark:file:bg-indigo-950 dark:file:text-indigo-300"
-            />
+
+            {/* Tab 1: Local File Upload */}
+            {imageTab === 'upload' && (
+              <div className="flex-1 space-y-1.5">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageChange}
+                  className="text-xs file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 dark:file:bg-indigo-950 dark:file:text-indigo-300 w-full"
+                />
+                <p className="text-[11px] text-slate-400">
+                  {lang === 'bn'
+                    ? 'সর্বোচ্চ ৫ মেগাবাইট (JPG, PNG, WEBP, GIF)'
+                    : 'Max 5MB (JPG, PNG, WEBP, GIF)'}
+                </p>
+                {imageFile && (
+                  <p className="text-xs text-indigo-600 dark:text-indigo-400 font-medium">
+                    ✓ {imageFile.name} ({(imageFile.size / 1024).toFixed(1)} KB)
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* Tab 2: Direct Image URL */}
+            {imageTab === 'url' && (
+              <div className="flex-1 space-y-2 w-full">
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                    <Globe className="w-4 h-4" />
+                  </div>
+                  <input
+                    type="url"
+                    value={imageUrlInput}
+                    onChange={(e) => handleUrlChange(e.target.value)}
+                    placeholder="https://example.com/images/product.jpg"
+                    className="w-full pl-9 pr-10 py-2.5 text-xs rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                  />
+                  {imageUrlInput && (
+                    <button
+                      type="button"
+                      onClick={() => handleUrlChange('')}
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+                {imageError ? (
+                  <p className="text-[11px] text-rose-500 font-medium">
+                    {lang === 'bn'
+                      ? '⚠️ ছবিটি লোড করা যায়নি। অনুগ্রহ করে সরাসরি ছবির লিংক (Direct Image URL) দিন।'
+                      : '⚠️ Could not load image from URL. Please ensure it is a direct image link.'}
+                  </p>
+                ) : (
+                  <p className="text-[11px] text-slate-400">
+                    {lang === 'bn'
+                      ? 'ওয়েব থেকে যেকোনো ছবির সরাসরি লিংক (Direct URL) পেস্ট করুন।'
+                      : 'Paste any direct web image link (HTTPS recommended).'}
+                  </p>
+                )}
+              </div>
+            )}
           </div>
         </div>
 

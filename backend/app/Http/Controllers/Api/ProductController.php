@@ -100,9 +100,10 @@ class ProductController extends Controller
             'discount_value' => 'nullable|numeric|min:0',
             'description' => 'nullable|string',
             'image' => 'nullable|image|max:5120',
+            'image_url' => 'nullable|string|max:2048',
         ]);
 
-        $imageUrl = null;
+        $imageUrl = $request->input('image_url');
         $driveFileId = null;
 
         if ($request->hasFile('image')) {
@@ -171,6 +172,7 @@ class ProductController extends Controller
             'description' => 'nullable|string',
             'status' => 'required|in:active,inactive',
             'image' => 'nullable|image|max:5120',
+            'image_url' => 'nullable|string|max:2048',
         ]);
 
         if ($request->hasFile('image')) {
@@ -178,6 +180,8 @@ class ProductController extends Controller
             $this->driveService->deleteImage($product->drive_file_id, $product->image_url);
             $validated['image_url'] = $upload['url'];
             $validated['drive_file_id'] = $upload['file_id'];
+        } elseif ($request->has('image_url')) {
+            $validated['image_url'] = $request->input('image_url');
         }
 
         $oldValues = $product->toArray();
