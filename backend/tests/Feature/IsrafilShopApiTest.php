@@ -291,4 +291,53 @@ class IsrafilShopApiTest extends TestCase
         $updateResponse->assertStatus(200)
             ->assertJsonPath('product.image_url', 'https://images.unsplash.com/photo-1523275335684-37898b6baf30');
     }
+
+    public function test_json_bulk_imports()
+    {
+        $user = User::where('email', 'admin@israfilbd.com')->first();
+
+        // 1. Categories JSON import
+        $catPayload = [
+            'categories' => [
+                ['name' => 'Imported Electronics', 'name_bn' => 'ইমপোর্টেড ইলেকট্রনিক্স', 'code' => 'IMP-ELEC'],
+                ['name' => 'Imported Snacks', 'name_bn' => 'ইমপোর্টেড স্ন্যাক্স', 'code' => 'IMP-SNK'],
+            ]
+        ];
+        $catRes = $this->actingAs($user, 'sanctum')->postJson('/api/categories/import-json', $catPayload);
+        $catRes->assertStatus(200)->assertJsonPath('inserted', 2);
+
+        // 2. Brands JSON import
+        $brandPayload = [
+            'brands' => [
+                ['name' => 'Apex Import', 'name_bn' => 'এপেক্স ইমপোর্ট'],
+                ['name' => 'Samsung Import', 'name_bn' => 'স্যামসাং ইমপোর্ট'],
+            ]
+        ];
+        $brandRes = $this->actingAs($user, 'sanctum')->postJson('/api/brands/import-json', $brandPayload);
+        $brandRes->assertStatus(200)->assertJsonPath('inserted', 2);
+
+        // 3. Products JSON import (including Google Drive image link)
+        $prodPayload = [
+            'products' => [
+                [
+                    'name' => 'Bulk Product 1',
+                    'barcode' => '894888888001',
+                    'sku' => 'BLK-001',
+                    'category_name' => 'Imported Electronics',
+                    'brand_name' => 'Samsung Import',
+                    'purchase_price' => 500,
+                    'selling_price' => 750,
+                    'current_stock' => 15,
+                    'image_url' => 'https://drive.google.com/file/d/1uTZCWKh6PftTikrXZOde-l4spvCPWBEM/view?usp=drive_link',
+                ],
+            ]
+        ];
+        $prodRes = $this->actingAs($user, 'sanctum')->postJson('/api/products/import-json', $prodPayload);
+        $prodRes->assertStatus(200)->assertJsonPath('inserted', 1);
+
+        // Verify product in database has normalized lh3 Google Drive direct link
+        $product = Product::where('barcode', '894888888001')->first();
+        $this->assertNotNull($product);
+        $this->assertEquals('https://lh3.googleusercontent.com/d/1uTZCWKh6PftTikrXZOde-l4spvCPWBEM', $product->image_url);
+    }
 }

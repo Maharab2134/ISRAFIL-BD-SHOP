@@ -13,6 +13,7 @@ import {
   History,
 } from 'lucide-react';
 import api from '../../services/api';
+import { normalizeImageUrl } from '../../utils/imageHelper';
 
 export const ProductDetails = () => {
   const { id } = useParams();
@@ -89,7 +90,14 @@ export const ProductDetails = () => {
         <div className="p-6 rounded-3xl bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 shadow-card flex flex-col items-center text-center space-y-4">
           <div className="w-48 h-48 rounded-2xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 overflow-hidden flex items-center justify-center">
             {product.image_url ? (
-              <img src={product.image_url} alt="" className="w-full h-full object-cover" />
+              <img
+                src={normalizeImageUrl(product.image_url)}
+                alt=""
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                }}
+                className="w-full h-full object-cover"
+              />
             ) : (
               <Package className="w-16 h-16 text-slate-400 stroke-1" />
             )}

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../../context/LanguageContext';
 import { useToast } from '../../context/ToastContext';
-import { FolderTree, Plus, Edit, Trash2, Save, X, Search } from 'lucide-react';
+import { FolderTree, Plus, Edit, Trash2, Save, X, Search, FileJson } from 'lucide-react';
 import api from '../../services/api';
+import InlineJsonImport from '../../components/common/InlineJsonImport';
 
 export const Brands = () => {
   const { t, lang, formatNumber } = useLanguage();
@@ -17,6 +18,30 @@ export const Brands = () => {
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
+  const [showImport, setShowImport] = useState(false);
+
+  const sampleBrands = [
+    {
+      name: 'Samsung',
+      name_bn: 'স্যামসাং',
+      status: 'active'
+    },
+    {
+      name: 'Unilever',
+      name_bn: 'ইউনিলিভার',
+      status: 'active'
+    },
+    {
+      name: 'Pran',
+      name_bn: 'প্রাণ',
+      status: 'active'
+    },
+    {
+      name: 'Square',
+      name_bn: 'স্কয়ার',
+      status: 'active'
+    }
+  ];
 
   useEffect(() => {
     fetchBrands();
@@ -88,15 +113,41 @@ export const Brands = () => {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2.5">
-          <FolderTree className="w-7 h-7 text-indigo-600" />
-          {t('brands')}
-        </h1>
-        <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-          {lang === 'bn' ? 'পণ্য প্রস্তুতকারক ও ব্র্যান্ড পরিচালনা করুন' : 'Manage product brands and manufacturers'}
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2.5">
+            <FolderTree className="w-7 h-7 text-indigo-600" />
+            {t('brands')}
+          </h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+            {lang === 'bn' ? 'পণ্য প্রস্তুতকারক ও ব্র্যান্ড পরিচালনা করুন' : 'Manage product brands and manufacturers'}
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setShowImport(!showImport)}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl font-bold text-xs transition border ${
+            showImport
+              ? 'bg-indigo-600 text-white border-indigo-600 shadow-md'
+              : 'bg-white dark:bg-[#1E293B] border-slate-200 dark:border-slate-800 text-indigo-600 dark:text-indigo-400 hover:border-indigo-400 shadow-sm'
+          }`}
+        >
+          <FileJson className="w-4 h-4" />
+          <span>{lang === 'bn' ? 'brands.json ইমপোর্ট' : 'Import brands.json'}</span>
+        </button>
       </div>
+
+      {showImport && (
+        <InlineJsonImport
+          title={lang === 'bn' ? 'ব্র্যান্ড বাল্ক ইমপোর্ট (brands.json)' : 'Brand Bulk Import (brands.json)'}
+          endpoint="/brands/import-json"
+          sampleFilename="brands.json"
+          sampleData={sampleBrands}
+          onSuccess={() => fetchBrands()}
+          onClose={() => setShowImport(false)}
+        />
+      )}
 
       {deleteConfirmId && (
         <div className="p-4 rounded-2xl bg-rose-50 dark:bg-rose-950/80 border border-rose-300 dark:border-rose-800 flex items-center justify-between">

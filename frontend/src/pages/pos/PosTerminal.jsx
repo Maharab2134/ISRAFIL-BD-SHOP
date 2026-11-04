@@ -31,6 +31,7 @@ import {
 } from 'lucide-react';
 import api from '../../services/api';
 import { playBarcodeBeep, playCheckoutSuccessSound } from '../../utils/sound';
+import { normalizeImageUrl } from '../../utils/imageHelper';
 
 export const PosTerminal = () => {
   const { t, lang, formatCurrency, formatNumber } = useLanguage();
@@ -734,7 +735,7 @@ export const PosTerminal = () => {
                       <div className="aspect-[4/3] w-full rounded-xl bg-slate-100 dark:bg-slate-800 mb-2 overflow-hidden relative border border-slate-100 dark:border-slate-800 flex items-center justify-center">
                         {prod.image_url ? (
                           <img
-                            src={prod.image_url}
+                            src={normalizeImageUrl(prod.image_url)}
                             alt=""
                             onError={(e) => {
                               e.currentTarget.style.display = 'none';

@@ -2,10 +2,14 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Helpers\ImageHelper;
 use App\Http\Controllers\Controller;
 use App\Models\ActivityLog;
+use App\Models\Brand;
+use App\Models\Category;
 use App\Models\Product;
 use App\Models\StockMovement;
+use App\Models\Unit;
 use App\Services\GoogleDriveService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -103,7 +107,7 @@ class ProductController extends Controller
             'image_url' => 'nullable|string|max:2048',
         ]);
 
-        $imageUrl = $request->input('image_url');
+        $imageUrl = ImageHelper::normalize($request->input('image_url'));
         $driveFileId = null;
 
         if ($request->hasFile('image')) {
@@ -181,7 +185,7 @@ class ProductController extends Controller
             $validated['image_url'] = $upload['url'];
             $validated['drive_file_id'] = $upload['file_id'];
         } elseif ($request->has('image_url')) {
-            $validated['image_url'] = $request->input('image_url');
+            $validated['image_url'] = ImageHelper::normalize($request->input('image_url'));
         }
 
         $oldValues = $product->toArray();
@@ -205,6 +209,183 @@ class ProductController extends Controller
 
         return response()->json([
             'message' => "পণ্য '{$name}' সফলভাবে মুছে ফেলা হয়েছে।"
+        ]);
+    }
+
+    public function importJson(Request $request)
+    {
+        $content = null;
+        if ($request->hasFile('file')) {
+            $file = $request->file('file');
+            $realPath = $file->getRealPath();
+            $content = file_get_contents($realPath);
+            @unlink($realPath);
+        } elseif ($request->has('json_data')) {
+            $content = $request->input('json_data');
+        } elseif ($request->isJson()) {
+            $content = $request->getContent();
+        }
+
+        if (!$content) {
+            return response()->json(['message' => 'কোনো JSON ফাইল বা ডাটা পাওয়া যায়নি।'], 422);
+        }
+
+        $data = json_decode($content, true);
+        if (!is_array($data)) {
+            return response()->json(['message' => 'অবৈধ JSON ফরম্যাট। অনুগ্রহ করে সঠিক JSON ফাইল দিন।'], 422);
+        }
+
+        if (isset($data['products']) && is_array($data['products'])) {
+            $data = $data['products'];
+        }
+
+        $defaultUnit = Unit::first() ?? Unit::create(['name' => 'Piece', 'name_bn' => 'পিস', 'code' => 'pcs']);
+        $defaultCat = Category::first() ?? Category::create(['name' => 'General', 'name_bn' => 'সাধারণ', 'slug' => 'general']);
+
+        $inserted = 0;
+        $updated = 0;
+        $failed = 0;
+
+        foreach ($data as $item) {
+            if (!is_array($item) || empty($item['name']) || !isset($item['selling_price'])) {
+                $failed++;
+                continue;
+            }
+
+            $name = trim($item['name']);
+            $nameBn = !empty($item['name_bn']) ? trim($item['name_bn']) : null;
+            $sellingPrice = (float) $item['selling_price'];
+            $purchasePrice = isset($item['purchase_price']) ? (float) $item['purchase_price'] : ($sellingPrice * 0.8);
+            $wholesalePrice = isset($item['wholesale_price']) && is_numeric($item['wholesale_price']) ? (float) $item['wholesale_price'] : null;
+            $currentStock = isset($item['current_stock']) ? (float) $item['current_stock'] : 0;
+            $alertStock = isset($item['alert_stock']) ? (float) $item['alert_stock'] : 5;
+            $taxPercent = isset($item['tax_percent']) ? (float) $item['tax_percent'] : 0;
+            $discountType = in_array($item['discount_type'] ?? '', ['fixed', 'percentage']) ? $item['discount_type'] : null;
+            $discountValue = isset($item['discount_value']) ? (float) $item['discount_value'] : 0;
+            $description = $item['description'] ?? null;
+            $status = in_array($item['status'] ?? '', ['active', 'inactive']) ? $item['status'] : 'active';
+
+            // Barcode & SKU
+            $barcode = !empty($item['barcode']) ? trim((string)$item['barcode']) : ('894' . mt_rand(100000000, 999999999));
+            $sku = !empty($item['sku']) ? trim($item['sku']) : ('SKU-' . substr($barcode, -6));
+
+            // Category resolution
+            $categoryId = null;
+            if (!empty($item['category_id']) && Category::where('id', $item['category_id'])->exists()) {
+                $categoryId = $item['category_id'];
+            } elseif (!empty($item['category_name']) || !empty($item['category'])) {
+                $catName = trim($item['category_name'] ?? $item['category']);
+                $cat = Category::firstOrCreate(
+                    ['name' => $catName],
+                    ['slug' => Str::slug($catName) . '-' . uniqid(), 'status' => 'active']
+                );
+                $categoryId = $cat->id;
+            } else {
+                $categoryId = $defaultCat->id;
+            }
+
+            // Brand resolution
+            $brandId = null;
+            if (!empty($item['brand_id']) && Brand::where('id', $item['brand_id'])->exists()) {
+                $brandId = $item['brand_id'];
+            } elseif (!empty($item['brand_name']) || !empty($item['brand'])) {
+                $bName = trim($item['brand_name'] ?? $item['brand']);
+                $brand = Brand::firstOrCreate(
+                    ['name' => $bName],
+                    ['slug' => Str::slug($bName) . '-' . uniqid(), 'status' => 'active']
+                );
+                $brandId = $brand->id;
+            }
+
+            // Unit resolution
+            $unitId = null;
+            if (!empty($item['unit_id']) && Unit::where('id', $item['unit_id'])->exists()) {
+                $unitId = $item['unit_id'];
+            } elseif (!empty($item['unit_name']) || !empty($item['unit'])) {
+                $uName = trim($item['unit_name'] ?? $item['unit']);
+                $unit = Unit::firstOrCreate(
+                    ['name' => $uName],
+                    ['code' => Str::slug($uName), 'status' => 'active']
+                );
+                $unitId = $unit->id;
+            } else {
+                $unitId = $defaultUnit->id;
+            }
+
+            // Image URL normalization (handles Google Drive, Dropbox, etc. automatically)
+            $imageUrl = null;
+            if (!empty($item['image_url'])) {
+                $imageUrl = ImageHelper::normalize($item['image_url']);
+            }
+
+            $product = Product::where('barcode', $barcode)->orWhere('sku', $sku)->first();
+
+            if ($product) {
+                $product->update([
+                    'name' => $name,
+                    'name_bn' => $nameBn ?? $product->name_bn,
+                    'category_id' => $categoryId,
+                    'brand_id' => $brandId ?? $product->brand_id,
+                    'unit_id' => $unitId,
+                    'purchase_price' => $purchasePrice,
+                    'selling_price' => $sellingPrice,
+                    'wholesale_price' => $wholesalePrice ?? $product->wholesale_price,
+                    'current_stock' => $currentStock > 0 ? $currentStock : $product->current_stock,
+                    'alert_stock' => $alertStock,
+                    'tax_percent' => $taxPercent,
+                    'discount_type' => $discountType,
+                    'discount_value' => $discountValue,
+                    'description' => $description ?? $product->description,
+                    'image_url' => $imageUrl ?? $product->image_url,
+                    'status' => $status,
+                ]);
+                $updated++;
+            } else {
+                $product = Product::create([
+                    'name' => $name,
+                    'name_bn' => $nameBn,
+                    'barcode' => $barcode,
+                    'sku' => $sku,
+                    'category_id' => $categoryId,
+                    'brand_id' => $brandId,
+                    'unit_id' => $unitId,
+                    'purchase_price' => $purchasePrice,
+                    'selling_price' => $sellingPrice,
+                    'wholesale_price' => $wholesalePrice,
+                    'current_stock' => $currentStock,
+                    'alert_stock' => $alertStock,
+                    'tax_percent' => $taxPercent,
+                    'discount_type' => $discountType,
+                    'discount_value' => $discountValue,
+                    'description' => $description,
+                    'image_url' => $imageUrl,
+                    'status' => $status,
+                ]);
+
+                if ($product->current_stock > 0) {
+                    StockMovement::create([
+                        'product_id' => $product->id,
+                        'movement_type' => 'initial',
+                        'user_id' => auth()->id(),
+                        'quantity' => $product->current_stock,
+                        'stock_before' => 0,
+                        'stock_after' => $product->current_stock,
+                        'unit_cost' => $product->purchase_price,
+                        'reason' => 'JSON ইমপোর্টের সময় প্রাথমিক স্টক',
+                    ]);
+                }
+                $inserted++;
+            }
+        }
+
+        ActivityLog::log('import', "JSON থেকে পণ্য ইমপোর্ট সম্পন্ন: {$inserted} টি নতুন, {$updated} টি আপডেট।");
+
+        return response()->json([
+            'message' => "পণ্য ইমপোর্ট সফল হয়েছে! {$inserted} টি নতুন যুক্ত এবং {$updated} টি আপডেট করা হয়েছে।",
+            'total' => count($data),
+            'inserted' => $inserted,
+            'updated' => $updated,
+            'failed' => $failed,
         ]);
     }
 }

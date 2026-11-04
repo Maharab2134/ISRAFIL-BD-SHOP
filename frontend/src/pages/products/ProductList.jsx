@@ -15,8 +15,11 @@ import {
   AlertTriangle,
   ChevronLeft,
   ChevronRight,
+  FileJson,
 } from 'lucide-react';
 import api from '../../services/api';
+import { normalizeImageUrl } from '../../utils/imageHelper';
+import InlineJsonImport from '../../components/common/InlineJsonImport';
 
 export const ProductList = () => {
   const { t, lang, formatCurrency, formatNumber } = useLanguage();
@@ -35,6 +38,47 @@ export const ProductList = () => {
 
   // Inline delete confirm state
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
+  const [showImport, setShowImport] = useState(false);
+
+  const sampleProducts = [
+    {
+      name: 'Wireless Bluetooth Earbuds',
+      name_bn: 'ওয়্যারলেস ব্লুটুথ ইয়ারবাডস',
+      barcode: '894110001001',
+      sku: 'SKU-001001',
+      category_name: 'Electronics & Gadgets',
+      brand_name: 'Samsung',
+      unit_name: 'Piece',
+      purchase_price: 1200,
+      selling_price: 1650,
+      wholesale_price: 1450,
+      current_stock: 40,
+      alert_stock: 5,
+      tax_percent: 0,
+      discount_type: 'fixed',
+      discount_value: 50,
+      image_url: 'https://drive.google.com/file/d/1uTZCWKh6PftTikrXZOde-l4spvCPWBEM/view?usp=drive_link',
+      description: 'High-fidelity audio with active noise cancellation'
+    },
+    {
+      name: 'Dove Deep Moisture Shampoo 350ml',
+      name_bn: 'ডোভ ডিপ ময়েশ্চার শ্যাম্পু ৩৫০মি.লি.',
+      barcode: '894110001002',
+      sku: 'SKU-001002',
+      category_name: 'Cosmetics & Personal Care',
+      brand_name: 'Unilever',
+      unit_name: 'Piece',
+      purchase_price: 360,
+      selling_price: 450,
+      current_stock: 60,
+      alert_stock: 10,
+      tax_percent: 0,
+      discount_type: 'none',
+      discount_value: 0,
+      image_url: 'https://images.unsplash.com/photo-1535585209827-a15fcdbc4c2d',
+      description: 'Nourishing daily hair care shampoo'
+    }
+  ];
 
   useEffect(() => {
     fetchMetadata();
@@ -107,14 +151,42 @@ export const ProductList = () => {
           </p>
         </div>
 
-        <Link
-          to="/products/new"
-          className="px-4 py-2.5 rounded-xl font-bold text-sm bg-indigo-600 hover:bg-indigo-700 text-white shadow-md flex items-center gap-2 self-start transition"
-        >
-          <Plus className="w-4 h-4" />
-          <span>{t('addProduct')}</span>
-        </Link>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setShowImport(!showImport)}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs transition border ${
+              showImport
+                ? 'bg-indigo-600 text-white border-indigo-600 shadow-md'
+                : 'bg-white dark:bg-[#1E293B] border-slate-200 dark:border-slate-800 text-indigo-600 dark:text-indigo-400 hover:border-indigo-400 shadow-sm'
+            }`}
+          >
+            <FileJson className="w-4 h-4" />
+            <span>{lang === 'bn' ? 'products.json ইমপোর্ট' : 'Import products.json'}</span>
+          </button>
+
+          <Link
+            to="/products/new"
+            className="px-4 py-2.5 rounded-xl font-bold text-sm bg-indigo-600 hover:bg-indigo-700 text-white shadow-md flex items-center gap-2 transition"
+          >
+            <Plus className="w-4 h-4" />
+            <span>{t('addProduct')}</span>
+          </Link>
+        </div>
       </div>
+
+      {showImport && (
+        <InlineJsonImport
+          title={lang === 'bn' ? 'পণ্য বাল্ক ইমপোর্ট (products.json)' : 'Product Bulk Import (products.json)'}
+          endpoint="/products/import-json"
+          sampleFilename="products.json"
+          sampleData={sampleProducts}
+          onSuccess={() => {
+            fetchProducts(pagination.current_page);
+          }}
+          onClose={() => setShowImport(false)}
+        />
+      )}
 
       {/* Filter and Search Bar */}
       <div className="p-4 rounded-2xl bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 shadow-card grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -239,7 +311,14 @@ export const ProductList = () => {
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 shrink-0 overflow-hidden flex items-center justify-center font-bold text-slate-400 border border-slate-200 dark:border-slate-700">
                             {p.image_url ? (
-                              <img src={p.image_url} alt="" className="w-full h-full object-cover" />
+                              <img
+                                src={normalizeImageUrl(p.image_url)}
+                                alt=""
+                                onError={(e) => {
+                                  e.currentTarget.style.display = 'none';
+                                }}
+                                className="w-full h-full object-cover"
+                              />
                             ) : (
                               p.name.substring(0, 2).toUpperCase()
                             )}

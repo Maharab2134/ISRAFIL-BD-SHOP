@@ -15,8 +15,11 @@ import {
   Globe,
   X,
   Link2,
+  FileJson,
 } from 'lucide-react';
 import api from '../../services/api';
+import { normalizeImageUrl } from '../../utils/imageHelper';
+import InlineJsonImport from '../../components/common/InlineJsonImport';
 
 export const AddProduct = () => {
   const { t, lang } = useLanguage();
@@ -50,6 +53,47 @@ export const AddProduct = () => {
   const [imageTab, setImageTab] = useState('upload'); // 'upload' | 'url'
   const [imageError, setImageError] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showImport, setShowImport] = useState(false);
+
+  const sampleProducts = [
+    {
+      name: 'Wireless Bluetooth Earbuds',
+      name_bn: 'ওয়্যারলেস ব্লুটুথ ইয়ারবাডস',
+      barcode: '894110001001',
+      sku: 'SKU-001001',
+      category_name: 'Electronics & Gadgets',
+      brand_name: 'Samsung',
+      unit_name: 'Piece',
+      purchase_price: 1200,
+      selling_price: 1650,
+      wholesale_price: 1450,
+      current_stock: 40,
+      alert_stock: 5,
+      tax_percent: 0,
+      discount_type: 'fixed',
+      discount_value: 50,
+      image_url: 'https://drive.google.com/file/d/1uTZCWKh6PftTikrXZOde-l4spvCPWBEM/view?usp=drive_link',
+      description: 'High-fidelity audio with active noise cancellation'
+    },
+    {
+      name: 'Dove Deep Moisture Shampoo 350ml',
+      name_bn: 'ডোভ ডিপ ময়েশ্চার শ্যাম্পু ৩৫০মি.লি.',
+      barcode: '894110001002',
+      sku: 'SKU-001002',
+      category_name: 'Cosmetics & Personal Care',
+      brand_name: 'Unilever',
+      unit_name: 'Piece',
+      purchase_price: 360,
+      selling_price: 450,
+      current_stock: 60,
+      alert_stock: 10,
+      tax_percent: 0,
+      discount_type: 'none',
+      discount_value: 0,
+      image_url: 'https://images.unsplash.com/photo-1535585209827-a15fcdbc4c2d',
+      description: 'Nourishing daily hair care shampoo'
+    }
+  ];
 
   useEffect(() => {
     const fetchData = async () => {
@@ -110,9 +154,10 @@ export const AddProduct = () => {
   const handleUrlChange = (url) => {
     setImageUrlInput(url);
     setImageError(false);
-    if (url.trim()) {
+    const normalized = normalizeImageUrl(url);
+    if (normalized) {
       setImageFile(null);
-      setImagePreview(url.trim());
+      setImagePreview(normalized);
     } else {
       setImagePreview(null);
     }
@@ -165,7 +210,7 @@ export const AddProduct = () => {
       if (imageFile) {
         formData.append('image', imageFile);
       } else if (imageUrlInput.trim()) {
-        formData.append('image_url', imageUrlInput.trim());
+        formData.append('image_url', normalizeImageUrl(imageUrlInput.trim()));
       }
 
       await api.post('/products', formData, {
@@ -202,7 +247,33 @@ export const AddProduct = () => {
             </p>
           </div>
         </div>
+
+        <button
+          type="button"
+          onClick={() => setShowImport(!showImport)}
+          className={`flex items-center gap-2 px-4 py-2 rounded-2xl font-bold text-xs transition border ${
+            showImport
+              ? 'bg-indigo-600 text-white border-indigo-600 shadow-md'
+              : 'bg-white dark:bg-[#1E293B] border-slate-200 dark:border-slate-800 text-indigo-600 dark:text-indigo-400 hover:border-indigo-400 shadow-sm'
+          }`}
+        >
+          <FileJson className="w-4 h-4" />
+          <span>{lang === 'bn' ? 'product.json বাল্ক ইমপোর্ট' : 'Import product.json'}</span>
+        </button>
       </div>
+
+      {showImport && (
+        <InlineJsonImport
+          title={lang === 'bn' ? 'পণ্য বাল্ক ইমপোর্ট (product.json)' : 'Product Bulk Import (product.json)'}
+          endpoint="/products/import-json"
+          sampleFilename="product.json"
+          sampleData={sampleProducts}
+          onSuccess={() => {
+            navigate('/products');
+          }}
+          onClose={() => setShowImport(false)}
+        />
+      )}
 
       {/* Main Dedicated Form */}
       <form onSubmit={handleSubmit} className="p-6 md:p-8 rounded-3xl bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 shadow-card space-y-6">
@@ -604,6 +675,14 @@ export const AddProduct = () => {
                     </button>
                   )}
                 </div>
+                {imageUrlInput && imageUrlInput.includes('drive.google.com') && !imageError && (
+                  <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1">
+                    <Check className="w-3.5 h-3.5" />
+                    {lang === 'bn'
+                      ? '✓ গুগল ড্রাইভ ইমেজ সরাসরি স্ট্রিমিং মোডে সক্রিয় হয়েছে।'
+                      : '✓ Google Drive direct image stream active.'}
+                  </p>
+                )}
                 {imageError ? (
                   <p className="text-[11px] text-rose-500 font-medium">
                     {lang === 'bn'

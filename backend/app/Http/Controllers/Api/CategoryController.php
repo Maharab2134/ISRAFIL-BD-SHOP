@@ -85,5 +85,86 @@ class CategoryController extends Controller
             'message' => 'ক্যাটাগরি সফলভাবে মুছে ফেলা হয়েছে।'
         ]);
     }
+
+    public function importJson(Request $request)
+    {
+        $content = null;
+        if ($request->hasFile('file')) {
+            $file = $request->file('file');
+            $realPath = $file->getRealPath();
+            $content = file_get_contents($realPath);
+            @unlink($realPath);
+        } elseif ($request->has('json_data')) {
+            $content = $request->input('json_data');
+        } elseif ($request->isJson()) {
+            $content = $request->getContent();
+        }
+
+        if (!$content) {
+            return response()->json(['message' => 'কোনো JSON ফাইল বা ডাটা পাওয়া যায়নি।'], 422);
+        }
+
+        $data = json_decode($content, true);
+        if (!is_array($data)) {
+            return response()->json(['message' => 'অবৈধ JSON ফরম্যাট। অনুগ্রহ করে সঠিক JSON ফাইল দিন।'], 422);
+        }
+
+        if (isset($data['categories']) && is_array($data['categories'])) {
+            $data = $data['categories'];
+        }
+
+        $inserted = 0;
+        $updated = 0;
+        $failed = 0;
+
+        foreach ($data as $item) {
+            if (!is_array($item) || empty($item['name'])) {
+                $failed++;
+                continue;
+            }
+
+            $name = trim($item['name']);
+            $nameBn = !empty($item['name_bn']) ? trim($item['name_bn']) : null;
+            $code = !empty($item['code']) ? trim($item['code']) : null;
+            $status = in_array($item['status'] ?? '', ['active', 'inactive']) ? $item['status'] : 'active';
+
+            $category = null;
+            if ($code) {
+                $category = Category::where('code', $code)->first();
+            }
+            if (!$category) {
+                $category = Category::whereRaw('LOWER(name) = ?', [strtolower($name)])->first();
+            }
+
+            if ($category) {
+                $category->update([
+                    'name' => $name,
+                    'name_bn' => $nameBn ?? $category->name_bn,
+                    'code' => $code ?? $category->code,
+                    'status' => $status,
+                ]);
+                $updated++;
+            } else {
+                Category::create([
+                    'name' => $name,
+                    'name_bn' => $nameBn,
+                    'code' => $code,
+                    'slug' => Str::slug($name) . '-' . uniqid(),
+                    'status' => $status,
+                ]);
+                $inserted++;
+            }
+        }
+
+        ActivityLog::log('import', "JSON থেকে ক্যাটাগরি ইমপোর্ট সম্পন্ন: {$inserted} টি নতুন, {$updated} টি আপডেট।");
+
+        return response()->json([
+            'message' => "ক্যাটাগরি ইমপোর্ট সফল হয়েছে! {$inserted} টি নতুন যুক্ত এবং {$updated} টি আপডেট করা হয়েছে।",
+            'total' => count($data),
+            'inserted' => $inserted,
+            'updated' => $updated,
+            'failed' => $failed,
+        ]);
+    }
 }
 

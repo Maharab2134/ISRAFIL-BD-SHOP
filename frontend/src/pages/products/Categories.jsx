@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../../context/LanguageContext';
 import { useToast } from '../../context/ToastContext';
-import { Layers, Plus, Edit, Trash2, Save, X, Search, CheckCircle2 } from 'lucide-react';
+import { Layers, Plus, Edit, Trash2, Save, X, Search, CheckCircle2, FileJson } from 'lucide-react';
 import api from '../../services/api';
+import InlineJsonImport from '../../components/common/InlineJsonImport';
 
 export const Categories = () => {
   const { t, lang, formatNumber } = useLanguage();
@@ -18,6 +19,28 @@ export const Categories = () => {
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
+  const [showImport, setShowImport] = useState(false);
+
+  const sampleCategories = [
+    {
+      name: 'Cosmetics & Personal Care',
+      name_bn: 'কসমেটিকস ও রূপচর্চা',
+      code: 'CAT-COSM',
+      status: 'active'
+    },
+    {
+      name: 'Electronics & Gadgets',
+      name_bn: 'ইলেকট্রনিক্স ও গ্যাজেটস',
+      code: 'CAT-ELEC',
+      status: 'active'
+    },
+    {
+      name: 'Food & Groceries',
+      name_bn: 'খাদ্য ও মুদি পণ্য',
+      code: 'CAT-GROC',
+      status: 'active'
+    }
+  ];
 
   useEffect(() => {
     fetchCategories();
@@ -105,15 +128,41 @@ export const Categories = () => {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2.5">
-          <Layers className="w-7 h-7 text-indigo-600" />
-          {t('categories')}
-        </h1>
-        <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-          {lang === 'bn' ? 'পণ্য ক্যাটাগরি তৈরি ও পরিচালনা করুন' : 'Create and manage product categories'}
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2.5">
+            <Layers className="w-7 h-7 text-indigo-600" />
+            {t('categories')}
+          </h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+            {lang === 'bn' ? 'পণ্য ক্যাটাগরি তৈরি ও পরিচালনা করুন' : 'Create and manage product categories'}
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setShowImport(!showImport)}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl font-bold text-xs transition border ${
+            showImport
+              ? 'bg-indigo-600 text-white border-indigo-600 shadow-md'
+              : 'bg-white dark:bg-[#1E293B] border-slate-200 dark:border-slate-800 text-indigo-600 dark:text-indigo-400 hover:border-indigo-400 shadow-sm'
+          }`}
+        >
+          <FileJson className="w-4 h-4" />
+          <span>{lang === 'bn' ? 'categories.json ইমপোর্ট' : 'Import categories.json'}</span>
+        </button>
       </div>
+
+      {showImport && (
+        <InlineJsonImport
+          title={lang === 'bn' ? 'ক্যাটাগরি বাল্ক ইমপোর্ট (categories.json)' : 'Category Bulk Import (categories.json)'}
+          endpoint="/categories/import-json"
+          sampleFilename="categories.json"
+          sampleData={sampleCategories}
+          onSuccess={() => fetchCategories()}
+          onClose={() => setShowImport(false)}
+        />
+      )}
 
       {deleteConfirmId && (
         <div className="p-4 rounded-2xl bg-rose-50 dark:bg-rose-950/80 border border-rose-300 dark:border-rose-800 flex items-center justify-between">

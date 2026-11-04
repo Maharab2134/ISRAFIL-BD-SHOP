@@ -16,6 +16,7 @@ import {
   Link2,
 } from 'lucide-react';
 import api from '../../services/api';
+import { normalizeImageUrl } from '../../utils/imageHelper';
 
 export const EditProduct = () => {
   const { id } = useParams();
@@ -83,7 +84,8 @@ export const EditProduct = () => {
         setStatus(p.status);
         setDescription(p.description || '');
         if (p.image_url) {
-          setImagePreview(p.image_url);
+          const direct = normalizeImageUrl(p.image_url);
+          setImagePreview(direct);
           setImageUrlInput(p.image_url);
           if (p.image_url.startsWith('http://') || p.image_url.startsWith('https://')) {
             setImageTab('url');
@@ -125,9 +127,10 @@ export const EditProduct = () => {
   const handleUrlChange = (url) => {
     setImageUrlInput(url);
     setImageError(false);
-    if (url.trim()) {
+    const normalized = normalizeImageUrl(url);
+    if (normalized) {
       setImageFile(null);
-      setImagePreview(url.trim());
+      setImagePreview(normalized);
     } else {
       setImagePreview(null);
     }
@@ -181,7 +184,7 @@ export const EditProduct = () => {
       if (imageFile) {
         formData.append('image', imageFile);
       } else {
-        formData.append('image_url', imageUrlInput.trim());
+        formData.append('image_url', normalizeImageUrl(imageUrlInput.trim()));
       }
 
       await api.post(`/products/${id}`, formData, {
@@ -606,6 +609,14 @@ export const EditProduct = () => {
                     </button>
                   )}
                 </div>
+                {imageUrlInput && imageUrlInput.includes('drive.google.com') && !imageError && (
+                  <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1">
+                    <Check className="w-3.5 h-3.5" />
+                    {lang === 'bn'
+                      ? '✓ গুগল ড্রাইভ ইমেজ সরাসরি স্ট্রিমিং মোডে সক্রিয় হয়েছে।'
+                      : '✓ Google Drive direct image stream active.'}
+                  </p>
+                )}
                 {imageError ? (
                   <p className="text-[11px] text-rose-500 font-medium">
                     {lang === 'bn'
