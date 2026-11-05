@@ -70,13 +70,20 @@ class BrandController extends Controller
     public function destroy($id)
     {
         $brand = Brand::withCount('products')->findOrFail($id);
-        if ($brand->products_count > 0) {
+        $user = auth()->user();
+        $isSuperAdmin = $user && ($user->role?->slug === 'super-admin' || $user->email === 'admin@israfilbd.com');
+
+        if (!$isSuperAdmin && $brand->products_count > 0) {
             return response()->json([
-                'message' => 'এই ব্র্যান্ডের অধীনে পণ্য রয়েছে, তাই এটি মুছে ফেলা যাবে না।'
-            ], 422);
+                'message' => 'এই ব্র্যান্ডের অধীনে পণ্য রয়েছে, তাই ম্যানেজার মুছে ফেলতে পারবেন না। শুধুমাত্র সুপার অ্যাডমিন এটি অপসারণ করতে পারবেন।'
+            ], 403);
         }
 
-        $brand->delete();
+        \Illuminate\Support\Facades\DB::transaction(function () use ($brand) {
+            \App\Models\Product::where('brand_id', $brand->id)->update(['brand_id' => null]);
+            $brand->delete();
+        });
+
         ActivityLog::log('delete', "ব্র্যান্ড '{$brand->name}' মুছে ফেলা হয়েছে।", $brand);
 
         return response()->json([
@@ -91,17 +98,28 @@ class BrandController extends Controller
             'ids.*' => 'required|integer',
         ])['ids'];
 
+        $user = auth()->user();
+        $isSuperAdmin = $user && ($user->role?->slug === 'super-admin' || $user->email === 'admin@israfilbd.com');
+
         $deleted = 0;
         $skipped = 0;
-        foreach ($ids as $id) {
-            $brand = Brand::withCount('products')->find($id);
-            if ($brand && $brand->products_count == 0) {
-                $brand->delete();
-                $deleted++;
-            } else {
-                $skipped++;
+
+        \Illuminate\Support\Facades\DB::transaction(function () use ($ids, $isSuperAdmin, &$deleted, &$skipped) {
+            foreach ($ids as $id) {
+                $brand = Brand::withCount('products')->find($id);
+                if (!$brand) continue;
+
+                if ($isSuperAdmin || $brand->products_count == 0) {
+                    if ($brand->products_count > 0) {
+                        \App\Models\Product::where('brand_id', $brand->id)->update(['brand_id' => null]);
+                    }
+                    $brand->delete();
+                    $deleted++;
+                } else {
+                    $skipped++;
+                }
             }
-        }
+        });
 
         if ($deleted > 0) {
             ActivityLog::log('delete', "{$deleted} টি ব্র্যান্ড মুছে ফেলা হয়েছে।");
@@ -109,7 +127,7 @@ class BrandController extends Controller
 
         $msg = "{$deleted} টি ব্র্যান্ড সফলভাবে মুছে ফেলা হয়েছে।";
         if ($skipped > 0) {
-            $msg .= " ({$skipped} টি ব্র্যান্ডে পণ্য যুক্ত থাকায় বাদ দেওয়া হয়েছে)";
+            $msg .= " ({$skipped} টি ব্র্যান্ডে পণ্য যুক্ত থাকায় বাদ দেওয়া হয়েছে; শুধুমাত্র সুপার অ্যাডমিন এগুলো মুছতে পারবেন)";
         }
 
         return response()->json([

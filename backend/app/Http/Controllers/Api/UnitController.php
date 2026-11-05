@@ -54,13 +54,26 @@ class UnitController extends Controller
     public function destroy($id)
     {
         $unit = Unit::withCount('products')->findOrFail($id);
-        if ($unit->products_count > 0) {
+        $user = auth()->user();
+        $isSuperAdmin = $user && ($user->role?->slug === 'super-admin' || $user->email === 'admin@israfilbd.com');
+
+        if (!$isSuperAdmin && $unit->products_count > 0) {
             return response()->json([
-                'message' => 'এই এককের অধীনে পণ্য রয়েছে, তাই মুছে ফেলা সম্ভব নয়।'
-            ], 422);
+                'message' => 'এই এককের অধীনে পণ্য রয়েছে, তাই ম্যানেজার মুছে ফেলতে পারবেন না। শুধুমাত্র সুপার অ্যাডমিন এটি অপসারণ করতে পারবেন।'
+            ], 403);
         }
 
-        $unit->delete();
+        \Illuminate\Support\Facades\DB::transaction(function () use ($unit) {
+            if ($unit->products_count > 0) {
+                $fallback = Unit::where('id', '!=', $unit->id)->where('code', 'pcs')->first()
+                    ?? Unit::where('id', '!=', $unit->id)->first();
+                \App\Models\Product::where('unit_id', $unit->id)->update([
+                    'unit_id' => $fallback ? $fallback->id : null,
+                ]);
+            }
+            $unit->delete();
+        });
+
         ActivityLog::log('delete', "পরিমাপক একক '{$unit->name}' মুছে ফেলা হয়েছে।", $unit);
 
         return response()->json([
@@ -75,17 +88,33 @@ class UnitController extends Controller
             'ids.*' => 'required|integer',
         ])['ids'];
 
+        $user = auth()->user();
+        $isSuperAdmin = $user && ($user->role?->slug === 'super-admin' || $user->email === 'admin@israfilbd.com');
+
         $deleted = 0;
         $skipped = 0;
-        foreach ($ids as $id) {
-            $unit = Unit::withCount('products')->find($id);
-            if ($unit && $unit->products_count == 0) {
-                $unit->delete();
-                $deleted++;
-            } else {
-                $skipped++;
+
+        \Illuminate\Support\Facades\DB::transaction(function () use ($ids, $isSuperAdmin, &$deleted, &$skipped) {
+            $fallback = Unit::whereNotIn('id', $ids)->where('code', 'pcs')->first()
+                ?? Unit::whereNotIn('id', $ids)->first();
+
+            foreach ($ids as $id) {
+                $unit = Unit::withCount('products')->find($id);
+                if (!$unit) continue;
+
+                if ($isSuperAdmin || $unit->products_count == 0) {
+                    if ($unit->products_count > 0) {
+                        \App\Models\Product::where('unit_id', $unit->id)->update([
+                            'unit_id' => $fallback ? $fallback->id : null,
+                        ]);
+                    }
+                    $unit->delete();
+                    $deleted++;
+                } else {
+                    $skipped++;
+                }
             }
-        }
+        });
 
         if ($deleted > 0) {
             ActivityLog::log('delete', "{$deleted} টি পরিমাপক একক মুছে ফেলা হয়েছে।");
@@ -93,7 +122,7 @@ class UnitController extends Controller
 
         $msg = "{$deleted} টি পরিমাপক একক সফলভাবে মুছে ফেলা হয়েছে।";
         if ($skipped > 0) {
-            $msg .= " ({$skipped} টি এককে পণ্য যুক্ত থাকায় বাদ দেওয়া হয়েছে)";
+            $msg .= " ({$skipped} টি এককে পণ্য যুক্ত থাকায় বাদ দেওয়া হয়েছে; শুধুমাত্র সুপার অ্যাডমিন এগুলো মুছতে পারবেন)";
         }
 
         return response()->json([

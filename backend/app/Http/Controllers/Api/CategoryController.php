@@ -72,13 +72,25 @@ class CategoryController extends Controller
     public function destroy($id)
     {
         $category = Category::withCount('products')->findOrFail($id);
-        if ($category->products_count > 0) {
+        $user = auth()->user();
+        $isSuperAdmin = $user && ($user->role?->slug === 'super-admin' || $user->email === 'admin@israfilbd.com');
+
+        if (!$isSuperAdmin && $category->products_count > 0) {
             return response()->json([
-                'message' => 'এই ক্যাটাগরির অধীনে পণ্য রয়েছে, তাই এটি মুছে ফেলা সম্ভব নয়।'
-            ], 422);
+                'message' => 'এই ক্যাটাগরির অধীনে পণ্য রয়েছে, তাই ম্যানেজার মুছে ফেলতে পারবেন না। শুধুমাত্র সুপার অ্যাডমিন এটি অপসারণ করতে পারবেন।'
+            ], 403);
         }
 
-        $category->delete();
+        \Illuminate\Support\Facades\DB::transaction(function () use ($category) {
+            if ($category->products_count > 0) {
+                $fallback = Category::where('id', '!=', $category->id)->first();
+                if ($fallback) {
+                    \App\Models\Product::where('category_id', $category->id)->update(['category_id' => $fallback->id]);
+                }
+            }
+            $category->delete();
+        });
+
         ActivityLog::log('delete', "ক্যাটাগরি '{$category->name}' মুছে ফেলা হয়েছে।", $category);
 
         return response()->json([
@@ -93,17 +105,30 @@ class CategoryController extends Controller
             'ids.*' => 'required|integer',
         ])['ids'];
 
+        $user = auth()->user();
+        $isSuperAdmin = $user && ($user->role?->slug === 'super-admin' || $user->email === 'admin@israfilbd.com');
+
         $deleted = 0;
         $skipped = 0;
-        foreach ($ids as $id) {
-            $cat = Category::withCount('products')->find($id);
-            if ($cat && $cat->products_count == 0) {
-                $cat->delete();
-                $deleted++;
-            } else {
-                $skipped++;
+
+        \Illuminate\Support\Facades\DB::transaction(function () use ($ids, $isSuperAdmin, &$deleted, &$skipped) {
+            $fallback = Category::whereNotIn('id', $ids)->first();
+
+            foreach ($ids as $id) {
+                $cat = Category::withCount('products')->find($id);
+                if (!$cat) continue;
+
+                if ($isSuperAdmin || $cat->products_count == 0) {
+                    if ($cat->products_count > 0 && $fallback) {
+                        \App\Models\Product::where('category_id', $cat->id)->update(['category_id' => $fallback->id]);
+                    }
+                    $cat->delete();
+                    $deleted++;
+                } else {
+                    $skipped++;
+                }
             }
-        }
+        });
 
         if ($deleted > 0) {
             ActivityLog::log('delete', "{$deleted} টি ক্যাটাগরি মুছে ফেলা হয়েছে।");
@@ -111,7 +136,7 @@ class CategoryController extends Controller
 
         $msg = "{$deleted} টি ক্যাটাগরি সফলভাবে মুছে ফেলা হয়েছে।";
         if ($skipped > 0) {
-            $msg .= " ({$skipped} টি ক্যাটাগরিতে পণ্য যুক্ত থাকায় বাদ দেওয়া হয়েছে)";
+            $msg .= " ({$skipped} টি ক্যাটাগরিতে পণ্য যুক্ত থাকায় বাদ দেওয়া হয়েছে; শুধুমাত্র সুপার অ্যাডমিন এগুলো মুছতে পারবেন)";
         }
 
         return response()->json([
