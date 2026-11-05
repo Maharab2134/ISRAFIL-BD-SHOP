@@ -9,6 +9,7 @@ use App\Models\Role;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class EmployeeController extends Controller
 {
@@ -95,6 +96,176 @@ class EmployeeController extends Controller
     {
         $permissions = Permission::all()->groupBy('group');
         return response()->json($permissions);
+    }
+
+    private function ensureSuperAdmin(Request $request): void
+    {
+        $user = $request->user();
+        $isSuperAdmin = $user && ($user->role?->slug === 'super-admin' || $user->email === 'admin@israfilbd.com');
+        if (!$isSuperAdmin) {
+            abort(response()->json([
+                'message' => 'শুধুমাত্র সুপার অ্যাডমিন পারমিশন ও ভূমিকা পরিবর্তন করতে পারেন।'
+            ], 403));
+        }
+    }
+
+    public function showRole($id)
+    {
+        $role = Role::with('permissions')->withCount('users')->findOrFail($id);
+        return response()->json($role);
+    }
+
+    public function storeRole(Request $request)
+    {
+        $this->ensureSuperAdmin($request);
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:100',
+            'name_bn' => 'nullable|string|max:100',
+            'description' => 'nullable|string|max:255',
+            'permission_ids' => 'nullable|array',
+            'permission_ids.*' => 'integer|exists:permissions,id',
+        ]);
+
+        $baseSlug = Str::slug($validated['name']);
+        $slug = $baseSlug ?: 'role-' . time();
+        $counter = 1;
+        while (Role::where('slug', $slug)->exists()) {
+            $slug = "{$baseSlug}-{$counter}";
+            $counter++;
+        }
+
+        $role = Role::create([
+            'name' => $validated['name'],
+            'name_bn' => $validated['name_bn'] ?? $validated['name'],
+            'slug' => $slug,
+            'description' => $validated['description'] ?? null,
+            'is_system' => false,
+        ]);
+
+        if (!empty($validated['permission_ids'])) {
+            $role->permissions()->sync($validated['permission_ids']);
+        }
+
+        ActivityLog::create([
+            'user_id' => $request->user()->id,
+            'action' => 'create_role',
+            'description' => "সুপার অ্যাডমিন নতুন ভূমিকা '{$role->name}' তৈরি করেছেন।",
+            'ip_address' => $request->ip(),
+            'user_agent' => substr((string) $request->userAgent(), 0, 255),
+        ]);
+
+        return response()->json([
+            'message' => 'নতুন ভূমিকা সফলভাবে তৈরি হয়েছে।',
+            'role' => $role->load('permissions')->loadCount('users'),
+        ], 201);
+    }
+
+    public function updateRole(Request $request, $id)
+    {
+        $this->ensureSuperAdmin($request);
+        $role = Role::findOrFail($id);
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:100',
+            'name_bn' => 'nullable|string|max:100',
+            'description' => 'nullable|string|max:255',
+            'permission_ids' => 'nullable|array',
+            'permission_ids.*' => 'integer|exists:permissions,id',
+        ]);
+
+        $updateData = [
+            'name' => $validated['name'],
+            'name_bn' => $validated['name_bn'] ?? $role->name_bn,
+            'description' => $validated['description'] ?? $role->description,
+        ];
+        if (!$role->is_system) {
+            $updateData['slug'] = Str::slug($validated['name']);
+        }
+        $role->update($updateData);
+
+        if ($role->slug !== 'super-admin' && isset($validated['permission_ids'])) {
+            $role->permissions()->sync($validated['permission_ids']);
+        }
+
+        ActivityLog::create([
+            'user_id' => $request->user()->id,
+            'action' => 'update_role',
+            'description' => "সুপার অ্যাডমিন ভূমিকা '{$role->name}' এর তথ্য ও পারমিশন আপডেট করেছেন।",
+            'ip_address' => $request->ip(),
+            'user_agent' => substr((string) $request->userAgent(), 0, 255),
+        ]);
+
+        return response()->json([
+            'message' => 'ভূমিকা সফলভাবে আপডেট হয়েছে।',
+            'role' => $role->fresh(['permissions'])->loadCount('users'),
+        ]);
+    }
+
+    public function updateRolePermissions(Request $request, $id)
+    {
+        $this->ensureSuperAdmin($request);
+        $role = Role::findOrFail($id);
+
+        if ($role->slug === 'super-admin') {
+            return response()->json([
+                'message' => 'সুপার অ্যাডমিনের পূর্ণ সিস্টেম পারমিশন সংরক্ষিত থাকে, এটি পরিবর্তনযোগ্য নয়।'
+            ], 422);
+        }
+
+        $validated = $request->validate([
+            'permission_ids' => 'present|array',
+            'permission_ids.*' => 'integer|exists:permissions,id',
+        ]);
+
+        $role->permissions()->sync($validated['permission_ids']);
+
+        ActivityLog::create([
+            'user_id' => $request->user()->id,
+            'action' => 'update_role_permissions',
+            'description' => "সুপার অ্যাডমিন '{$role->name}' রোলের পারমিশন পরিবর্তন করেছেন। মোট পারমিশন: " . count($validated['permission_ids']) . " টি।",
+            'ip_address' => $request->ip(),
+            'user_agent' => substr((string) $request->userAgent(), 0, 255),
+        ]);
+
+        return response()->json([
+            'message' => "'{$role->name}' রোলের পারমিশন সফলভাবে হালনাগাদ করা হয়েছে।",
+            'role' => $role->fresh(['permissions'])->loadCount('users'),
+        ]);
+    }
+
+    public function destroyRole(Request $request, $id)
+    {
+        $this->ensureSuperAdmin($request);
+        $role = Role::findOrFail($id);
+
+        if ($role->is_system || in_array($role->slug, ['super-admin', 'manager', 'cashier'])) {
+            return response()->json([
+                'message' => 'সিস্টেমের ডিফল্ট ভূমিকা (Role) মুছে ফেলা সম্ভব নয়।'
+            ], 422);
+        }
+
+        if ($role->users()->count() > 0) {
+            return response()->json([
+                'message' => 'এই ভূমিকায় সক্রিয় কর্মী বিদ্যমান রয়েছে। মুছে ফেলার আগে কর্মীদের অন্য ভূমিকায় স্থানান্তর করুন।'
+            ], 422);
+        }
+
+        $roleName = $role->name;
+        $role->permissions()->detach();
+        $role->delete();
+
+        ActivityLog::create([
+            'user_id' => $request->user()->id,
+            'action' => 'delete_role',
+            'description' => "সুপার অ্যাডমিন '{$roleName}' ভূমিকা মুছে ফেলেছেন।",
+            'ip_address' => $request->ip(),
+            'user_agent' => substr((string) $request->userAgent(), 0, 255),
+        ]);
+
+        return response()->json([
+            'message' => "'{$roleName}' ভূমিকা সফলভাবে মুছে ফেলা হয়েছে।"
+        ]);
     }
 
     public function activityLogs(Request $request)

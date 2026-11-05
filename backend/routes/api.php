@@ -110,7 +110,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/employees/{id}', [EmployeeController::class, 'show'])->whereNumber('id');
     Route::put('/employees/{id}', [EmployeeController::class, 'update'])->whereNumber('id');
     Route::delete('/employees/{id}', [EmployeeController::class, 'destroy'])->whereNumber('id');
+    // Roles & Permissions Management (Super Admin)
     Route::get('/roles', [EmployeeController::class, 'roles']);
+    Route::post('/roles', [EmployeeController::class, 'storeRole']);
+    Route::get('/roles/{id}', [EmployeeController::class, 'showRole'])->whereNumber('id');
+    Route::put('/roles/{id}', [EmployeeController::class, 'updateRole'])->whereNumber('id');
+    Route::put('/roles/{id}/permissions', [EmployeeController::class, 'updateRolePermissions'])->whereNumber('id');
+    Route::delete('/roles/{id}', [EmployeeController::class, 'destroyRole'])->whereNumber('id');
     Route::get('/permissions', [EmployeeController::class, 'permissions']);
     Route::get('/activity-logs', [EmployeeController::class, 'activityLogs']);
 

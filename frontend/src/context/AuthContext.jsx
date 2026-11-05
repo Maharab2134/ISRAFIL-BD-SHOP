@@ -58,9 +58,13 @@ export const AuthProvider = ({ children }) => {
 
   const hasPermission = (permissionSlug) => {
     if (!user || !user.role) return false;
-    if (user.role.slug === 'super-admin') return true;
+    if (user.role.slug === 'super-admin' || user.email === 'admin@israfilbd.com') return true;
     const permissions = user.role.permissions || [];
-    return permissions.includes('*') || permissions.includes(permissionSlug);
+    if (!Array.isArray(permissions)) return false;
+    if (permissions.includes('*') || permissions.includes(permissionSlug)) return true;
+    return permissions.some(
+      (p) => (typeof p === 'string' ? p === permissionSlug : p?.slug === permissionSlug)
+    );
   };
 
   return (

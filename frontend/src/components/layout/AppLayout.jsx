@@ -6,7 +6,7 @@ import { Sidebar } from './Sidebar';
 import { TopNavbar } from './TopNavbar';
 
 export const AppLayout = () => {
-  const { user, isAuthenticated, loading } = useAuth();
+  const { user, isAuthenticated, loading, hasPermission } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const isPos = location.pathname.startsWith('/pos');
@@ -19,33 +19,114 @@ export const AppLayout = () => {
     }
   }, [location.pathname]);
 
-  // Strict Role Redirection & Guard
+  // Dynamic Role & Permission Route Guard
   useEffect(() => {
     if (!loading && isAuthenticated && user) {
-      const roleSlug = user?.role?.slug;
+      const isSuperAdmin = user?.role?.slug === 'super-admin' || user?.email === 'admin@israfilbd.com';
+      if (isSuperAdmin) return; // Super admin has unconditional access
+
       const path = location.pathname;
 
-      // Cashier is strictly restricted to POS, Sales, Customers, Profile, and Shortcuts
-      if (roleSlug === 'cashier') {
-        const allowedPaths = ['/pos', '/sales', '/customers', '/profile', '/shortcuts'];
-        const isAllowed = allowedPaths.some((p) => path.startsWith(p));
-        if (!isAllowed) {
-          navigate('/pos', { replace: true });
-        }
+      const getFallbackRoute = () => {
+        if (hasPermission('pos.access')) return '/pos';
+        if (hasPermission('reports.view')) return '/dashboard';
+        if (hasPermission('sales.view')) return '/sales';
+        if (hasPermission('products.view')) return '/products';
+        if (hasPermission('customers.view')) return '/customers';
+        return '/profile';
+      };
+
+      // Strict Super Admin only routes
+      if (path.startsWith('/roles') || path.startsWith('/activity-logs')) {
+        navigate(getFallbackRoute(), { replace: true });
+        return;
       }
 
-      // Store Manager cannot access Employees, Activity Logs, or System Settings
-      if (roleSlug === 'manager' || roleSlug === 'store-manager') {
-        if (
-          path.startsWith('/employees') ||
-          path.startsWith('/activity-logs') ||
-          path.startsWith('/settings')
-        ) {
-          navigate('/dashboard', { replace: true });
+      // Permission-based route protection
+      if (path.startsWith('/employees') && !hasPermission('employees.manage')) {
+        navigate(getFallbackRoute(), { replace: true });
+        return;
+      }
+      if (path.startsWith('/settings') && !hasPermission('settings.manage')) {
+        navigate(getFallbackRoute(), { replace: true });
+        return;
+      }
+      if (path.startsWith('/dashboard') && !hasPermission('reports.view')) {
+        navigate(getFallbackRoute(), { replace: true });
+        return;
+      }
+      if (path.startsWith('/pos') && !hasPermission('pos.access')) {
+        navigate(getFallbackRoute(), { replace: true });
+        return;
+      }
+      if (path.startsWith('/products')) {
+        if (!hasPermission('products.view')) {
+          navigate(getFallbackRoute(), { replace: true });
+          return;
+        }
+        if (path === '/products/new' && !hasPermission('products.create')) {
+          navigate('/products', { replace: true });
+          return;
         }
       }
+      if (path.startsWith('/inventory')) {
+        if (!hasPermission('inventory.view')) {
+          navigate(getFallbackRoute(), { replace: true });
+          return;
+        }
+        if (path === '/inventory/adjustment' && !hasPermission('inventory.adjust')) {
+          navigate('/inventory', { replace: true });
+          return;
+        }
+      }
+      if (path.startsWith('/purchases')) {
+        if (!hasPermission('purchases.view')) {
+          navigate(getFallbackRoute(), { replace: true });
+          return;
+        }
+        if (path === '/purchases/new' && !hasPermission('purchases.create')) {
+          navigate('/purchases', { replace: true });
+          return;
+        }
+      }
+      if (path.startsWith('/sales') && !hasPermission('sales.view')) {
+        navigate(getFallbackRoute(), { replace: true });
+        return;
+      }
+      if (path.startsWith('/customers')) {
+        if (!hasPermission('customers.view')) {
+          navigate(getFallbackRoute(), { replace: true });
+          return;
+        }
+        if (path === '/customers/new' && !hasPermission('customers.manage')) {
+          navigate('/customers', { replace: true });
+          return;
+        }
+      }
+      if (path.startsWith('/suppliers') && !hasPermission('suppliers.view')) {
+        navigate(getFallbackRoute(), { replace: true });
+        return;
+      }
+      if (path.startsWith('/expenses')) {
+        if (!hasPermission('expenses.view')) {
+          navigate(getFallbackRoute(), { replace: true });
+          return;
+        }
+        if (path === '/expenses/new' && !hasPermission('expenses.manage')) {
+          navigate('/expenses', { replace: true });
+          return;
+        }
+      }
+      if (path.startsWith('/accounting') && !hasPermission('accounting.view')) {
+        navigate(getFallbackRoute(), { replace: true });
+        return;
+      }
+      if (path.startsWith('/reports') && !hasPermission('reports.view')) {
+        navigate(getFallbackRoute(), { replace: true });
+        return;
+      }
     }
-  }, [loading, isAuthenticated, user, location.pathname, navigate]);
+  }, [loading, isAuthenticated, user, location.pathname, navigate, hasPermission]);
 
   if (loading) {
     return (

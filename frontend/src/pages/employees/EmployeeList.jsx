@@ -3,11 +3,13 @@ import { Link } from 'react-router-dom';
 import { useLanguage } from '../../context/LanguageContext';
 import { useToast } from '../../context/ToastContext';
 import api from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
 import {
   Users,
   UserPlus,
   Search,
   Shield,
+  ShieldCheck,
   CheckCircle,
   XCircle,
   Edit,
@@ -22,6 +24,8 @@ import { ConfirmDeleteModal } from '../../components/common/ConfirmDeleteModal';
 export default function EmployeeList() {
   const { t, lang } = useLanguage();
   const { success, error } = useToast();
+  const { user } = useAuth();
+  const isSuperAdmin = user?.role?.slug === 'super-admin' || user?.email === 'admin@israfilbd.com';
 
   const [employees, setEmployees] = useState(() => {
     try {
@@ -177,13 +181,25 @@ export default function EmployeeList() {
           </p>
         </div>
 
-        <Link
-          to="/employees/new"
-          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold transition shadow-sm w-fit"
-        >
-          <UserPlus className="w-4 h-4" />
-          {t('addEmployee')}
-        </Link>
+        <div className="flex items-center gap-2 flex-wrap">
+          {isSuperAdmin && (
+            <Link
+              to="/roles"
+              className="px-3.5 py-2 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center gap-1.5 transition"
+            >
+              <ShieldCheck className="w-4 h-4 text-indigo-600" />
+              <span>{lang === 'bn' ? 'ভূমিকা ও পারমিশন' : 'Roles & Permissions'}</span>
+            </Link>
+          )}
+
+          <Link
+            to="/employees/new"
+            className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition shadow-sm w-fit"
+          >
+            <UserPlus className="w-4 h-4" />
+            {t('addEmployee')}
+          </Link>
+        </div>
       </div>
 
       {/* Filter and Search Bar */}

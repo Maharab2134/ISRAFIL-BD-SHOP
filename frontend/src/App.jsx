@@ -61,6 +61,7 @@ import { Reports } from './pages/reports/Reports';
 import EmployeeList from './pages/employees/EmployeeList';
 import AddEmployee from './pages/employees/AddEmployee';
 import ActivityLogs from './pages/employees/ActivityLogs';
+import { RolePermissions } from './pages/employees/RolePermissions';
 
 // Settings
 import ShopSettings from './pages/settings/ShopSettings';
@@ -139,6 +140,8 @@ export default function App() {
         <Route path="employees" element={<EmployeeList />} />
         <Route path="employees/new" element={<AddEmployee />} />
         <Route path="employees/edit/:id" element={<AddEmployee />} />
+        <Route path="roles" element={<RolePermissions />} />
+        <Route path="employees/roles" element={<RolePermissions />} />
         <Route path="activity-logs" element={<ActivityLogs />} />
         <Route path="settings" element={<ShopSettings />} />
         <Route path="shortcuts" element={<KeyboardShortcuts />} />
