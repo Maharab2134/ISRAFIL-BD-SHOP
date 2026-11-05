@@ -103,12 +103,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/reports/stock', [ReportController::class, 'stockReport']);
 
     // Employees, Roles & Logs
+    Route::get('/employees/roles', [EmployeeController::class, 'roles']);
     Route::post('/employees/bulk-delete', [EmployeeController::class, 'bulkDelete']);
     Route::get('/employees', [EmployeeController::class, 'index']);
     Route::post('/employees', [EmployeeController::class, 'store']);
-    Route::get('/employees/{id}', [EmployeeController::class, 'show']);
-    Route::put('/employees/{id}', [EmployeeController::class, 'update']);
-    Route::delete('/employees/{id}', [EmployeeController::class, 'destroy']);
+    Route::get('/employees/{id}', [EmployeeController::class, 'show'])->whereNumber('id');
+    Route::put('/employees/{id}', [EmployeeController::class, 'update'])->whereNumber('id');
+    Route::delete('/employees/{id}', [EmployeeController::class, 'destroy'])->whereNumber('id');
     Route::get('/roles', [EmployeeController::class, 'roles']);
     Route::get('/permissions', [EmployeeController::class, 'permissions']);
     Route::get('/activity-logs', [EmployeeController::class, 'activityLogs']);

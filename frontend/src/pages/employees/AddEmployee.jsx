@@ -24,7 +24,14 @@ export default function AddEmployee() {
   const { t, lang } = useLanguage();
   const { success, error } = useToast();
 
-  const [roles, setRoles] = useState([]);
+  const [roles, setRoles] = useState(() => {
+    try {
+      const cached = sessionStorage.getItem('israfil_roles_cache');
+      return cached ? JSON.parse(cached) : [];
+    } catch (e) {
+      return [];
+    }
+  });
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(isEdit);
 
@@ -40,12 +47,24 @@ export default function AddEmployee() {
   useEffect(() => {
     const fetchRoles = async () => {
       try {
-        const res = await api.get('/employees/roles');
-        setRoles(res.data || []);
-        if (!isEdit && res.data.length > 0) {
-          // Default to cashier or last role
-          const cashierRole = res.data.find((r) => r.slug === 'cashier') || res.data[0];
-          setForm((prev) => ({ ...prev, role_id: cashierRole.id }));
+        let res;
+        try {
+          res = await api.get('/roles');
+        } catch (e) {
+          res = await api.get('/employees/roles');
+        }
+        const loadedRoles = res.data || [];
+        setRoles(loadedRoles);
+        try {
+          sessionStorage.setItem('israfil_roles_cache', JSON.stringify(loadedRoles));
+        } catch (e) {}
+
+        if (!isEdit && loadedRoles.length > 0) {
+          setForm((prev) => {
+            if (prev.role_id) return prev;
+            const cashierRole = loadedRoles.find((r) => r.slug === 'cashier') || loadedRoles[0];
+            return { ...prev, role_id: cashierRole.id };
+          });
         }
       } catch (err) {
         error(lang === 'bn' ? 'রোল লোড করতে ব্যর্থ হয়েছে।' : 'Failed to load roles.');
@@ -203,11 +222,15 @@ export default function AddEmployee() {
                 onChange={(e) => setForm({ ...form, role_id: e.target.value })}
                 className="w-full pl-10 pr-4 py-2.5 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
               >
-                {roles.map((r) => (
-                  <option key={r.id} value={r.id}>
-                    {lang === 'bn' ? r.name_bn || r.name : r.name}
-                  </option>
-                ))}
+                {roles.length === 0 ? (
+                  <option value="">{lang === 'bn' ? 'রোল লোড হচ্ছে...' : 'Loading roles...'}</option>
+                ) : (
+                  roles.map((r) => (
+                    <option key={r.id} value={r.id}>
+                      {lang === 'bn' ? r.name_bn || r.name : r.name}
+                    </option>
+                  ))
+                )}
               </select>
             </div>
           </div>
