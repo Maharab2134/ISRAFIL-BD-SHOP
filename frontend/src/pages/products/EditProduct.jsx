@@ -36,6 +36,7 @@ export const EditProduct = () => {
   const [categoryId, setCategoryId] = useState('');
   const [brandId, setBrandId] = useState('');
   const [unitId, setUnitId] = useState('');
+  const [currentStock, setCurrentStock] = useState('0');
   const [purchasePrice, setPurchasePrice] = useState('');
   const [sellingPrice, setSellingPrice] = useState('');
   const [wholesalePrice, setWholesalePrice] = useState('');
@@ -52,6 +53,9 @@ export const EditProduct = () => {
   const [imageError, setImageError] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  const selectedUnit = units.find((u) => String(u.id) === String(unitId));
+  const selectedUnitCode = selectedUnit?.code || '';
 
   useEffect(() => {
     const fetchData = async () => {
@@ -75,6 +79,7 @@ export const EditProduct = () => {
         setCategoryId(p.category_id);
         setBrandId(p.brand_id || '');
         setUnitId(p.unit_id);
+        setCurrentStock(p.current_stock ?? '0');
         setPurchasePrice(p.purchase_price);
         setSellingPrice(p.selling_price);
         setWholesalePrice(p.wholesale_price || '');
@@ -168,6 +173,7 @@ export const EditProduct = () => {
       formData.append('category_id', categoryId);
       if (brandId) formData.append('brand_id', brandId);
       formData.append('unit_id', unitId);
+      formData.append('current_stock', currentStock || 0);
       formData.append('purchase_price', purchasePrice);
       formData.append('selling_price', sellingPrice);
       if (wholesalePrice) formData.append('wholesale_price', wholesalePrice);
@@ -327,6 +333,35 @@ export const EditProduct = () => {
                 </option>
               ))}
             </select>
+          </div>
+
+          {/* Quantity (Qnty) */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center justify-between">
+              <span>{lang === 'bn' ? 'স্টক পরিমাণ (Qnty) *' : 'Stock Quantity (Qnty) *'}</span>
+              {selectedUnitCode && (
+                <span className="text-[10px] font-mono font-bold text-indigo-600 dark:text-indigo-400 uppercase">
+                  ({selectedUnitCode})
+                </span>
+              )}
+            </label>
+            <div className="relative">
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                required
+                value={currentStock}
+                onChange={(e) => setCurrentStock(e.target.value)}
+                placeholder="0"
+                className="w-full py-2.5 px-3.5 pr-12 text-sm font-bold rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+              {selectedUnitCode && (
+                <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase pointer-events-none">
+                  {selectedUnitCode}
+                </span>
+              )}
+            </div>
           </div>
 
           <div className="space-y-1.5">

@@ -106,6 +106,7 @@ class ProductController extends Controller
             'category_id' => 'required|exists:categories,id',
             'brand_id' => 'nullable|exists:brands,id',
             'unit_id' => 'required|exists:units,id',
+            'current_stock' => 'nullable|numeric|min:0',
             'purchase_price' => 'required|numeric|min:0',
             'selling_price' => 'required|numeric|min:0',
             'wholesale_price' => 'nullable|numeric|min:0',
@@ -179,6 +180,7 @@ class ProductController extends Controller
             'category_id' => 'required|exists:categories,id',
             'brand_id' => 'nullable|exists:brands,id',
             'unit_id' => 'required|exists:units,id',
+            'current_stock' => 'nullable|numeric|min:0',
             'purchase_price' => 'required|numeric|min:0',
             'selling_price' => 'required|numeric|min:0',
             'wholesale_price' => 'nullable|numeric|min:0',
@@ -206,6 +208,20 @@ class ProductController extends Controller
         }
 
         $oldValues = $product->toArray();
+
+        if (isset($validated['current_stock']) && (float) $validated['current_stock'] !== (float) $product->current_stock) {
+            $diff = (float) $validated['current_stock'] - (float) $product->current_stock;
+            \App\Models\StockMovement::create([
+                'product_id' => $product->id,
+                'user_id' => $request->user()->id,
+                'type' => 'adjustment',
+                'quantity' => abs($diff),
+                'stock_before' => $product->current_stock,
+                'stock_after' => (float) $validated['current_stock'],
+                'notes' => 'পণ্য সম্পাদন পেজ থেকে সরাসরি স্টক পরিমাণ আপডেট করা হয়েছে।',
+            ]);
+        }
+
         $product->update($validated);
 
         ActivityLog::log('update', "পণ্য '{$product->name}' এর তথ্য আপডেট করা হয়েছে।", $product, $oldValues, $product->toArray());

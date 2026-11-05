@@ -56,6 +56,9 @@ export const AddProduct = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showImport, setShowImport] = useState(false);
 
+  const selectedUnit = units.find((u) => String(u.id) === String(unitId));
+  const selectedUnitCode = selectedUnit?.code || '';
+
   const sampleProducts = [
     {
       name: 'Wireless Bluetooth Earbuds',
@@ -403,6 +406,35 @@ export const AddProduct = () => {
             </select>
           </div>
 
+          {/* Quantity (Qnty) */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center justify-between">
+              <span>{lang === 'bn' ? 'পরিমাণ (Qnty) *' : 'Quantity (Qnty) *'}</span>
+              {selectedUnitCode && (
+                <span className="text-[10px] font-mono font-bold text-indigo-600 dark:text-indigo-400 uppercase">
+                  ({selectedUnitCode})
+                </span>
+              )}
+            </label>
+            <div className="relative">
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                required
+                value={currentStock}
+                onChange={(e) => setCurrentStock(e.target.value)}
+                placeholder="0"
+                className="w-full py-2.5 px-3.5 pr-12 text-sm font-bold rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+              />
+              {selectedUnitCode && (
+                <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase pointer-events-none">
+                  {selectedUnitCode}
+                </span>
+              )}
+            </div>
+          </div>
+
           {/* Purchase Price */}
           <div className="space-y-1.5">
             <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
@@ -588,19 +620,7 @@ export const AddProduct = () => {
             </div>
           </div>
 
-          {/* Current Stock */}
-          <div className="space-y-1.5">
-            <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-              {lang === 'bn' ? 'উদ্বোধনী স্টক পরিমাণ' : 'Opening Stock Quantity'}
-            </label>
-            <input
-              type="number"
-              step="0.01"
-              value={currentStock}
-              onChange={(e) => setCurrentStock(e.target.value)}
-              className="w-full py-2.5 px-3.5 text-sm font-bold rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
-            />
-          </div>
+
 
           {/* Alert Stock */}
           <div className="space-y-1.5">
