@@ -16,48 +16,78 @@ class AuthController extends Controller
 {
     public function login(Request $request)
     {
-        $request->validate([
-            'email' => 'required|email',
-            'password' => 'required|string',
+        $validated = $request->validate([
+            'email' => 'required|email|max:255',
+            'password' => 'required|string|min:4|max:100',
         ]);
 
-        $throttleKey = Str::lower($request->input('email')) . '|' . $request->ip();
+        $cleanEmail = Str::lower(trim($validated['email']));
+        $throttleKey = $cleanEmail . '|' . $request->ip();
 
+        // 1. Strict Brute-Force Rate Limiting (5 attempts per 60 seconds)
         if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
             $seconds = RateLimiter::availableIn($throttleKey);
             return response()->json([
-                'message' => "খুব বেশিবার ভুল প্রচেষ্টা করা হয়েছে। অনুগ্রহ করে {$seconds} সেকেন্ড পর পুনরায় চেষ্টা করুন।"
+                'message' => "খুব বেশিবার ভুল প্রচেষ্টা করা হয়েছে। নিরাপত্তার স্বার্থে সাময়িক লক করা হয়েছে। অনুগ্রহ করে {$seconds} সেকেন্ড পর পুনরায় চেষ্টা করুন।"
             ], 429);
         }
 
-        $user = User::with(['role.permissions'])->where('email', $request->email)->first();
+        // 2. Lookup user by normalized email
+        $user = User::with(['role.permissions'])->where('email', $cleanEmail)->first();
 
-        $isPasswordValid = false;
-        if ($user) {
-            $isPasswordValid = Hash::check($request->password, $user->password)
-                || ($user->email === 'admin@israfilbd.com' && in_array($request->password, ['password123', 'admin123']))
-                || ($user->email === 'manager@israfilbd.com' && in_array($request->password, ['password123', 'manager123']))
-                || ($user->email === 'cashier@israfilbd.com' && in_array($request->password, ['password123', 'cashier123']));
-        }
+        // 3. Strict cryptographic bcrypt hash verification (no hardcoded plaintext bypasses)
+        $isPasswordValid = $user && Hash::check($request->password, $user->password);
 
         if (!$user || !$isPasswordValid) {
             RateLimiter::hit($throttleKey, 60);
+            $attempts = RateLimiter::attempts($throttleKey);
+            $remaining = max(0, 5 - $attempts);
+
+            // Audit log failed login attempts for security forensics
+            ActivityLog::create([
+                'user_id' => $user?->id,
+                'action' => 'failed_login',
+                'description' => "ব্যর্থ লগইন প্রচেষ্টা (ইমেইল: {$cleanEmail})। অবশিষ্ট চেষ্টা: {$remaining} বার।",
+                'ip_address' => $request->ip(),
+                'user_agent' => substr((string) $request->userAgent(), 0, 255),
+            ]);
+
+            $errorMsg = 'ইমেইল অথবা পাসওয়ার্ড সঠিক নয়।';
+            if ($remaining > 0 && $remaining <= 3) {
+                $errorMsg .= " সতর্কতা: আর {$remaining} বার ভুল দিলে একাউন্ট সাময়িক লক হবে।";
+            }
+
             return response()->json([
-                'message' => 'ইমেইল অথবা পাসওয়ার্ড সঠিক নয়।'
+                'message' => $errorMsg,
+                'remaining_attempts' => $remaining,
             ], 401);
         }
 
+        // 4. Strict account status check
         if ($user->status !== 'active') {
+            ActivityLog::create([
+                'user_id' => $user->id,
+                'action' => 'blocked_login',
+                'description' => "নিষ্ক্রিয় একাউন্টে লগইন প্রচেষ্টা (স্ট্যাটাস: {$user->status})",
+                'ip_address' => $request->ip(),
+                'user_agent' => substr((string) $request->userAgent(), 0, 255),
+            ]);
+
             return response()->json([
                 'message' => 'আপনার অ্যাকাউন্টটি বর্তমানে নিষ্ক্রিয় বা স্থগিত রয়েছে। প্রশাসকের সাথে যোগাযোগ করুন।'
             ], 403);
         }
 
+        // 5. Successful authentication: Clear rate limiter
         RateLimiter::clear($throttleKey);
 
+        // 6. Revoke previous tokens to prevent session hijacking & enforce token hygiene
+        $user->tokens()->where('name', 'auth_token')->delete();
+
+        // 7. Update last login timestamp
         $user->update(['last_login_at' => now()]);
 
-        // Revoke previous tokens for clean security or generate new device token
+        // 8. Generate fresh bearer token
         $token = $user->createToken('auth_token')->plainTextToken;
 
         ActivityLog::create([

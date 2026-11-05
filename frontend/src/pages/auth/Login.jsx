@@ -31,6 +31,12 @@ export const Login = () => {
   const { lang, t } = useLanguage();
   const navigate = useNavigate();
 
+  // Configurable visibility of "দ্রুত লগইন নির্বাচন" via .env
+  // When VITE_HIDE_QUICK_LOGIN=true -> hides the section. When false or not set -> shows it.
+  const hideQuickLogin =
+    String(import.meta.env.VITE_HIDE_QUICK_LOGIN || '').toLowerCase() === 'true' ||
+    String(import.meta.env.VITE_DISABLE_QUICK_LOGIN || '').toLowerCase() === 'true';
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMessage('');
@@ -245,38 +251,46 @@ export const Login = () => {
             </button>
           </form>
 
-          {/* User Fast Select Buttons */}
-          <div className="pt-4 border-t border-slate-200 dark:border-slate-800 space-y-2">
-            <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">
-              দ্রুত লগইন নির্বাচন:
-            </span>
-            <div className="grid grid-cols-3 gap-2">
-              <button
-                type="button"
-                onClick={() => handleQuickFill('admin@israfilbd.com')}
-                className="p-2 text-center rounded-lg border border-slate-200 dark:border-slate-700 hover:border-indigo-500 hover:bg-indigo-50/50 dark:hover:bg-slate-800 text-xs transition"
-              >
-                <div className="font-bold text-slate-800 dark:text-slate-200">সুপার অ্যাডমিন</div>
-                <div className="text-[10px] text-slate-400">admin@</div>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickFill('manager@israfilbd.com')}
-                className="p-2 text-center rounded-lg border border-slate-200 dark:border-slate-700 hover:border-indigo-500 hover:bg-indigo-50/50 dark:hover:bg-slate-800 text-xs transition"
-              >
-                <div className="font-bold text-slate-800 dark:text-slate-200">ম্যানেজার</div>
-                <div className="text-[10px] text-slate-400">manager@</div>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickFill('cashier@israfilbd.com')}
-                className="p-2 text-center rounded-lg border border-slate-200 dark:border-slate-700 hover:border-indigo-500 hover:bg-indigo-50/50 dark:hover:bg-slate-800 text-xs transition"
-              >
-                <div className="font-bold text-slate-800 dark:text-slate-200">ক্যাশিয়ার (POS)</div>
-                <div className="text-[10px] text-slate-400">cashier@</div>
-              </button>
+          {/* Quick Role Selection Buttons (Controlled via VITE_HIDE_QUICK_LOGIN in .env) */}
+          {!hideQuickLogin && (
+            <div className="pt-4 border-t border-slate-200 dark:border-slate-800 space-y-2 animate-in fade-in duration-150">
+              <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">
+                {lang === 'bn' ? 'দ্রুত লগইন নির্বাচন:' : 'Quick Login Selection:'}
+              </span>
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleQuickFill('admin@israfilbd.com')}
+                  className="p-2 text-center rounded-lg border border-slate-200 dark:border-slate-700 hover:border-indigo-500 hover:bg-indigo-50/50 dark:hover:bg-slate-800 text-xs transition cursor-pointer"
+                >
+                  <div className="font-bold text-slate-800 dark:text-slate-200">
+                    {lang === 'bn' ? 'সুপার অ্যাডমিন' : 'Super Admin'}
+                  </div>
+                  <div className="text-[10px] text-slate-400">admin@</div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleQuickFill('manager@israfilbd.com')}
+                  className="p-2 text-center rounded-lg border border-slate-200 dark:border-slate-700 hover:border-indigo-500 hover:bg-indigo-50/50 dark:hover:bg-slate-800 text-xs transition cursor-pointer"
+                >
+                  <div className="font-bold text-slate-800 dark:text-slate-200">
+                    {lang === 'bn' ? 'ম্যানেজার' : 'Manager'}
+                  </div>
+                  <div className="text-[10px] text-slate-400">manager@</div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleQuickFill('cashier@israfilbd.com')}
+                  className="p-2 text-center rounded-lg border border-slate-200 dark:border-slate-700 hover:border-indigo-500 hover:bg-indigo-50/50 dark:hover:bg-slate-800 text-xs transition cursor-pointer"
+                >
+                  <div className="font-bold text-slate-800 dark:text-slate-200">
+                    {lang === 'bn' ? 'ক্যাশিয়ার (POS)' : 'Cashier (POS)'}
+                  </div>
+                  <div className="text-[10px] text-slate-400">cashier@</div>
+                </button>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>
