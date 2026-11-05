@@ -16,3 +16,5 @@ temp/
 # Database Backups & SQL dumps
 *.sql
 backend/database/backups/
+new-rules.md
+rules.md

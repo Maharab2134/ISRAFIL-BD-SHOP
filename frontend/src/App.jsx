@@ -40,6 +40,7 @@ import { PurchaseDetails } from './pages/purchases/PurchaseDetails';
 // Customers & Suppliers
 import { CustomerList } from './pages/customers/CustomerList';
 import { AddCustomer } from './pages/customers/AddCustomer';
+import { EditCustomer } from './pages/customers/EditCustomer';
 import { CustomerDetails } from './pages/customers/CustomerDetails';
 import { SupplierList } from './pages/suppliers/SupplierList';
 import { AddSupplier } from './pages/suppliers/AddSupplier';
@@ -113,6 +114,7 @@ export default function App() {
         {/* People */}
         <Route path="customers" element={<CustomerList />} />
         <Route path="customers/new" element={<AddCustomer />} />
+        <Route path="customers/:id/edit" element={<EditCustomer />} />
         <Route path="customers/:id" element={<CustomerDetails />} />
         <Route path="suppliers" element={<SupplierList />} />
         <Route path="suppliers/new" element={<AddSupplier />} />

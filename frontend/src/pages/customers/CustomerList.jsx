@@ -14,6 +14,12 @@ import {
   ChevronRight,
   Sparkles,
   Trash2,
+  Edit,
+  X,
+  Save,
+  UserCheck,
+  MapPin,
+  Mail,
 } from 'lucide-react';
 import api from '../../services/api';
 import { ConfirmDeleteModal } from '../../components/common/ConfirmDeleteModal';
@@ -32,6 +38,74 @@ export const CustomerList = () => {
   const [selectedIds, setSelectedIds] = useState([]);
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, item: null, isBulk: false });
   const [deleting, setDeleting] = useState(false);
+
+  // Edit Customer Modal State
+  const [editingCustomer, setEditingCustomer] = useState(null);
+  const [editFormData, setEditFormData] = useState({
+    name: '',
+    name_bn: '',
+    phone: '',
+    email: '',
+    address: '',
+    credit_limit: '10000',
+    loyalty_points: '0',
+    status: 'active',
+  });
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  const handleOpenEdit = (c) => {
+    setEditingCustomer(c);
+    setEditFormData({
+      name: c.name || '',
+      name_bn: c.name_bn || '',
+      phone: c.phone || '',
+      email: c.email || '',
+      address: c.address || '',
+      credit_limit: c.credit_limit !== null ? String(c.credit_limit) : '10000',
+      loyalty_points: c.loyalty_points !== null ? String(c.loyalty_points) : '0',
+      status: c.status || 'active',
+    });
+  };
+
+  const handleCloseEdit = () => {
+    setEditingCustomer(null);
+  };
+
+  const handleSaveEdit = async (e) => {
+    e.preventDefault();
+    if (!editFormData.name.trim()) {
+      error(lang === 'bn' ? 'গ্রাহকের নাম আবশ্যক।' : 'Customer name is required.');
+      return;
+    }
+    if (!editFormData.phone.trim()) {
+      error(lang === 'bn' ? 'মোবাইল নম্বর আবশ্যক।' : 'Phone number is required.');
+      return;
+    }
+
+    setIsUpdating(true);
+    try {
+      const res = await api.put(`/customers/${editingCustomer.id}`, {
+        name: editFormData.name.trim(),
+        name_bn: editFormData.name_bn.trim() || null,
+        phone: editFormData.phone.trim(),
+        email: editFormData.email.trim() || null,
+        address: editFormData.address.trim() || null,
+        credit_limit: editFormData.credit_limit ? Number(editFormData.credit_limit) : 0,
+        loyalty_points: editFormData.loyalty_points ? parseInt(editFormData.loyalty_points, 10) : 0,
+        status: editFormData.status,
+      });
+
+      const updated = res.data.customer;
+      setCustomers((prev) => prev.map((item) => (item.id === updated.id ? { ...item, ...updated } : item)));
+      success(lang === 'bn' ? 'গ্রাহকের তথ্য সফলভাবে আপডেট হয়েছে!' : 'Customer updated successfully!');
+      handleCloseEdit();
+    } catch (err) {
+      const msg = err.response?.data?.message || (lang === 'bn' ? 'গ্রাহকের তথ্য আপডেট করতে ব্যর্থ হয়েছে।' : 'Failed to update customer.');
+      error(msg);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
 
   useEffect(() => {
     fetchCustomers(pagination.current_page);
@@ -265,14 +339,24 @@ export const CustomerList = () => {
                         <div className="flex items-center justify-end gap-1">
                           <Link
                             to={`/customers/${c.id}`}
-                            className="py-1.5 px-3 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 font-bold hover:bg-indigo-100 transition inline-flex items-center gap-1"
+                            className="py-1.5 px-2.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 font-bold hover:bg-indigo-100 transition inline-flex items-center gap-1 text-xs"
+                            title={lang === 'bn' ? 'লেজার দেখুন' : 'View Ledger'}
                           >
                             <Eye className="w-3.5 h-3.5" />
                             <span>{lang === 'bn' ? 'লেজার' : 'Ledger'}</span>
                           </Link>
                           <button
+                            type="button"
+                            onClick={() => handleOpenEdit(c)}
+                            className="p-1.5 text-slate-400 hover:text-amber-600 dark:hover:text-amber-400 rounded-lg hover:bg-amber-50 dark:hover:bg-amber-950/40 transition cursor-pointer"
+                            title={lang === 'bn' ? 'সম্পাদন করুন' : 'Edit Customer'}
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+                          <button
+                            type="button"
                             onClick={() => setDeleteModal({ isOpen: true, item: c, isBulk: false })}
-                            className="p-1.5 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/40 transition"
+                            className="p-1.5 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/40 transition cursor-pointer"
                             title={lang === 'bn' ? 'মুছে ফেলুন' : 'Delete'}
                           >
                             <Trash2 className="w-4 h-4" />
@@ -312,6 +396,195 @@ export const CustomerList = () => {
           </div>
         </div>
       </div>
+
+      {/* Quick Edit Customer Modal */}
+      {editingCustomer && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
+          <div
+            className="w-full max-w-2xl bg-white dark:bg-[#1E293B] rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-150"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-5 border-b border-slate-100 dark:border-slate-800">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 flex items-center justify-center">
+                  <Edit className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm text-slate-900 dark:text-white">
+                    {lang === 'bn' ? 'গ্রাহকের তথ্য সম্পাদন' : 'Edit Customer'}
+                  </h3>
+                  <p className="text-[11px] text-slate-500">
+                    ID #{editingCustomer.id} • {editingCustomer.name}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Link
+                  to={`/customers/${editingCustomer.id}/edit`}
+                  className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline font-bold"
+                >
+                  {lang === 'bn' ? 'পূর্ণাঙ্গ পেজ খুলুন ↗' : 'Full Page ↗'}
+                </Link>
+                <button
+                  type="button"
+                  onClick={handleCloseEdit}
+                  className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Form */}
+            <form onSubmit={handleSaveEdit} className="p-5 sm:p-6 space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                {/* Name */}
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1">
+                    <UserCheck className="w-3.5 h-3.5 text-indigo-500" />
+                    <span>{lang === 'bn' ? 'গ্রাহকের নাম *' : 'Name *'}</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={editFormData.name}
+                    onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
+                    className="w-full py-2 px-3 text-xs rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-indigo-500 font-medium"
+                  />
+                </div>
+
+                {/* Bangla Name */}
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700 dark:text-slate-300">
+                    {lang === 'bn' ? 'বাংলা নাম' : 'Bangla Name'}
+                  </label>
+                  <input
+                    type="text"
+                    value={editFormData.name_bn}
+                    onChange={(e) => setEditFormData({ ...editFormData, name_bn: e.target.value })}
+                    className="w-full py-2 px-3 text-xs rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-indigo-500"
+                  />
+                </div>
+
+                {/* Phone */}
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1">
+                    <Phone className="w-3.5 h-3.5 text-emerald-500" />
+                    <span>{lang === 'bn' ? 'মোবাইল নম্বর *' : 'Phone *'}</span>
+                  </label>
+                  <input
+                    type="tel"
+                    required
+                    value={editFormData.phone}
+                    onChange={(e) => setEditFormData({ ...editFormData, phone: e.target.value })}
+                    className="w-full py-2 px-3 text-xs font-mono font-bold rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-indigo-500"
+                  />
+                </div>
+
+                {/* Email */}
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1">
+                    <Mail className="w-3.5 h-3.5 text-blue-500" />
+                    <span>{lang === 'bn' ? 'ইমেইল' : 'Email'}</span>
+                  </label>
+                  <input
+                    type="email"
+                    value={editFormData.email}
+                    onChange={(e) => setEditFormData({ ...editFormData, email: e.target.value })}
+                    className="w-full py-2 px-3 text-xs rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-indigo-500 font-mono"
+                  />
+                </div>
+
+                {/* Credit Limit */}
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1">
+                    <CreditCard className="w-3.5 h-3.5 text-violet-500" />
+                    <span>{lang === 'bn' ? 'বাকির সীমা (Credit Limit ৳)' : 'Credit Limit (৳)'}</span>
+                  </label>
+                  <input
+                    type="number"
+                    step="1"
+                    min="0"
+                    value={editFormData.credit_limit}
+                    onChange={(e) => setEditFormData({ ...editFormData, credit_limit: e.target.value })}
+                    className="w-full py-2 px-3 text-xs font-bold font-mono rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-indigo-500"
+                  />
+                </div>
+
+                {/* Loyalty Points */}
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                    <span>{lang === 'bn' ? 'লয়ালটি পয়েন্ট (pt)' : 'Points (pt)'}</span>
+                    <span className="text-[10px] text-amber-600 dark:text-amber-400 font-bold ml-1">
+                      (৳{(Number(editFormData.loyalty_points || 0) * 0.75).toFixed(0)})
+                    </span>
+                  </label>
+                  <input
+                    type="number"
+                    step="1"
+                    min="0"
+                    value={editFormData.loyalty_points}
+                    onChange={(e) => setEditFormData({ ...editFormData, loyalty_points: e.target.value })}
+                    className="w-full py-2 px-3 text-xs font-bold font-mono rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-indigo-500"
+                  />
+                </div>
+
+                {/* Status */}
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700 dark:text-slate-300">
+                    {lang === 'bn' ? 'স্ট্যাটাস' : 'Status'}
+                  </label>
+                  <select
+                    value={editFormData.status}
+                    onChange={(e) => setEditFormData({ ...editFormData, status: e.target.value })}
+                    className="w-full py-2 px-3 text-xs font-bold rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-indigo-500"
+                  >
+                    <option value="active">{lang === 'bn' ? 'সক্রিয় (Active)' : 'Active'}</option>
+                    <option value="inactive">{lang === 'bn' ? 'নিষ্ক্রিয় (Inactive)' : 'Inactive'}</option>
+                  </select>
+                </div>
+
+                {/* Address */}
+                <div className="space-y-1 sm:col-span-2">
+                  <label className="font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1">
+                    <MapPin className="w-3.5 h-3.5 text-rose-500" />
+                    <span>{lang === 'bn' ? 'ঠিকানা' : 'Address'}</span>
+                  </label>
+                  <textarea
+                    rows="2"
+                    value={editFormData.address}
+                    onChange={(e) => setEditFormData({ ...editFormData, address: e.target.value })}
+                    className="w-full py-2 px-3 text-xs rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-indigo-500"
+                    placeholder={lang === 'bn' ? 'গ্রাহকের ঠিকানা...' : 'Address...'}
+                  />
+                </div>
+              </div>
+
+              {/* Modal Actions */}
+              <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-2.5">
+                <button
+                  type="button"
+                  onClick={handleCloseEdit}
+                  className="py-2 px-4 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+                >
+                  {t('cancel')}
+                </button>
+                <button
+                  type="submit"
+                  disabled={isUpdating}
+                  className="py-2 px-5 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-600/30 flex items-center gap-1.5 transition disabled:opacity-60 cursor-pointer"
+                >
+                  <Save className="w-3.5 h-3.5" />
+                  <span>{isUpdating ? (lang === 'bn' ? 'আপডেট হচ্ছে...' : 'Saving...') : (lang === 'bn' ? 'আপডেট করুন' : 'Save Changes')}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Confirm Delete Dialog Box */}
       <ConfirmDeleteModal

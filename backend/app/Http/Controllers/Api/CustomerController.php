@@ -82,15 +82,20 @@ class CustomerController extends Controller
             'email' => 'nullable|email|max:255',
             'address' => 'nullable|string',
             'credit_limit' => 'nullable|numeric|min:0',
-            'status' => 'required|in:active,inactive',
+            'loyalty_points' => 'nullable|integer|min:0',
+            'status' => 'nullable|in:active,inactive',
         ]);
+
+        if (empty($validated['status'])) {
+            $validated['status'] = $customer->status ?? 'active';
+        }
 
         $customer->update($validated);
         ActivityLog::log('update', "গ্রাহক '{$customer->name}' এর তথ্য আপডেট করা হয়েছে।", $customer);
 
         return response()->json([
             'message' => 'গ্রাহকের তথ্য সফলভাবে আপডেট হয়েছে।',
-            'customer' => $customer,
+            'customer' => $customer->fresh()->loadCount('sales'),
         ]);
     }
 

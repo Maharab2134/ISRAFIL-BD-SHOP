@@ -14,6 +14,7 @@ import {
   CheckCircle2,
   Calendar,
   Sparkles,
+  Edit,
 } from 'lucide-react';
 import api from '../../services/api';
 
@@ -84,19 +85,29 @@ export const CustomerDetails = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <Link
-          to="/customers"
-          className="p-2 rounded-xl bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 text-slate-600 hover:text-slate-900 transition"
-        >
-          <ArrowLeft className="w-5 h-5" />
-        </Link>
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
-            {customer.name}
-          </h1>
-          <p className="text-xs text-slate-500">গ্রাহক প্রোফাইল ও সম্পূর্ণ লেনদেন লেজার</p>
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <Link
+            to="/customers"
+            className="p-2 rounded-xl bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 text-slate-600 hover:text-slate-900 transition"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </Link>
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+              {customer.name}
+            </h1>
+            <p className="text-xs text-slate-500">গ্রাহক প্রোফাইল ও সম্পূর্ণ লেনদেন লেজার</p>
+          </div>
         </div>
+
+        <Link
+          to={`/customers/${customer.id}/edit`}
+          className="py-2.5 px-4 rounded-xl font-bold text-xs bg-amber-500 hover:bg-amber-600 text-white shadow-md shadow-amber-500/20 flex items-center gap-1.5 transition"
+        >
+          <Edit className="w-3.5 h-3.5" />
+          <span>{lang === 'bn' ? 'তথ্য পরিবর্তন' : 'Edit Customer'}</span>
+        </Link>
       </div>
 
       {/* Top Profile & Balance Overview */}
