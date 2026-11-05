@@ -44,12 +44,6 @@ export const RolePermissions = () => {
   const [permissionsGrouped, setPermissionsGrouped] = useState({});
   const [loading, setLoading] = useState(true);
 
-  // Permission Configuration Modal
-  const [configuringRole, setConfiguringRole] = useState(null);
-  const [selectedPermissionIds, setSelectedPermissionIds] = useState([]);
-  const [isSavingPermissions, setIsSavingPermissions] = useState(false);
-  const [permSearch, setPermSearch] = useState('');
-
   // Create / Edit Role Modal
   const [roleModal, setRoleModal] = useState({ isOpen: false, role: null });
   const [roleForm, setRoleForm] = useState({ name: '', name_bn: '', description: '' });
@@ -143,72 +137,7 @@ export const RolePermissions = () => {
     }
   };
 
-  // Open Permission Editor for a Role
-  const handleOpenPermissions = (role) => {
-    setConfiguringRole(role);
-    const initialIds = (role.permissions || []).map((p) => p.id);
-    setSelectedPermissionIds(initialIds);
-    setPermSearch('');
-  };
 
-  const handleTogglePermission = (id) => {
-    setSelectedPermissionIds((prev) =>
-      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
-    );
-  };
-
-  const handleToggleGroup = (groupKey, shouldSelect) => {
-    const groupPerms = permissionsGrouped[groupKey] || [];
-    const groupIds = groupPerms.map((p) => p.id);
-
-    setSelectedPermissionIds((prev) => {
-      if (shouldSelect) {
-        return [...new Set([...prev, ...groupIds])];
-      } else {
-        return prev.filter((id) => !groupIds.includes(id));
-      }
-    });
-  };
-
-  const handleSelectAll = () => {
-    const allIds = [];
-    Object.values(permissionsGrouped).forEach((group) => {
-      group.forEach((p) => allIds.push(p.id));
-    });
-    setSelectedPermissionIds(allIds);
-  };
-
-  const handleDeselectAll = () => {
-    setSelectedPermissionIds([]);
-  };
-
-  const handleSavePermissions = async () => {
-    if (!configuringRole) return;
-    setIsSavingPermissions(true);
-
-    try {
-      const res = await api.put(`/roles/${configuringRole.id}/permissions`, {
-        permission_ids: selectedPermissionIds,
-      });
-
-      const updated = res.data.role;
-      setRoles((prev) => prev.map((r) => (r.id === updated.id ? { ...r, ...updated } : r)));
-      success(
-        res.data.message ||
-          (lang === 'bn'
-            ? `"${configuringRole.name_bn || configuringRole.name}" রোলের পারমিশন সফলভাবে আপডেট হয়েছে!`
-            : 'Role permissions updated successfully!')
-      );
-      setConfiguringRole(null);
-    } catch (err) {
-      const msg =
-        err.response?.data?.message ||
-        (lang === 'bn' ? 'পারমিশন সংরক্ষণ করতে সমস্যা হয়েছে।' : 'Failed to save permissions.');
-      error(msg);
-    } finally {
-      setIsSavingPermissions(false);
-    }
-  };
 
   // Open Create / Edit Role Modal
   const handleOpenRoleModal = (role = null) => {
@@ -430,15 +359,14 @@ export const RolePermissions = () => {
                     </div>
                   ) : (
                     <>
-                      <button
-                        type="button"
-                        onClick={() => handleOpenPermissions(role)}
+                      <Link
+                        to={`/roles/${role.id}/permissions`}
                         className="flex-1 py-2 px-3 rounded-xl bg-indigo-50 dark:bg-indigo-950/70 hover:bg-indigo-600 hover:text-white dark:hover:bg-indigo-600 text-indigo-700 dark:text-indigo-300 text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs active:scale-95"
                         title={lang === 'bn' ? 'কাজের অনুমতি পরিবর্তন করুন' : 'Configure Permissions'}
                       >
                         <Sliders className="w-3.5 h-3.5" />
-                        <span>{lang === 'bn' ? 'পারমিশন সেট করুন' : 'Set Permissions'}</span>
-                      </button>
+                        <span>{lang === 'bn' ? 'পারমিশন কনফিগারেশন' : 'Configure Permissions'}</span>
+                      </Link>
 
                       {!role.is_system && (
                         <div className="flex items-center gap-1">
@@ -470,219 +398,7 @@ export const RolePermissions = () => {
       )}
 
       {/* ======================================================== */}
-      {/* 1. PERMISSIONS CONFIGURATION MODAL / MATRIX */}
-      {/* ======================================================== */}
-      {configuringRole && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
-          <div className="w-full max-w-4xl max-h-[90vh] bg-white dark:bg-[#1E293B] rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
-            {/* Modal Header */}
-            <div className="p-5 sm:p-6 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between gap-4 shrink-0 bg-slate-50/50 dark:bg-slate-900/50">
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 rounded-2xl bg-indigo-600 text-white shadow-md">
-                  <Sliders className="w-5 h-5" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h2 className="text-xl font-black text-slate-900 dark:text-white">
-                      {lang === 'bn'
-                        ? `"${configuringRole.name_bn || configuringRole.name}" - পারমিশন নির্ধারণ`
-                        : `Configure Permissions for "${configuringRole.name}"`}
-                    </h2>
-                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300">
-                      {configuringRole.slug}
-                    </span>
-                  </div>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                    {lang === 'bn'
-                      ? 'এই রোলের ব্যবহারকারীরা যেসব মেনু দেখতে ও কাজ করতে পারবে সেগুলো টিক দিন'
-                      : 'Check the boxes for actions this role is authorized to execute in the system'}
-                  </p>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setConfiguringRole(null)}
-                className="p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Quick Actions & Search Bar */}
-            <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-[#1E293B] flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0">
-              <div className="relative flex-1 max-w-sm">
-                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                <input
-                  type="text"
-                  value={permSearch}
-                  onChange={(e) => setPermSearch(e.target.value)}
-                  placeholder={lang === 'bn' ? 'পারমিশন খুঁজুন...' : 'Search permissions...'}
-                  className="w-full pl-9 pr-4 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                />
-              </div>
-
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={handleSelectAll}
-                  className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-bold transition cursor-pointer"
-                >
-                  {lang === 'bn' ? 'সব নির্বাচন করুন' : 'Select All'}
-                </button>
-                <button
-                  type="button"
-                  onClick={handleDeselectAll}
-                  className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-bold transition cursor-pointer"
-                >
-                  {lang === 'bn' ? 'সব বাতিল করুন' : 'Clear All'}
-                </button>
-              </div>
-            </div>
-
-            {/* Permissions Grouped Cards (Scrollable) */}
-            <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-6">
-              {Object.entries(permissionsGrouped).map(([groupKey, groupPerms]) => {
-                const meta = groupMeta[groupKey] || {
-                  name: groupKey.toUpperCase(),
-                  icon: Layers,
-                  color: 'text-indigo-600 bg-indigo-50 border-indigo-200',
-                };
-                const GroupIcon = meta.icon;
-
-                // Filter permissions if search active
-                const filteredPerms = groupPerms.filter((p) => {
-                  if (!permSearch.trim()) return true;
-                  const query = permSearch.toLowerCase();
-                  return (
-                    p.name.toLowerCase().includes(query) ||
-                    (p.name_bn && p.name_bn.toLowerCase().includes(query)) ||
-                    p.slug.toLowerCase().includes(query)
-                  );
-                });
-
-                if (filteredPerms.length === 0) return null;
-
-                const groupSelectedCount = groupPerms.filter((p) =>
-                  selectedPermissionIds.includes(p.id)
-                ).length;
-                const isAllGroupSelected = groupSelectedCount === groupPerms.length && groupPerms.length > 0;
-
-                return (
-                  <div
-                    key={groupKey}
-                    className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40 p-4 sm:p-5 space-y-3.5"
-                  >
-                    {/* Group Header */}
-                    <div className="flex items-center justify-between gap-3 pb-3 border-b border-slate-200/80 dark:border-slate-800">
-                      <div className="flex items-center gap-2.5">
-                        <div className={`p-2 rounded-xl border ${meta.color} shrink-0`}>
-                          <GroupIcon className="w-4 h-4" />
-                        </div>
-                        <div>
-                          <h4 className="text-sm font-bold text-slate-900 dark:text-white">
-                            {meta.name}
-                          </h4>
-                          <span className="text-[10px] text-slate-400 font-medium">
-                            {formatNumber(groupSelectedCount)} / {formatNumber(groupPerms.length)} টি পারমিশন সক্রিয়
-                          </span>
-                        </div>
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={() => handleToggleGroup(groupKey, !isAllGroupSelected)}
-                        className={`px-2.5 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
-                          isAllGroupSelected
-                            ? 'bg-rose-100 dark:bg-rose-950 text-rose-600 dark:text-rose-400 hover:bg-rose-200'
-                            : 'bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-200'
-                        }`}
-                      >
-                        {isAllGroupSelected
-                          ? (lang === 'bn' ? 'গ্রুপ বাদ দিন' : 'Deselect Group')
-                          : (lang === 'bn' ? 'গ্রুপের সব দিন' : 'Select Group')}
-                      </button>
-                    </div>
-
-                    {/* Permissions Grid */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                      {filteredPerms.map((perm) => {
-                        const isChecked = selectedPermissionIds.includes(perm.id);
-
-                        return (
-                          <div
-                            key={perm.id}
-                            onClick={() => handleTogglePermission(perm.id)}
-                            className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-3 select-none ${
-                              isChecked
-                                ? 'bg-indigo-50/80 dark:bg-indigo-950/50 border-indigo-300 dark:border-indigo-800 text-indigo-900 dark:text-indigo-200 shadow-2xs'
-                                : 'bg-white dark:bg-[#1E293B] border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-slate-300'
-                            }`}
-                          >
-                            <div className="min-w-0 flex-1">
-                              <div className="font-bold text-xs">
-                                {lang === 'bn' ? (perm.name_bn || perm.name) : perm.name}
-                              </div>
-                              <div className="text-[10px] text-slate-400 font-mono mt-0.5 truncate">
-                                {perm.slug}
-                              </div>
-                            </div>
-
-                            <input
-                              type="checkbox"
-                              checked={isChecked}
-                              onChange={() => {}} // Controlled via card onClick
-                              className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer pointer-events-none"
-                            />
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Modal Footer */}
-            <div className="p-4 sm:p-5 border-t border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/60 flex items-center justify-between gap-4 shrink-0">
-              <div className="text-xs text-slate-600 dark:text-slate-400 font-semibold">
-                {lang === 'bn' ? 'নির্বাচিত মোট পারমিশন:' : 'Total Selected Permissions:'}{' '}
-                <span className="font-black text-indigo-600 dark:text-indigo-400">
-                  {formatNumber(selectedPermissionIds.length)} টি
-                </span>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setConfiguringRole(null)}
-                  disabled={isSavingPermissions}
-                  className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-bold transition cursor-pointer"
-                >
-                  {lang === 'bn' ? 'বাতিল' : 'Cancel'}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleSavePermissions}
-                  disabled={isSavingPermissions}
-                  className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-md shadow-indigo-600/30 flex items-center gap-1.5 transition cursor-pointer disabled:opacity-50"
-                >
-                  {isSavingPermissions ? (
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  ) : (
-                    <Save className="w-4 h-4" />
-                  )}
-                  <span>{lang === 'bn' ? 'পারমিশন সংরক্ষণ করুন' : 'Save Permissions'}</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ======================================================== */}
-      {/* 2. CREATE / EDIT ROLE MODAL */}
+      {/* CREATE / EDIT ROLE MODAL */}
       {/* ======================================================== */}
       {roleModal.isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
@@ -784,3 +500,4 @@ export const RolePermissions = () => {
 };
 
 export default RolePermissions;
+
