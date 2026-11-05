@@ -192,11 +192,11 @@ export const InventoryOverview = () => {
                     <td className="p-3 font-mono text-slate-500">{p.barcode}</td>
                     <td className="p-3 text-center">
                       <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300">
-                        {p.current_stock} {lang === 'bn' ? (p.unit?.name_bn || 'পিস') : (p.unit?.name || 'pcs')}
+                        {Number(p.current_stock) % 1 === 0 ? Math.round(p.current_stock) : p.current_stock} {lang === 'bn' ? 'পিস' : 'pcs'}
                       </span>
                     </td>
                     <td className="p-3 text-center text-slate-500">
-                      {p.alert_stock} {lang === 'bn' ? (p.unit?.name_bn || 'পিস') : (p.unit?.name || 'pcs')}
+                      {Number(p.alert_stock) % 1 === 0 ? Math.round(p.alert_stock) : p.alert_stock} {lang === 'bn' ? 'পিস' : 'pcs'}
                     </td>
                     <td className="p-3 text-right">
                       <Link

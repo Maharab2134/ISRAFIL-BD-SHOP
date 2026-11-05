@@ -106,6 +106,7 @@ class ProductController extends Controller
             'category_id' => 'required|exists:categories,id',
             'brand_id' => 'nullable|exists:brands,id',
             'unit_id' => 'required|exists:units,id',
+            'measurement_value' => 'nullable|string|max:50',
             'current_stock' => 'nullable|numeric|min:0',
             'purchase_price' => 'required|numeric|min:0',
             'selling_price' => 'required|numeric|min:0',
@@ -171,6 +172,9 @@ class ProductController extends Controller
         if ($request->input('description') === '' || $request->input('description') === 'null') {
             $request->merge(['description' => null]);
         }
+        if ($request->input('measurement_value') === '' || $request->input('measurement_value') === 'null') {
+            $request->merge(['measurement_value' => null]);
+        }
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
@@ -180,6 +184,7 @@ class ProductController extends Controller
             'category_id' => 'required|exists:categories,id',
             'brand_id' => 'nullable|exists:brands,id',
             'unit_id' => 'required|exists:units,id',
+            'measurement_value' => 'nullable|string|max:50',
             'current_stock' => 'nullable|numeric|min:0',
             'purchase_price' => 'required|numeric|min:0',
             'selling_price' => 'required|numeric|min:0',

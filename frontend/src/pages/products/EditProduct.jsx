@@ -36,6 +36,7 @@ export const EditProduct = () => {
   const [categoryId, setCategoryId] = useState('');
   const [brandId, setBrandId] = useState('');
   const [unitId, setUnitId] = useState('');
+  const [measurementValue, setMeasurementValue] = useState('');
   const [currentStock, setCurrentStock] = useState('0');
   const [purchasePrice, setPurchasePrice] = useState('');
   const [sellingPrice, setSellingPrice] = useState('');
@@ -79,6 +80,7 @@ export const EditProduct = () => {
         setCategoryId(p.category_id);
         setBrandId(p.brand_id || '');
         setUnitId(p.unit_id);
+        setMeasurementValue(p.measurement_value || '');
         setCurrentStock(p.current_stock ?? '0');
         setPurchasePrice(p.purchase_price);
         setSellingPrice(p.selling_price);
@@ -173,6 +175,7 @@ export const EditProduct = () => {
       formData.append('category_id', categoryId);
       if (brandId) formData.append('brand_id', brandId);
       formData.append('unit_id', unitId);
+      formData.append('measurement_value', measurementValue || '');
       formData.append('current_stock', currentStock || 0);
       formData.append('purchase_price', purchasePrice);
       formData.append('selling_price', sellingPrice);
@@ -319,7 +322,7 @@ export const EditProduct = () => {
 
           <div className="space-y-1.5">
             <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-              {lang === 'bn' ? 'পরিমাপক একক *' : 'Measurement Unit *'}
+              {lang === 'bn' ? 'পরিমাপক একক (Measurement Unit) *' : 'Measurement Unit *'}
             </label>
             <select
               required
@@ -329,16 +332,16 @@ export const EditProduct = () => {
             >
               {units.map((u) => (
                 <option key={u.id} value={u.id}>
-                  {lang === 'bn' ? u.name_bn || u.name : u.name} ({u.code})
+                  {lang === 'bn' ? (u.name_bn || u.name) : u.name} {u.code ? `(${u.code})` : ''}
                 </option>
               ))}
             </select>
           </div>
 
-          {/* Quantity (Qnty) */}
+          {/* Measurement Qnty / Value */}
           <div className="space-y-1.5">
             <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center justify-between">
-              <span>{lang === 'bn' ? 'স্টক পরিমাণ (Qnty) *' : 'Stock Quantity (Qnty) *'}</span>
+              <span>{lang === 'bn' ? 'পরিমাপের পরিমাণ (Measurement Qnty)' : 'Measurement Qnty'}</span>
               {selectedUnitCode && (
                 <span className="text-[10px] font-mono font-bold text-indigo-600 dark:text-indigo-400 uppercase">
                   ({selectedUnitCode})
@@ -347,14 +350,11 @@ export const EditProduct = () => {
             </label>
             <div className="relative">
               <input
-                type="number"
-                step="0.01"
-                min="0"
-                required
-                value={currentStock}
-                onChange={(e) => setCurrentStock(e.target.value)}
-                placeholder="0"
-                className="w-full py-2.5 px-3.5 pr-12 text-sm font-bold rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                type="text"
+                value={measurementValue}
+                onChange={(e) => setMeasurementValue(e.target.value)}
+                placeholder={selectedUnitCode === 'kg' ? 'e.g. 1, 2, 5' : selectedUnitCode === 'g' ? 'e.g. 50, 100, 500' : selectedUnitCode === 'ml' ? 'e.g. 200, 350, 500' : 'e.g. 1'}
+                className="w-full py-2.5 px-3.5 pr-14 text-sm font-bold rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
               {selectedUnitCode && (
                 <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase pointer-events-none">
@@ -559,16 +559,53 @@ export const EditProduct = () => {
             </div>
           </div>
 
+          {/* Current Stock */}
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-              {lang === 'bn' ? 'সতর্কতা স্টক লেভেল' : 'Alert Stock Level'}
+            <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center justify-between">
+              <span>{lang === 'bn' ? 'দোকানে মজুদ স্টক সংখ্যা (Current Stock) *' : 'Current Stock Quantity *'}</span>
+              <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
+                {lang === 'bn' ? '(পিস/প্যাকেট)' : '(Pcs/Packets)'}
+              </span>
             </label>
-            <input
-              type="number"
-              value={alertStock}
-              onChange={(e) => setAlertStock(e.target.value)}
-              className="w-full py-2.5 px-3.5 text-sm rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            />
+            <div className="relative">
+              <input
+                type="number"
+                step="1"
+                min="0"
+                required
+                value={currentStock}
+                onChange={(e) => setCurrentStock(e.target.value)}
+                placeholder="0"
+                className="w-full py-2.5 px-3.5 pr-14 text-sm font-bold rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+              />
+              <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 dark:text-slate-500 pointer-events-none">
+                {lang === 'bn' ? 'পিস' : 'pcs'}
+              </span>
+            </div>
+          </div>
+
+          {/* Alert Stock */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center justify-between">
+              <span>{lang === 'bn' ? 'সতর্কতা স্টক লেভেল (Alert Level)' : 'Alert Stock Level'}</span>
+              <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400">
+                {lang === 'bn' ? '(পিস/প্যাকেট)' : '(Pcs/Packets)'}
+              </span>
+            </label>
+            <div className="relative">
+              <input
+                type="number"
+                step="1"
+                min="0"
+                value={alertStock}
+                onChange={(e) => setAlertStock(e.target.value)}
+                placeholder="5"
+                className="w-full py-2.5 px-3.5 pr-14 text-sm font-bold rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+              <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 dark:text-slate-500 pointer-events-none">
+                {lang === 'bn' ? 'পিস' : 'pcs'}
+              </span>
+            </div>
           </div>
         </div>
 

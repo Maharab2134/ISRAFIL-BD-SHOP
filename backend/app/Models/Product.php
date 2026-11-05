@@ -17,6 +17,7 @@ class Product extends Model
         'category_id',
         'brand_id',
         'unit_id',
+        'measurement_value',
         'purchase_price',
         'selling_price',
         'wholesale_price',

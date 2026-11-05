@@ -145,11 +145,12 @@ export const PosTerminal = () => {
   // Card Stepper Quantities map for products not yet in cart
   const [cardQuantities, setCardQuantities] = useState({});
 
-  const formatUnitDisplay = (unit) => {
+  const formatUnitDisplay = (unit, measurementValue) => {
     if (!unit) return lang === 'bn' ? 'পিস (pcs)' : 'Piece (pcs)';
     const name = lang === 'bn' ? (unit.name_bn || unit.name) : unit.name;
     const code = unit.code ? `(${unit.code})` : '';
-    return `${name} ${code}`.trim();
+    const val = measurementValue ? `${measurementValue} ` : '';
+    return `${val}${name} ${code}`.trim();
   };
 
   const getCardQty = (prodId) => {
@@ -1547,7 +1548,7 @@ export const PosTerminal = () => {
                             {/* Unit */}
                             <div className="flex items-center gap-1 font-medium truncate">
                               <Scale className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                              <span className="truncate">{formatUnitDisplay(prod.unit)}</span>
+                              <span className="truncate">{formatUnitDisplay(prod.unit, prod.measurement_value)}</span>
                             </div>
                           </div>
                         </div>
@@ -1680,7 +1681,7 @@ export const PosTerminal = () => {
                               <span className="font-mono truncate">{prod.barcode}</span>
                               <span className="text-slate-300 dark:text-slate-600">|</span>
                               <Scale className="w-3 h-3 text-slate-400 shrink-0" />
-                              <span className="truncate">{formatUnitDisplay(prod.unit)}</span>
+                              <span className="truncate">{formatUnitDisplay(prod.unit, prod.measurement_value)}</span>
                             </div>
 
                             {/* Category Pill */}

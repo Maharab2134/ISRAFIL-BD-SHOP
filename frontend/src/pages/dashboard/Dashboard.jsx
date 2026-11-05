@@ -408,7 +408,7 @@ export const Dashboard = () => {
                   </div>
                   <div className="text-right">
                     <span className="px-2.5 py-1 rounded-lg bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 font-bold text-xs inline-block">
-                      {lang === 'bn' ? 'মজুদ' : 'Stock'}: {formatNumber(product.current_stock)} {lang === 'bn' ? (product.unit?.name_bn || 'পিস') : (product.unit?.name || 'pcs')}
+                      {lang === 'bn' ? 'মজুদ' : 'Stock'}: {formatNumber(Number(product.current_stock) % 1 === 0 ? Math.round(product.current_stock) : product.current_stock)} {lang === 'bn' ? 'পিস' : 'pcs'}
                     </span>
                     <div className="text-[10px] text-slate-400 mt-0.5">
                       {lang === 'bn' ? 'সতর্কতা লেভেল' : 'Alert Level'}: {formatNumber(product.alert_stock)}

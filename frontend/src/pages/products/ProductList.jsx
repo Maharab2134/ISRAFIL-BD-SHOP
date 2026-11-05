@@ -28,6 +28,16 @@ export const ProductList = () => {
   const { success, error } = useToast();
   const navigate = useNavigate();
 
+  const formatStockCount = (stock, unit) => {
+    const qty = Number(stock) % 1 === 0 ? Math.round(stock) : Number(stock);
+    const code = unit?.code?.toLowerCase();
+    let unitLabel = lang === 'bn' ? 'পিস' : 'Pcs';
+    if (code === 'pkt') unitLabel = lang === 'bn' ? 'প্যাকেট' : 'Pkt';
+    else if (code === 'box') unitLabel = lang === 'bn' ? 'বক্স' : 'Box';
+    else if (code === 'bags') unitLabel = lang === 'bn' ? 'ব্যাগ' : 'Bags';
+    return `${formatNumber(qty)} ${unitLabel}`;
+  };
+
   const [products, setProducts] = useState(() => {
     try {
       const cached = sessionStorage.getItem('israfil_products_cache');
@@ -473,7 +483,15 @@ export const ProductList = () => {
                           />
                           <div>
                             <div className="font-bold text-slate-900 dark:text-white line-clamp-1">{p.name}</div>
-                            {p.name_bn && <div className="text-[11px] text-slate-400">{p.name_bn}</div>}
+                            <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+                              {p.name_bn && <span className="text-[11px] text-slate-400">{p.name_bn}</span>}
+                              {(p.measurement_value || p.unit) && (
+                                <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700/80">
+                                  {p.measurement_value ? `${p.measurement_value} ` : ''}
+                                  {lang === 'bn' ? (p.unit?.name_bn || p.unit?.name) : (p.unit?.name || p.unit?.code)}
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </td>
@@ -525,7 +543,7 @@ export const ProductList = () => {
                               : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'
                             }`}
                         >
-                          {p.current_stock} {lang === 'bn' ? (p.unit?.name_bn || 'পিস') : (p.unit?.name || p.unit?.code || 'pcs')}
+                          {formatStockCount(p.current_stock, p.unit)}
                         </span>
                       </td>
 

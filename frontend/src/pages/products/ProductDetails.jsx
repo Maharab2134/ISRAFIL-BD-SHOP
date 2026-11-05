@@ -238,7 +238,17 @@ export const ProductDetails = () => {
                 {lang === 'bn' ? 'বর্তমান স্টক' : 'Current Stock'}
               </span>
               <span className="text-xl font-black text-indigo-600 dark:text-indigo-400">
-                {product.current_stock} {lang === 'bn' ? (product.unit?.name_bn || 'পিস') : (product.unit?.name || 'pcs')}
+                {formatNumber(Number(product.current_stock) % 1 === 0 ? Math.round(product.current_stock) : product.current_stock)} {lang === 'bn' ? 'পিস' : 'Pcs'}
+              </span>
+            </div>
+
+            <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800">
+              <span className="text-[11px] text-slate-400 block">
+                {lang === 'bn' ? 'পরিমাপ / সাইজ' : 'Measurement'}
+              </span>
+              <span className="text-sm font-bold text-slate-800 dark:text-slate-200">
+                {product.measurement_value ? `${product.measurement_value} ` : ''}
+                {lang === 'bn' ? (product.unit?.name_bn || product.unit?.name || '—') : (product.unit?.name || product.unit?.code || '—')}
               </span>
             </div>
 
