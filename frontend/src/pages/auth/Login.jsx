@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
@@ -18,12 +18,13 @@ import {
 } from 'lucide-react';
 
 export const Login = () => {
-  const [email, setEmail] = useState('admin@israfilbd.com');
-  const [password, setPassword] = useState('password123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const passwordInputRef = useRef(null);
 
   const { login } = useAuth();
   const { success, error } = useToast();
@@ -54,8 +55,9 @@ export const Login = () => {
 
   const handleQuickFill = (roleEmail) => {
     setEmail(roleEmail);
-    setPassword('password123');
+    setPassword('');
     setErrorMessage('');
+    setTimeout(() => passwordInputRef.current?.focus(), 50);
   };
 
   return (
@@ -190,6 +192,7 @@ export const Login = () => {
               <div className="relative">
                 <Lock className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
                 <input
+                  ref={passwordInputRef}
                   type={showPassword ? 'text' : 'password'}
                   required
                   value={password}
@@ -242,10 +245,10 @@ export const Login = () => {
             </button>
           </form>
 
-          {/* Demo User Fast Select Buttons */}
+          {/* User Fast Select Buttons */}
           <div className="pt-4 border-t border-slate-200 dark:border-slate-800 space-y-2">
             <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">
-              দ্রুত ডেমো লগইন নির্বাচন:
+              দ্রুত লগইন নির্বাচন:
             </span>
             <div className="grid grid-cols-3 gap-2">
               <button
