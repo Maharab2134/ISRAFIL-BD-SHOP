@@ -19,14 +19,35 @@ export const ExpenseList = () => {
   const { t, lang, formatCurrency, formatNumber } = useLanguage();
   const { success, error } = useToast();
 
-  const [expenses, setExpenses] = useState([]);
+  const [expenses, setExpenses] = useState(() => {
+    try {
+      const cached = sessionStorage.getItem('israfil_expenses_cache');
+      return cached ? JSON.parse(cached) : [];
+    } catch (e) {
+      return [];
+    }
+  });
   const [categories, setCategories] = useState([]);
   const [selectedCat, setSelectedCat] = useState('');
   const [search, setSearch] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
-  const [pagination, setPagination] = useState({ current_page: 1, last_page: 1, total: 0 });
-  const [loading, setLoading] = useState(true);
+  const [pagination, setPagination] = useState(() => {
+    try {
+      const cached = sessionStorage.getItem('israfil_expenses_pagination');
+      return cached ? JSON.parse(cached) : { current_page: 1, last_page: 1, total: 0 };
+    } catch (e) {
+      return { current_page: 1, last_page: 1, total: 0 };
+    }
+  });
+  const [loading, setLoading] = useState(() => {
+    try {
+      const cached = sessionStorage.getItem('israfil_expenses_cache');
+      return !cached || JSON.parse(cached).length === 0;
+    } catch (e) {
+      return true;
+    }
+  });
 
   // Multi-select & Delete Modal
   const [selectedIds, setSelectedIds] = useState([]);
@@ -49,24 +70,32 @@ export const ExpenseList = () => {
     fetchExpenses(pagination.current_page);
   }, [search, selectedCat, startDate, endDate, lang]);
 
-  const fetchExpenses = async (page = 1) => {
-    setLoading(true);
+  const fetchExpenses = async (page = pagination.current_page) => {
+    if (expenses.length === 0) {
+      setLoading(true);
+    }
     try {
-      const res = await api.get('/expenses', {
-        params: {
-          page,
-          search: search || undefined,
-          expense_category_id: selectedCat || undefined,
-          start_date: startDate || undefined,
-          end_date: endDate || undefined,
-        },
-      });
-      setExpenses(res.data.data || []);
-      setPagination({
+      const params = {
+        page,
+        search: search || undefined,
+        expense_category_id: selectedCat || undefined,
+        start_date: startDate || undefined,
+        end_date: endDate || undefined,
+      };
+      const res = await api.get('/expenses', { params });
+      const loadedExpenses = res.data.data || [];
+      const loadedPagination = {
         current_page: res.data.current_page,
         last_page: res.data.last_page,
         total: res.data.total,
-      });
+      };
+      setExpenses(loadedExpenses);
+      setPagination(loadedPagination);
+
+      try {
+        sessionStorage.setItem('israfil_expenses_cache', JSON.stringify(loadedExpenses));
+        sessionStorage.setItem('israfil_expenses_pagination', JSON.stringify(loadedPagination));
+      } catch (e) {}
     } catch (e) {
       error(lang === 'bn' ? 'খরচের তালিকা লোড করতে সমস্যা হয়েছে।' : 'Failed to load expense list.');
     } finally {

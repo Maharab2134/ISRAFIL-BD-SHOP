@@ -117,10 +117,10 @@ export const ProductDetails = () => {
           <button
             type="button"
             onClick={() => {
-              if (fromPos) {
-                navigate('/pos');
-              } else {
+              if (window.history.state && typeof window.history.state.idx === 'number' && window.history.state.idx > 0) {
                 navigate(-1);
+              } else {
+                navigate(fromPos ? '/pos' : '/products');
               }
             }}
             className="p-2.5 rounded-2xl bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition cursor-pointer shadow-xs active:scale-95"

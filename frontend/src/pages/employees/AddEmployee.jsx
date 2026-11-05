@@ -3,6 +3,7 @@ import { useNavigate, useParams, Link } from 'react-router-dom';
 import { useLanguage } from '../../context/LanguageContext';
 import { useToast } from '../../context/ToastContext';
 import api from '../../services/api';
+import { BackButton } from '../../components/common/BackButton';
 import {
   UserPlus,
   ArrowLeft,
@@ -116,12 +117,7 @@ export default function AddEmployee() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Link
-            to="/employees"
-            className="p-2 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </Link>
+          <BackButton fallback="/employees" />
           <div>
             <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
               <UserPlus className="w-6 h-6 text-indigo-600" />

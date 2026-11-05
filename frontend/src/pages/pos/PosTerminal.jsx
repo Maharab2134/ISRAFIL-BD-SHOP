@@ -48,13 +48,57 @@ export const PosTerminal = () => {
   const { t, lang, formatCurrency, formatNumber } = useLanguage();
   const { success, error, warning } = useToast();
 
-  const [categories, setCategories] = useState([]);
-  const [customers, setCustomers] = useState([]);
-  const [products, setProducts] = useState([]);
-  const [selectedCategory, setSelectedCategory] = useState(null);
-  const [productSearch, setProductSearch] = useState('');
+  const [categories, setCategories] = useState(() => {
+    try {
+      const saved = sessionStorage.getItem('israfil_pos_categories_cache');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      return [];
+    }
+  });
+  const [customers, setCustomers] = useState(() => {
+    try {
+      const saved = sessionStorage.getItem('israfil_pos_customers_cache');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      return [];
+    }
+  });
+  const [products, setProducts] = useState(() => {
+    try {
+      const saved = sessionStorage.getItem('israfil_pos_products_cache');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      return [];
+    }
+  });
+  const [selectedCategory, setSelectedCategory] = useState(() => {
+    try {
+      const saved = sessionStorage.getItem('israfil_pos_selected_cat');
+      return saved ? JSON.parse(saved) : null;
+    } catch (e) {
+      return null;
+    }
+  });
+  const [productSearch, setProductSearch] = useState(() => {
+    try {
+      return sessionStorage.getItem('israfil_pos_search') || '';
+    } catch (e) {
+      return '';
+    }
+  });
   const [barcodeInput, setBarcodeInput] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => {
+    try {
+      const saved = sessionStorage.getItem('israfil_pos_products_cache');
+      return !saved || JSON.parse(saved).length === 0;
+    } catch (e) {
+      return true;
+    }
+  });
+
+  // Ref to catalog grid/list scroll container for preserving scroll position
+  const catalogScrollRef = useRef(null);
 
   // View Mode: 'grid' or 'list'
   const [viewMode, setViewMode] = useState(() => {
@@ -70,6 +114,28 @@ export const PosTerminal = () => {
     try {
       localStorage.setItem('israfil_pos_view_mode', mode);
     } catch (e) { }
+  };
+
+  const handleSelectCategory = (catId) => {
+    setSelectedCategory(catId);
+    try {
+      sessionStorage.setItem('israfil_pos_selected_cat', JSON.stringify(catId));
+      sessionStorage.setItem('israfil_pos_catalog_scroll', '0');
+    } catch (e) {}
+    if (catalogScrollRef.current) {
+      catalogScrollRef.current.scrollTop = 0;
+    }
+  };
+
+  const handleSearchChange = (val) => {
+    setProductSearch(val);
+    try {
+      sessionStorage.setItem('israfil_pos_search', val);
+      sessionStorage.setItem('israfil_pos_catalog_scroll', '0');
+    } catch (e) {}
+    if (catalogScrollRef.current) {
+      catalogScrollRef.current.scrollTop = 0;
+    }
   };
 
   // More Categories Popover State
@@ -230,11 +296,21 @@ export const PosTerminal = () => {
     try {
       const res = await api.get('/pos/data');
       const loadedCustomers = res.data.customers || [];
-      setCategories(res.data.categories || []);
-      setCustomers(loadedCustomers);
+      const loadedCategories = res.data.categories || [];
       const rawProducts = res.data.products;
       const loadedProducts = Array.isArray(rawProducts) ? rawProducts : (rawProducts?.data || []);
+
+      setCategories(loadedCategories);
+      setCustomers(loadedCustomers);
       setProducts(loadedProducts);
+
+      // Persist POS cache in sessionStorage so returning from ProductDetails is instant
+      try {
+        sessionStorage.setItem('israfil_pos_customers_cache', JSON.stringify(loadedCustomers));
+        sessionStorage.setItem('israfil_pos_categories_cache', JSON.stringify(loadedCategories));
+        sessionStorage.setItem('israfil_pos_products_cache', JSON.stringify(loadedProducts));
+      } catch (e) {}
+
       if (res.data.shop_settings) {
         setShopSettings(res.data.shop_settings);
         if (res.data.shop_settings.default_printer_type) {
@@ -257,6 +333,21 @@ export const PosTerminal = () => {
       setTimeout(() => barcodeInputRef.current?.focus(), 250);
     }
   };
+
+  // Restore POS product catalog scroll position when products are mounted/filtered
+  useEffect(() => {
+    if (products.length > 0 && catalogScrollRef.current) {
+      const savedScroll = Number(sessionStorage.getItem('israfil_pos_catalog_scroll') || 0);
+      if (savedScroll > 0) {
+        catalogScrollRef.current.scrollTop = savedScroll;
+        requestAnimationFrame(() => {
+          if (catalogScrollRef.current) {
+            catalogScrollRef.current.scrollTop = savedScroll;
+          }
+        });
+      }
+    }
+  }, [products.length, viewMode]);
 
   const scrollCategories = (direction) => {
     if (categoryScrollRef.current) {
@@ -1163,13 +1254,13 @@ export const PosTerminal = () => {
                   type="text"
                   placeholder={lang === 'bn' ? 'পণ্য বা কোড দিয়ে খুঁজুন...' : 'Search products by name/code...'}
                   value={productSearch}
-                  onChange={(e) => setProductSearch(e.target.value)}
+                  onChange={(e) => handleSearchChange(e.target.value)}
                   className="w-full pl-10 pr-8 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
                 />
                 {productSearch && (
                   <button
                     type="button"
-                    onClick={() => setProductSearch('')}
+                    onClick={() => handleSearchChange('')}
                     className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5"
                     title="Clear Search"
                   >
@@ -1201,7 +1292,7 @@ export const PosTerminal = () => {
                 {/* All Items */}
                 <button
                   type="button"
-                  onClick={() => setSelectedCategory(null)}
+                  onClick={() => handleSelectCategory(null)}
                   className={`px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${selectedCategory === null
                       ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
                       : 'bg-white dark:bg-[#1E293B] text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800/80'
@@ -1227,7 +1318,7 @@ export const PosTerminal = () => {
                     <button
                       key={cat.id}
                       type="button"
-                      onClick={() => setSelectedCategory(cat.id)}
+                      onClick={() => handleSelectCategory(cat.id)}
                       className={`px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl text-xs whitespace-nowrap transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${isSelected
                           ? 'bg-indigo-600 text-white font-bold shadow-md shadow-indigo-600/30'
                           : 'bg-white dark:bg-[#1E293B] text-slate-700 dark:text-slate-300 font-medium border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800/80'
@@ -1285,7 +1376,7 @@ export const PosTerminal = () => {
                                 key={cat.id}
                                 type="button"
                                 onClick={() => {
-                                  setSelectedCategory(cat.id);
+                                  handleSelectCategory(cat.id);
                                   setShowMoreCategories(false);
                                 }}
                                 className={`w-full px-3 py-2 rounded-xl text-xs text-left transition flex items-center justify-between cursor-pointer ${isSelected
@@ -1344,7 +1435,15 @@ export const PosTerminal = () => {
               </div>
             ) : viewMode === 'grid' ? (
               /* 4-Columns Grid View (Spacious width, 1-line title with ...) */
-              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-4 gap-3.5 max-h-[calc(100vh-215px)] overflow-y-auto pr-1">
+              <div
+                ref={catalogScrollRef}
+                onScroll={(e) => {
+                  try {
+                    sessionStorage.setItem('israfil_pos_catalog_scroll', String(e.currentTarget.scrollTop));
+                  } catch (err) {}
+                }}
+                className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-4 gap-3.5 max-h-[calc(100vh-215px)] overflow-y-auto pr-1"
+              >
                 {filteredProducts.map((prod) => {
                   const stock = Number(prod.current_stock);
                   const isOutOfStock = stock <= 0;
@@ -1356,7 +1455,14 @@ export const PosTerminal = () => {
                   return (
                     <div
                       key={prod.id}
-                      onClick={() => navigate(`/products/${prod.id}`, { state: { from: 'pos' } })}
+                      onClick={() => {
+                        if (catalogScrollRef.current) {
+                          try {
+                            sessionStorage.setItem('israfil_pos_catalog_scroll', String(catalogScrollRef.current.scrollTop));
+                          } catch (err) {}
+                        }
+                        navigate(`/products/${prod.id}`, { state: { from: 'pos' } });
+                      }}
                       className="p-3.5 sm:p-4 rounded-3xl bg-white dark:bg-[#1E293B] border border-slate-200/90 dark:border-slate-800 hover:border-indigo-500/80 dark:hover:border-indigo-400 hover:shadow-xl transition-all duration-200 cursor-pointer flex flex-col justify-between group active:scale-[0.99] select-none relative min-h-[355px] sm:min-h-[375px]"
                       title={lang === 'bn' ? 'বিস্তারিত এবং বারকোড দেখতে ক্লিক করুন' : 'Click to view product details & barcode'}
                     >
@@ -1508,7 +1614,15 @@ export const PosTerminal = () => {
               </div>
             ) : (
               /* Compact Horizontal List View */
-              <div className="space-y-2 max-h-[calc(100vh-215px)] overflow-y-auto pr-1">
+              <div
+                ref={catalogScrollRef}
+                onScroll={(e) => {
+                  try {
+                    sessionStorage.setItem('israfil_pos_catalog_scroll', String(e.currentTarget.scrollTop));
+                  } catch (err) {}
+                }}
+                className="space-y-2 max-h-[calc(100vh-215px)] overflow-y-auto pr-1"
+              >
                 {filteredProducts.map((prod) => {
                   const stock = Number(prod.current_stock);
                   const isOutOfStock = stock <= 0;
@@ -1520,7 +1634,14 @@ export const PosTerminal = () => {
                   return (
                     <div
                       key={prod.id}
-                      onClick={() => navigate(`/products/${prod.id}`, { state: { from: 'pos' } })}
+                      onClick={() => {
+                        if (catalogScrollRef.current) {
+                          try {
+                            sessionStorage.setItem('israfil_pos_catalog_scroll', String(catalogScrollRef.current.scrollTop));
+                          } catch (err) {}
+                        }
+                        navigate(`/products/${prod.id}`, { state: { from: 'pos' } });
+                      }}
                       className="p-3 sm:p-3.5 rounded-2xl bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 hover:border-indigo-500 dark:hover:border-indigo-500 shadow-xs hover:shadow-md transition-all cursor-pointer flex items-center justify-between gap-3.5 group active:scale-[0.99] select-none min-h-[78px]"
                       title={lang === 'bn' ? 'বিস্তারিত এবং বারকোড দেখতে ক্লিক করুন' : 'Click to view product details & barcode'}
                     >

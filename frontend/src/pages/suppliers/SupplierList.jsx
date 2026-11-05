@@ -19,10 +19,37 @@ export const SupplierList = () => {
   const { t, lang, formatCurrency, formatNumber } = useLanguage();
   const { success, error } = useToast();
 
-  const [suppliers, setSuppliers] = useState([]);
-  const [search, setSearch] = useState('');
-  const [pagination, setPagination] = useState({ current_page: 1, last_page: 1, total: 0 });
-  const [loading, setLoading] = useState(true);
+  const [suppliers, setSuppliers] = useState(() => {
+    try {
+      const cached = sessionStorage.getItem('israfil_suppliers_cache');
+      return cached ? JSON.parse(cached) : [];
+    } catch (e) {
+      return [];
+    }
+  });
+  const [search, setSearch] = useState(() => {
+    try {
+      return sessionStorage.getItem('israfil_suppliers_search') || '';
+    } catch (e) {
+      return '';
+    }
+  });
+  const [pagination, setPagination] = useState(() => {
+    try {
+      const cached = sessionStorage.getItem('israfil_suppliers_pagination');
+      return cached ? JSON.parse(cached) : { current_page: 1, last_page: 1, total: 0 };
+    } catch (e) {
+      return { current_page: 1, last_page: 1, total: 0 };
+    }
+  });
+  const [loading, setLoading] = useState(() => {
+    try {
+      const cached = sessionStorage.getItem('israfil_suppliers_cache');
+      return !cached || JSON.parse(cached).length === 0;
+    } catch (e) {
+      return true;
+    }
+  });
 
   // Multi-select & Delete Modal
   const [selectedIds, setSelectedIds] = useState([]);
@@ -33,18 +60,28 @@ export const SupplierList = () => {
     fetchSuppliers(pagination.current_page);
   }, [search, lang]);
 
-  const fetchSuppliers = async (page = 1) => {
-    setLoading(true);
+  const fetchSuppliers = async (page = pagination.current_page) => {
+    if (suppliers.length === 0) {
+      setLoading(true);
+    }
     try {
       const res = await api.get('/suppliers', {
         params: { page, search: search || undefined },
       });
-      setSuppliers(res.data.data || []);
-      setPagination({
+      const loadedSuppliers = res.data.data || [];
+      const loadedPagination = {
         current_page: res.data.current_page,
         last_page: res.data.last_page,
         total: res.data.total,
-      });
+      };
+      setSuppliers(loadedSuppliers);
+      setPagination(loadedPagination);
+
+      try {
+        sessionStorage.setItem('israfil_suppliers_cache', JSON.stringify(loadedSuppliers));
+        sessionStorage.setItem('israfil_suppliers_pagination', JSON.stringify(loadedPagination));
+        sessionStorage.setItem('israfil_suppliers_search', search);
+      } catch (e) {}
     } catch (e) {
       error(lang === 'bn' ? 'সরবরাহকারী তালিকা লোড করতে সমস্যা হয়েছে।' : 'Failed to load supplier list.');
     } finally {

@@ -31,11 +31,44 @@ export const CustomerList = () => {
   const { user } = useAuth();
   const isSuperAdmin = user?.role?.slug === 'super-admin' || user?.email === 'admin@israfilbd.com';
 
-  const [customers, setCustomers] = useState([]);
-  const [search, setSearch] = useState('');
-  const [hasDueOnly, setHasDueOnly] = useState(false);
-  const [pagination, setPagination] = useState({ current_page: 1, last_page: 1, total: 0 });
-  const [loading, setLoading] = useState(true);
+  const [customers, setCustomers] = useState(() => {
+    try {
+      const cached = sessionStorage.getItem('israfil_customers_cache');
+      return cached ? JSON.parse(cached) : [];
+    } catch (e) {
+      return [];
+    }
+  });
+  const [search, setSearch] = useState(() => {
+    try {
+      return sessionStorage.getItem('israfil_customers_search') || '';
+    } catch (e) {
+      return '';
+    }
+  });
+  const [hasDueOnly, setHasDueOnly] = useState(() => {
+    try {
+      return sessionStorage.getItem('israfil_customers_has_due') === 'true';
+    } catch (e) {
+      return false;
+    }
+  });
+  const [pagination, setPagination] = useState(() => {
+    try {
+      const cached = sessionStorage.getItem('israfil_customers_pagination');
+      return cached ? JSON.parse(cached) : { current_page: 1, last_page: 1, total: 0 };
+    } catch (e) {
+      return { current_page: 1, last_page: 1, total: 0 };
+    }
+  });
+  const [loading, setLoading] = useState(() => {
+    try {
+      const cached = sessionStorage.getItem('israfil_customers_cache');
+      return !cached || JSON.parse(cached).length === 0;
+    } catch (e) {
+      return true;
+    }
+  });
 
   // Multi-select & Delete Modal
   const [selectedIds, setSelectedIds] = useState([]);
@@ -114,22 +147,32 @@ export const CustomerList = () => {
     fetchCustomers(pagination.current_page);
   }, [search, hasDueOnly, lang]);
 
-  const fetchCustomers = async (page = 1) => {
-    setLoading(true);
+  const fetchCustomers = async (page = pagination.current_page) => {
+    if (customers.length === 0) {
+      setLoading(true);
+    }
     try {
-      const res = await api.get('/customers', {
-        params: {
-          page,
-          search: search || undefined,
-          has_due: hasDueOnly ? 1 : undefined,
-        },
-      });
-      setCustomers(res.data.data || []);
-      setPagination({
+      const params = {
+        page,
+        search: search || undefined,
+        has_due: hasDueOnly ? 1 : undefined,
+      };
+      const res = await api.get('/customers', { params });
+      const loadedCustomers = res.data.data || [];
+      const loadedPagination = {
         current_page: res.data.current_page,
         last_page: res.data.last_page,
         total: res.data.total,
-      });
+      };
+      setCustomers(loadedCustomers);
+      setPagination(loadedPagination);
+
+      try {
+        sessionStorage.setItem('israfil_customers_cache', JSON.stringify(loadedCustomers));
+        sessionStorage.setItem('israfil_customers_pagination', JSON.stringify(loadedPagination));
+        sessionStorage.setItem('israfil_customers_search', search);
+        sessionStorage.setItem('israfil_customers_has_due', String(hasDueOnly));
+      } catch (e) {}
     } catch (e) {
       error(lang === 'bn' ? 'গ্রাহক তালিকা লোড করতে সমস্যা হয়েছে।' : 'Failed to load customer list.');
     } finally {

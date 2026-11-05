@@ -4,6 +4,7 @@ import { useLanguage } from '../../context/LanguageContext';
 import { useToast } from '../../context/ToastContext';
 import { ArrowLeft, Save, UserCheck, Phone, Mail, MapPin, CreditCard, Sparkles, AlertCircle } from 'lucide-react';
 import api from '../../services/api';
+import { BackButton } from '../../components/common/BackButton';
 
 export const EditCustomer = () => {
   const { id } = useParams();
@@ -98,12 +99,7 @@ export const EditCustomer = () => {
       {/* Top Header */}
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <Link
-            to="/customers"
-            className="p-2.5 rounded-xl bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:text-slate-900 transition shadow-2xs"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </Link>
+          <BackButton fallback="/customers" />
           <div>
             <h1 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
               <span>{lang === 'bn' ? 'গ্রাহকের তথ্য সম্পাদন' : 'Edit Customer'}</span>

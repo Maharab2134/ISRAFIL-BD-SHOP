@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import api from '../../services/api';
 import { BarcodeSvg } from '../../components/common/BarcodeSvg';
+import { BackButton } from '../../components/common/BackButton';
 
 export const SaleInvoice = () => {
   const { id } = useParams();
@@ -91,12 +92,7 @@ export const SaleInvoice = () => {
       {/* Top Controls Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 no-print">
         <div className="flex items-center gap-3">
-          <Link
-            to="/sales"
-            className="p-2 rounded-xl bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </Link>
+          <BackButton fallback="/sales" />
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
               <Receipt className="w-6 h-6 text-indigo-600" />

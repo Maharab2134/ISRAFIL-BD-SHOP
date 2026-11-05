@@ -4,6 +4,7 @@ import { useLanguage } from '../../context/LanguageContext';
 import { useToast } from '../../context/ToastContext';
 import { ShoppingBag, ArrowLeft, Printer, Calendar, Truck } from 'lucide-react';
 import api from '../../services/api';
+import { BackButton } from '../../components/common/BackButton';
 
 export const PurchaseDetails = () => {
   const { id } = useParams();
@@ -34,12 +35,7 @@ export const PurchaseDetails = () => {
     <div className="w-full space-y-6">
       <div className="flex items-center justify-between no-print">
         <div className="flex items-center gap-3">
-          <Link
-            to="/purchases"
-            className="p-2 rounded-xl bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 text-slate-600 hover:text-slate-900 transition"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </Link>
+          <BackButton fallback="/purchases" />
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
               ক্রয় চালান: {purchase.purchase_number}

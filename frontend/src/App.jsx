@@ -1,6 +1,7 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AppLayout } from './components/layout/AppLayout';
+import { ScrollRestorationManager } from './components/common/ScrollRestorationManager';
 
 // Auth Pages
 import { Login } from './pages/auth/Login';
@@ -67,7 +68,9 @@ import { KeyboardShortcuts } from './pages/settings/KeyboardShortcuts';
 
 export default function App() {
   return (
-    <Routes>
+    <>
+      <ScrollRestorationManager />
+      <Routes>
       {/* Public Routes */}
       <Route path="/login" element={<Login />} />
 
@@ -148,6 +151,7 @@ export default function App() {
       {/* Fallback */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+    </>
   );
 }
 

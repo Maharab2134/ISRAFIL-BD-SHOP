@@ -17,27 +17,64 @@ export const PurchaseList = () => {
   const { t, lang, formatCurrency, formatNumber } = useLanguage();
   const { error } = useToast();
 
-  const [purchases, setPurchases] = useState([]);
-  const [search, setSearch] = useState('');
-  const [pagination, setPagination] = useState({ current_page: 1, last_page: 1, total: 0 });
-  const [loading, setLoading] = useState(true);
+  const [purchases, setPurchases] = useState(() => {
+    try {
+      const cached = sessionStorage.getItem('israfil_purchases_cache');
+      return cached ? JSON.parse(cached) : [];
+    } catch (e) {
+      return [];
+    }
+  });
+  const [search, setSearch] = useState(() => {
+    try {
+      return sessionStorage.getItem('israfil_purchases_search') || '';
+    } catch (e) {
+      return '';
+    }
+  });
+  const [pagination, setPagination] = useState(() => {
+    try {
+      const cached = sessionStorage.getItem('israfil_purchases_pagination');
+      return cached ? JSON.parse(cached) : { current_page: 1, last_page: 1, total: 0 };
+    } catch (e) {
+      return { current_page: 1, last_page: 1, total: 0 };
+    }
+  });
+  const [loading, setLoading] = useState(() => {
+    try {
+      const cached = sessionStorage.getItem('israfil_purchases_cache');
+      return !cached || JSON.parse(cached).length === 0;
+    } catch (e) {
+      return true;
+    }
+  });
 
   useEffect(() => {
     fetchPurchases(pagination.current_page);
   }, [search, lang]);
 
-  const fetchPurchases = async (page = 1) => {
-    setLoading(true);
+  const fetchPurchases = async (page = pagination.current_page) => {
+    if (purchases.length === 0) {
+      setLoading(true);
+    }
     try {
       const res = await api.get('/purchases', {
         params: { page, search: search || undefined },
       });
-      setPurchases(res.data.data || []);
-      setPagination({
+      const loadedPurchases = res.data.data || [];
+      const loadedPagination = {
         current_page: res.data.current_page,
         last_page: res.data.last_page,
         total: res.data.total,
-      });
+      };
+      setPurchases(loadedPurchases);
+      setPagination(loadedPagination);
+
+      try {
+        sessionStorage.setItem('israfil_purchases_cache', JSON.stringify(loadedPurchases));
+        sessionStorage.setItem('israfil_purchases_pagination', JSON.stringify(loadedPagination));
+        sessionStorage.setItem('israfil_purchases_search', search);
+      } catch (e) {}
     } catch (e) {
       error(lang === 'bn' ? 'ক্রয় তালিকা লোড করতে সমস্যা হয়েছে।' : 'Failed to load purchase list.');
     } finally {

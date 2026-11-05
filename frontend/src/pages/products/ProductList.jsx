@@ -28,16 +28,81 @@ export const ProductList = () => {
   const { success, error } = useToast();
   const navigate = useNavigate();
 
-  const [products, setProducts] = useState([]);
-  const [categories, setCategories] = useState([]);
-  const [brands, setBrands] = useState([]);
-  const [search, setSearch] = useState('');
-  const [selectedCat, setSelectedCat] = useState('');
-  const [selectedBrand, setSelectedBrand] = useState('');
-  const [lowStockOnly, setLowStockOnly] = useState(false);
-  const [perPage, setPerPage] = useState('50');
-  const [pagination, setPagination] = useState({ current_page: 1, last_page: 1, total: 0 });
-  const [loading, setLoading] = useState(true);
+  const [products, setProducts] = useState(() => {
+    try {
+      const cached = sessionStorage.getItem('israfil_products_cache');
+      return cached ? JSON.parse(cached) : [];
+    } catch (e) {
+      return [];
+    }
+  });
+  const [categories, setCategories] = useState(() => {
+    try {
+      const cached = sessionStorage.getItem('israfil_categories_cache');
+      return cached ? JSON.parse(cached) : [];
+    } catch (e) {
+      return [];
+    }
+  });
+  const [brands, setBrands] = useState(() => {
+    try {
+      const cached = sessionStorage.getItem('israfil_brands_cache');
+      return cached ? JSON.parse(cached) : [];
+    } catch (e) {
+      return [];
+    }
+  });
+  const [search, setSearch] = useState(() => {
+    try {
+      return sessionStorage.getItem('israfil_products_search') || '';
+    } catch (e) {
+      return '';
+    }
+  });
+  const [selectedCat, setSelectedCat] = useState(() => {
+    try {
+      return sessionStorage.getItem('israfil_products_cat') || '';
+    } catch (e) {
+      return '';
+    }
+  });
+  const [selectedBrand, setSelectedBrand] = useState(() => {
+    try {
+      return sessionStorage.getItem('israfil_products_brand') || '';
+    } catch (e) {
+      return '';
+    }
+  });
+  const [lowStockOnly, setLowStockOnly] = useState(() => {
+    try {
+      return sessionStorage.getItem('israfil_products_low_stock') === 'true';
+    } catch (e) {
+      return false;
+    }
+  });
+  const [perPage, setPerPage] = useState(() => {
+    try {
+      return sessionStorage.getItem('israfil_products_per_page') || '50';
+    } catch (e) {
+      return '50';
+    }
+  });
+  const [pagination, setPagination] = useState(() => {
+    try {
+      const cached = sessionStorage.getItem('israfil_products_pagination');
+      return cached ? JSON.parse(cached) : { current_page: 1, last_page: 1, total: 0 };
+    } catch (e) {
+      return { current_page: 1, last_page: 1, total: 0 };
+    }
+  });
+  const [loading, setLoading] = useState(() => {
+    try {
+      const cached = sessionStorage.getItem('israfil_products_cache');
+      return !cached || JSON.parse(cached).length === 0;
+    } catch (e) {
+      return true;
+    }
+  });
 
   // Delete & Multi-selection state
   const [selectedIds, setSelectedIds] = useState([]);
@@ -97,15 +162,24 @@ export const ProductList = () => {
         api.get('/categories'),
         api.get('/brands'),
       ]);
-      setCategories(catsRes.data || []);
-      setBrands(brandsRes.data || []);
+      const loadedCats = catsRes.data || [];
+      const loadedBrands = brandsRes.data || [];
+      setCategories(loadedCats);
+      setBrands(loadedBrands);
+      try {
+        sessionStorage.setItem('israfil_categories_cache', JSON.stringify(loadedCats));
+        sessionStorage.setItem('israfil_brands_cache', JSON.stringify(loadedBrands));
+      } catch (e) {}
     } catch (e) {
       console.error(e);
     }
   };
 
-  const fetchProducts = async (page = 1) => {
-    setLoading(true);
+  const fetchProducts = async (page = pagination.current_page) => {
+    // Only set full loading indicator if we don't have any cached products rendered yet
+    if (products.length === 0) {
+      setLoading(true);
+    }
     try {
       const params = {
         page,
@@ -116,12 +190,25 @@ export const ProductList = () => {
         low_stock: lowStockOnly ? 1 : undefined,
       };
       const res = await api.get('/products', { params });
-      setProducts(res.data.data || []);
-      setPagination({
+      const loadedProducts = res.data.data || [];
+      const loadedPagination = {
         current_page: res.data.current_page,
         last_page: res.data.last_page,
         total: res.data.total,
-      });
+      };
+      setProducts(loadedProducts);
+      setPagination(loadedPagination);
+
+      // Persist state so returning back from ProductDetails restores view instantly
+      try {
+        sessionStorage.setItem('israfil_products_cache', JSON.stringify(loadedProducts));
+        sessionStorage.setItem('israfil_products_pagination', JSON.stringify(loadedPagination));
+        sessionStorage.setItem('israfil_products_search', search);
+        sessionStorage.setItem('israfil_products_cat', selectedCat);
+        sessionStorage.setItem('israfil_products_brand', selectedBrand);
+        sessionStorage.setItem('israfil_products_low_stock', String(lowStockOnly));
+        sessionStorage.setItem('israfil_products_per_page', String(perPage));
+      } catch (e) {}
     } catch (e) {
       error(lang === 'bn' ? 'পণ্য তালিকা লোড করতে সমস্যা হয়েছে।' : 'Failed to load product list.');
     } finally {

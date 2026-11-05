@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import api from '../../services/api';
 import { normalizeImageUrl } from '../../utils/imageHelper';
+import { BackButton } from '../../components/common/BackButton';
 
 export const EditProduct = () => {
   const { id } = useParams();
@@ -214,12 +215,7 @@ export const EditProduct = () => {
     <div className="w-full space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Link
-            to="/products"
-            className="p-2 rounded-xl bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </Link>
+          <BackButton fallback="/products" />
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
               {lang === 'bn' ? 'পণ্য সম্পাদন করুন' : 'Edit Product'}

@@ -23,28 +23,65 @@ export default function EmployeeList() {
   const { t, lang } = useLanguage();
   const { success, error } = useToast();
 
-  const [employees, setEmployees] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
-  const [pagination, setPagination] = useState({ current_page: 1, last_page: 1, total: 0 });
+  const [employees, setEmployees] = useState(() => {
+    try {
+      const cached = sessionStorage.getItem('israfil_employees_cache');
+      return cached ? JSON.parse(cached) : [];
+    } catch (e) {
+      return [];
+    }
+  });
+  const [loading, setLoading] = useState(() => {
+    try {
+      const cached = sessionStorage.getItem('israfil_employees_cache');
+      return !cached || JSON.parse(cached).length === 0;
+    } catch (e) {
+      return true;
+    }
+  });
+  const [search, setSearch] = useState(() => {
+    try {
+      return sessionStorage.getItem('israfil_employees_search') || '';
+    } catch (e) {
+      return '';
+    }
+  });
+  const [pagination, setPagination] = useState(() => {
+    try {
+      const cached = sessionStorage.getItem('israfil_employees_pagination');
+      return cached ? JSON.parse(cached) : { current_page: 1, last_page: 1, total: 0 };
+    } catch (e) {
+      return { current_page: 1, last_page: 1, total: 0 };
+    }
+  });
 
   // Multi-select & Delete Modal
   const [selectedIds, setSelectedIds] = useState([]);
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, item: null, isBulk: false });
   const [deleting, setDeleting] = useState(false);
 
-  const fetchEmployees = async (page = 1, searchQuery = search) => {
-    setLoading(true);
+  const fetchEmployees = async (page = pagination.current_page, searchQuery = search) => {
+    if (employees.length === 0) {
+      setLoading(true);
+    }
     try {
       const res = await api.get('/employees', {
         params: { page, search: searchQuery },
       });
-      setEmployees(res.data.data || []);
-      setPagination({
+      const loadedEmployees = res.data.data || [];
+      const loadedPagination = {
         current_page: res.data.current_page,
         last_page: res.data.last_page,
         total: res.data.total,
-      });
+      };
+      setEmployees(loadedEmployees);
+      setPagination(loadedPagination);
+
+      try {
+        sessionStorage.setItem('israfil_employees_cache', JSON.stringify(loadedEmployees));
+        sessionStorage.setItem('israfil_employees_pagination', JSON.stringify(loadedPagination));
+        sessionStorage.setItem('israfil_employees_search', searchQuery);
+      } catch (e) {}
     } catch (err) {
       error(lang === 'bn' ? 'কর্মী তালিকা লোড করতে সমস্যা হয়েছে।' : 'Failed to load employee list.');
     } finally {

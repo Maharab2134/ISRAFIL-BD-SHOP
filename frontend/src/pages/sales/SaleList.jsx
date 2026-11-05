@@ -19,36 +19,93 @@ export const SaleList = () => {
   const { t, lang, formatCurrency, formatNumber } = useLanguage();
   const { error } = useToast();
 
-  const [sales, setSales] = useState([]);
-  const [search, setSearch] = useState('');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
-  const [paymentStatus, setPaymentStatus] = useState('');
-  const [pagination, setPagination] = useState({ current_page: 1, last_page: 1, total: 0 });
-  const [loading, setLoading] = useState(true);
+  const [sales, setSales] = useState(() => {
+    try {
+      const cached = sessionStorage.getItem('israfil_sales_cache');
+      return cached ? JSON.parse(cached) : [];
+    } catch (e) {
+      return [];
+    }
+  });
+  const [search, setSearch] = useState(() => {
+    try {
+      return sessionStorage.getItem('israfil_sales_search') || '';
+    } catch (e) {
+      return '';
+    }
+  });
+  const [startDate, setStartDate] = useState(() => {
+    try {
+      return sessionStorage.getItem('israfil_sales_start_date') || '';
+    } catch (e) {
+      return '';
+    }
+  });
+  const [endDate, setEndDate] = useState(() => {
+    try {
+      return sessionStorage.getItem('israfil_sales_end_date') || '';
+    } catch (e) {
+      return '';
+    }
+  });
+  const [paymentStatus, setPaymentStatus] = useState(() => {
+    try {
+      return sessionStorage.getItem('israfil_sales_payment_status') || '';
+    } catch (e) {
+      return '';
+    }
+  });
+  const [pagination, setPagination] = useState(() => {
+    try {
+      const cached = sessionStorage.getItem('israfil_sales_pagination');
+      return cached ? JSON.parse(cached) : { current_page: 1, last_page: 1, total: 0 };
+    } catch (e) {
+      return { current_page: 1, last_page: 1, total: 0 };
+    }
+  });
+  const [loading, setLoading] = useState(() => {
+    try {
+      const cached = sessionStorage.getItem('israfil_sales_cache');
+      return !cached || JSON.parse(cached).length === 0;
+    } catch (e) {
+      return true;
+    }
+  });
 
   useEffect(() => {
     fetchSales(pagination.current_page);
   }, [search, startDate, endDate, paymentStatus, lang]);
 
-  const fetchSales = async (page = 1) => {
-    setLoading(true);
+  const fetchSales = async (page = pagination.current_page) => {
+    if (sales.length === 0) {
+      setLoading(true);
+    }
     try {
-      const res = await api.get('/sales', {
-        params: {
-          page,
-          search: search || undefined,
-          start_date: startDate || undefined,
-          end_date: endDate || undefined,
-          payment_status: paymentStatus || undefined,
-        },
-      });
-      setSales(res.data.data || []);
-      setPagination({
+      const params = {
+        page,
+        search: search || undefined,
+        start_date: startDate || undefined,
+        end_date: endDate || undefined,
+        payment_status: paymentStatus || undefined,
+      };
+      const res = await api.get('/sales', { params });
+      const loadedSales = res.data.data || [];
+      const loadedPagination = {
         current_page: res.data.current_page,
         last_page: res.data.last_page,
         total: res.data.total,
-      });
+      };
+      setSales(loadedSales);
+      setPagination(loadedPagination);
+
+      try {
+        sessionStorage.setItem('israfil_sales_cache', JSON.stringify(loadedSales));
+        sessionStorage.setItem('israfil_sales_pagination', JSON.stringify(loadedPagination));
+        sessionStorage.setItem('israfil_sales_search', search);
+        sessionStorage.setItem('israfil_sales_start_date', startDate);
+        sessionStorage.setItem('israfil_sales_end_date', endDate);
+        sessionStorage.setItem('israfil_sales_payment_status', paymentStatus);
+      } catch (e) {}
     } catch (e) {
       error(lang === 'bn' ? 'বিক্রয় তালিকা লোড করতে সমস্যা হয়েছে।' : 'Failed to load sale list.');
     } finally {
