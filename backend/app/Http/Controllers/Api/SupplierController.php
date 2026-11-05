@@ -143,13 +143,20 @@ class SupplierController extends Controller
     public function destroy($id)
     {
         $supplier = Supplier::withCount('purchases')->findOrFail($id);
-        if ($supplier->purchases_count > 0 || $supplier->current_balance > 0) {
+        $user = auth()->user();
+        $isSuperAdmin = $user && ($user->role?->slug === 'super-admin' || $user->email === 'admin@israfilbd.com');
+
+        if (!$isSuperAdmin && ($supplier->purchases_count > 0 || (float) $supplier->current_balance > 0)) {
             return response()->json([
-                'message' => 'এই সরবরাহকারীর সক্রিয় ক্রয় বা ব্যালেন্স রেকর্ড রয়েছে, তাই মুছে ফেলা সম্ভব নয়।'
-            ], 422);
+                'message' => 'এই সরবরাহকারীর সক্রিয় ক্রয় বা ব্যালেন্স রেকর্ড রয়েছে, তাই ম্যানেজার মুছে ফেলতে পারবেন না। শুধুমাত্র সুপার অ্যাডমিন এটি অপসারণ করতে পারেন।'
+            ], 403);
         }
 
-        $supplier->delete();
+        DB::transaction(function () use ($supplier) {
+            \App\Models\SupplierPayment::where('supplier_id', $supplier->id)->delete();
+            $supplier->delete();
+        });
+
         ActivityLog::log('delete', "সরবরাহকারী '{$supplier->name}' মুছে ফেলা হয়েছে।", $supplier);
 
         return response()->json(['message' => 'সরবরাহকারী সফলভাবে মুছে ফেলা হয়েছে।']);
@@ -162,12 +169,20 @@ class SupplierController extends Controller
             'ids.*' => 'required|integer',
         ])['ids'];
 
+        $user = auth()->user();
+        $isSuperAdmin = $user && ($user->role?->slug === 'super-admin' || $user->email === 'admin@israfilbd.com');
+
         $deleted = 0;
         $skipped = 0;
         foreach ($ids as $id) {
             $supplier = Supplier::withCount('purchases')->find($id);
-            if ($supplier && $supplier->purchases_count == 0 && (float) $supplier->current_balance == 0) {
-                $supplier->delete();
+            if (!$supplier) continue;
+
+            if ($isSuperAdmin || ($supplier->purchases_count == 0 && (float) $supplier->current_balance == 0)) {
+                DB::transaction(function () use ($supplier) {
+                    \App\Models\SupplierPayment::where('supplier_id', $supplier->id)->delete();
+                    $supplier->delete();
+                });
                 $deleted++;
             } else {
                 $skipped++;
@@ -180,7 +195,7 @@ class SupplierController extends Controller
 
         $msg = "{$deleted} টি সরবরাহকারী সফলভাবে মুছে ফেলা হয়েছে।";
         if ($skipped > 0) {
-            $msg .= " ({$skipped} টির সক্রিয় ক্রয়/বকেয়া রেকর্ড থাকায় বাদ দেওয়া হয়েছে)";
+            $msg .= " ({$skipped} টির সক্রিয় ক্রয়/বকেয়া রেকর্ড থাকায় বাদ দেওয়া হয়েছে, যা কেবল সুপার এডমিন মুছতে পারবেন)";
         }
 
         return response()->json([

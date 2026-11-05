@@ -102,13 +102,20 @@ class CustomerController extends Controller
     public function destroy($id)
     {
         $customer = Customer::withCount('sales')->findOrFail($id);
-        if ($customer->sales_count > 0 || $customer->current_balance > 0) {
+        $user = auth()->user();
+        $isSuperAdmin = $user && ($user->role?->slug === 'super-admin' || $user->email === 'admin@israfilbd.com');
+
+        if (!$isSuperAdmin && ($customer->sales_count > 0 || (float) $customer->current_balance > 0)) {
             return response()->json([
-                'message' => 'এই গ্রাহকের বিক্রয় রেকর্ড অথবা বকেয়া ব্যালেন্স রয়েছে, তাই মুছে ফেলা সম্ভব নয়।'
-            ], 422);
+                'message' => 'এই গ্রাহকের বিক্রয় রেকর্ড অথবা বকেয়া ব্যালেন্স রয়েছে, তাই ম্যানেজার মুছে ফেলতে পারবেন না। শুধুমাত্র সুপার অ্যাডমিন এটি অপসারণ করতে পারবেন।'
+            ], 403);
         }
 
-        $customer->delete();
+        DB::transaction(function () use ($customer) {
+            CustomerPayment::where('customer_id', $customer->id)->delete();
+            $customer->delete();
+        });
+
         ActivityLog::log('delete', "গ্রাহক '{$customer->name}' মুছে ফেলা হয়েছে।", $customer);
 
         return response()->json([
@@ -123,12 +130,20 @@ class CustomerController extends Controller
             'ids.*' => 'required|integer',
         ])['ids'];
 
+        $user = auth()->user();
+        $isSuperAdmin = $user && ($user->role?->slug === 'super-admin' || $user->email === 'admin@israfilbd.com');
+
         $deleted = 0;
         $skipped = 0;
         foreach ($ids as $id) {
             $customer = Customer::withCount('sales')->find($id);
-            if ($customer && $customer->sales_count == 0 && (float) $customer->current_balance == 0) {
-                $customer->delete();
+            if (!$customer) continue;
+
+            if ($isSuperAdmin || ($customer->sales_count == 0 && (float) $customer->current_balance == 0)) {
+                DB::transaction(function () use ($customer) {
+                    CustomerPayment::where('customer_id', $customer->id)->delete();
+                    $customer->delete();
+                });
                 $deleted++;
             } else {
                 $skipped++;
@@ -141,7 +156,7 @@ class CustomerController extends Controller
 
         $msg = "{$deleted} জন গ্রাহক সফলভাবে মুছে ফেলা হয়েছে।";
         if ($skipped > 0) {
-            $msg .= " ({$skipped} জনের সক্রিয় বিক্রয়/বকেয়া থাকায় বাদ দেওয়া হয়েছে)";
+            $msg .= " ({$skipped} জনের সক্রিয় বিক্রয়/বকেয়া রেকর্ড থাকায় বাদ দেওয়া হয়েছে, যা কেবল সুপার এডমিন মুছতে পারবেন)";
         }
 
         return response()->json([

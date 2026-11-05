@@ -574,4 +574,31 @@ class IsrafilShopApiTest extends TestCase
         $resExp->assertStatus(200)->assertJsonPath('deleted_count', 1);
         $this->assertDatabaseMissing('expenses', ['id' => $exp->id]);
     }
+
+    public function test_manager_cannot_delete_customer_with_sales_or_due_but_super_admin_can()
+    {
+        $admin = User::where('email', 'admin@israfilbd.com')->first();
+        $manager = User::where('email', 'manager@israfilbd.com')->first();
+
+        // 1. Customer with due balance
+        $custWithDue = \App\Models\Customer::create([
+            'name' => 'Cust Due Check',
+            'phone' => '01711223344',
+            'current_balance' => 500,
+        ]);
+
+        // Manager tries to delete -> 403 Forbidden
+        $resManager = $this->actingAs($manager, 'sanctum')->deleteJson("/api/customers/{$custWithDue->id}");
+        $resManager->assertStatus(403);
+
+        // Customer still exists in database
+        $this->assertDatabaseHas('customers', ['id' => $custWithDue->id]);
+
+        // Super Admin tries to delete -> 200 OK
+        $resAdmin = $this->actingAs($admin, 'sanctum')->deleteJson("/api/customers/{$custWithDue->id}");
+        $resAdmin->assertStatus(200);
+
+        // Customer removed from database
+        $this->assertDatabaseMissing('customers', ['id' => $custWithDue->id]);
+    }
 }

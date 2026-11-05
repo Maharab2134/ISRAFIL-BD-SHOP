@@ -23,10 +23,13 @@ import {
 } from 'lucide-react';
 import api from '../../services/api';
 import { ConfirmDeleteModal } from '../../components/common/ConfirmDeleteModal';
+import { useAuth } from '../../context/AuthContext';
 
 export const CustomerList = () => {
   const { t, lang, formatCurrency, formatNumber } = useLanguage();
   const { success, error } = useToast();
+  const { user } = useAuth();
+  const isSuperAdmin = user?.role?.slug === 'super-admin' || user?.email === 'admin@israfilbd.com';
 
   const [customers, setCustomers] = useState([]);
   const [search, setSearch] = useState('');
@@ -355,9 +358,24 @@ export const CustomerList = () => {
                           </button>
                           <button
                             type="button"
-                            onClick={() => setDeleteModal({ isOpen: true, item: c, isBulk: false })}
-                            className="p-1.5 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/40 transition cursor-pointer"
-                            title={lang === 'bn' ? 'মুছে ফেলুন' : 'Delete'}
+                            onClick={() => {
+                              const hasSalesOrDue = (c.sales_count || 0) > 0 || Number(c.current_balance || 0) > 0;
+                              if (!isSuperAdmin && hasSalesOrDue) {
+                                error(lang === 'bn' ? 'এই গ্রাহকের বিক্রয় রেকর্ড অথবা বকেয়া ব্যালেন্স রয়েছে। এটি মুছে ফেলার অনুমতি শুধুমাত্র সুপার অ্যাডমিনের রয়েছে।' : 'This customer has sales or due balance. Only Super Admin can delete.');
+                                return;
+                              }
+                              setDeleteModal({ isOpen: true, item: c, isBulk: false });
+                            }}
+                            className={`p-1.5 rounded-lg transition cursor-pointer ${
+                              !isSuperAdmin && ((c.sales_count || 0) > 0 || Number(c.current_balance || 0) > 0)
+                                ? 'text-slate-300 dark:text-slate-600 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-slate-800'
+                                : 'text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40'
+                            }`}
+                            title={
+                              !isSuperAdmin && ((c.sales_count || 0) > 0 || Number(c.current_balance || 0) > 0)
+                                ? (lang === 'bn' ? 'সক্রিয় বিক্রয়/বকেয়া থাকায় কেবল সুপার অ্যাডমিন মুছতে পারবেন' : 'Only Super Admin can delete')
+                                : (lang === 'bn' ? 'মুছে ফেলুন' : 'Delete')
+                            }
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
