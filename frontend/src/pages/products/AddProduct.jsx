@@ -439,6 +439,66 @@ export const AddProduct = () => {
             />
           </div>
 
+          {/* Wholesale Price */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+              {lang === 'bn' ? 'পাইকারি মূল্য (Wholesale ৳)' : 'Wholesale Price (৳)'}
+            </label>
+            <input
+              type="number"
+              step="0.01"
+              value={wholesalePrice}
+              onChange={(e) => setWholesalePrice(e.target.value)}
+              placeholder={lang === 'bn' ? 'ঐচ্ছিক (0.00)' : 'Optional (0.00)'}
+              className="w-full py-2.5 px-3.5 text-sm font-bold rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+            />
+          </div>
+
+          {/* VAT / Tax Rate with Bangladesh Preset Buttons */}
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1">
+                <Percent className="w-3 h-3 text-blue-500" />
+                <span>{lang === 'bn' ? 'ভ্যাট / ট্যাক্স শতকরা হার (%)' : 'VAT / Tax Rate (%)'}</span>
+              </label>
+              {Number(taxPercent) > 0 && Number(sellingPrice) > 0 && (
+                <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400">
+                  +৳{((Number(sellingPrice) * Number(taxPercent)) / 100).toFixed(2)} /পিস
+                </span>
+              )}
+            </div>
+            <div className="relative">
+              <input
+                type="number"
+                step="0.1"
+                min="0"
+                max="100"
+                value={taxPercent}
+                onChange={(e) => setTaxPercent(e.target.value)}
+                placeholder="0"
+                className="w-full py-2.5 px-3.5 pr-8 text-sm font-bold text-blue-600 dark:text-blue-400 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+              />
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">%</span>
+            </div>
+            {/* Quick Presets */}
+            <div className="flex items-center gap-1.5 pt-0.5">
+              {[0, 5, 7.5, 15].map((rate) => (
+                <button
+                  key={rate}
+                  type="button"
+                  onClick={() => setTaxPercent(rate.toString())}
+                  className={`px-2 py-0.5 rounded-lg text-[10px] font-bold transition cursor-pointer ${
+                    Number(taxPercent) === rate
+                      ? 'bg-blue-600 text-white shadow-xs'
+                      : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
+                  }`}
+                >
+                  {rate}%
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Product Auto Discount Section */}
           <div className="col-span-full rounded-2xl p-4 bg-gradient-to-r from-emerald-50/70 via-teal-50/50 to-indigo-50/40 dark:from-emerald-950/25 dark:via-teal-950/20 dark:to-indigo-950/15 border border-emerald-200/80 dark:border-emerald-800/60 space-y-3 shadow-sm">
             <div className="flex items-center justify-between">
@@ -506,9 +566,16 @@ export const AddProduct = () => {
                     <span className="text-[10px] text-slate-500 dark:text-slate-400 block font-medium">
                       {lang === 'bn' ? 'পিওএস ফাইনাল বিক্রয়মূল্য' : 'POS Effective Price'}
                     </span>
-                    <span className="text-sm font-black text-emerald-600 dark:text-emerald-400">
-                      ৳{discountPreview.finalPrice.toFixed(2)}
-                    </span>
+                    <div className="flex items-baseline gap-1.5">
+                      <span className="text-sm font-black text-emerald-600 dark:text-emerald-400">
+                        ৳{discountPreview.finalPrice.toFixed(2)}
+                      </span>
+                      {Number(taxPercent) > 0 && (
+                        <span className="text-[10px] text-blue-600 dark:text-blue-400 font-bold">
+                          (+{taxPercent}% VAT = ৳{(discountPreview.finalPrice * (1 + Number(taxPercent) / 100)).toFixed(2)})
+                        </span>
+                      )}
+                    </div>
                   </div>
                   {discountType !== 'none' && Number(discountValue) > 0 && (
                     <div className="text-right">
@@ -563,7 +630,7 @@ export const AddProduct = () => {
               </label>
               <p className="text-[11px] text-slate-500 dark:text-slate-400">
                 {lang === 'bn'
-                  ? 'সরাসরি ফাইল আপলোড করুন অথবা যেকোনো অনলাইন ছবির লিংক দিন'
+                  ? 'সরাসরি ফাইল আপলোড করুন অথবা যেকোনো অনলাইন ছবির সরাসরি লিংক দিন'
                   : 'Upload a local image file or paste an image URL from the web'}
               </p>
             </div>
@@ -573,7 +640,7 @@ export const AddProduct = () => {
               <button
                 type="button"
                 onClick={() => setImageTab('upload')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition cursor-pointer ${
                   imageTab === 'upload'
                     ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 font-bold shadow-sm'
                     : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
@@ -585,7 +652,7 @@ export const AddProduct = () => {
               <button
                 type="button"
                 onClick={() => setImageTab('url')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition cursor-pointer ${
                   imageTab === 'url'
                     ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 font-bold shadow-sm'
                     : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
@@ -606,13 +673,13 @@ export const AddProduct = () => {
                     src={imagePreview}
                     alt="Preview"
                     onError={() => setImageError(true)}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-contain p-1"
                   />
                   <button
                     type="button"
                     onClick={handleClearImage}
                     title={lang === 'bn' ? 'ছবি মুছুন' : 'Remove Image'}
-                    className="absolute top-1 right-1 p-1 rounded-full bg-rose-600 text-white shadow hover:bg-rose-700 transition"
+                    className="absolute top-1 right-1 p-1 rounded-full bg-rose-600 text-white shadow hover:bg-rose-700 transition cursor-pointer"
                   >
                     <X className="w-3 h-3" />
                   </button>
@@ -631,12 +698,12 @@ export const AddProduct = () => {
 
             {/* Tab 1: Local File Upload */}
             {imageTab === 'upload' && (
-              <div className="flex-1 space-y-1.5">
+              <div className="flex-1 space-y-1.5 w-full">
                 <input
                   type="file"
                   accept="image/*"
                   onChange={handleImageChange}
-                  className="text-xs file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 dark:file:bg-indigo-950 dark:file:text-indigo-300 w-full"
+                  className="text-xs file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 dark:file:bg-indigo-950 dark:file:text-indigo-300 w-full cursor-pointer"
                 />
                 <p className="text-[11px] text-slate-400">
                   {lang === 'bn'
@@ -662,14 +729,14 @@ export const AddProduct = () => {
                     type="url"
                     value={imageUrlInput}
                     onChange={(e) => handleUrlChange(e.target.value)}
-                    placeholder="https://example.com/images/product.jpg"
+                    placeholder="https://drive.google.com/file/d/... বা https://example.com/image.jpg"
                     className="w-full pl-9 pr-10 py-2.5 text-xs rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
                   />
                   {imageUrlInput && (
                     <button
                       type="button"
                       onClick={() => handleUrlChange('')}
-                      className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
                     >
                       <X className="w-4 h-4" />
                     </button>
@@ -679,7 +746,7 @@ export const AddProduct = () => {
                   <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1">
                     <Check className="w-3.5 h-3.5" />
                     {lang === 'bn'
-                      ? '✓ গুগল ড্রাইভ ইমেজ সরাসরি স্ট্রিমিং মোডে সক্রিয় হয়েছে।'
+                      ? '✓ গুগল ড্রাইভ ইমেজ সরাসরি লাইভ স্ট্রিমিং মোডে সক্রিয় হয়েছে।'
                       : '✓ Google Drive direct image stream active.'}
                   </p>
                 )}
@@ -692,8 +759,8 @@ export const AddProduct = () => {
                 ) : (
                   <p className="text-[11px] text-slate-400">
                     {lang === 'bn'
-                      ? 'ওয়েব থেকে যেকোনো ছবির সরাসরি লিংক (Direct URL) পেস্ট করুন।'
-                      : 'Paste any direct web image link (HTTPS recommended).'}
+                      ? 'গুগল ড্রাইভ (Google Drive) অথবা ওয়েব থেকে যেকোনো অনলাইন ছবির সরাসরি লিংক দিন।'
+                      : 'Paste any direct web or Google Drive image link.'}
                   </p>
                 )}
               </div>

@@ -37,6 +37,17 @@
   scrollbar-width: none;
 }
 
+/* Remove ugly default browser spinner arrows from number inputs */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
 /* Print Styles for Invoices, Receipts, Barcodes & Reports */
 @media print {
   @page {
@@ -81,7 +92,7 @@
     min-height: auto !important;
   }
 
-  /* If page defines #printable-area, only that section is visible */
+  /* If page defines #printable-area, only that section is visible and positioned at top */
   body:has(#printable-area) * {
     visibility: hidden;
   }
@@ -91,17 +102,17 @@
     visibility: visible;
   }
 
-  #printable-area {
-    visibility: visible !important;
-    position: relative !important;
-    left: auto !important;
-    top: auto !important;
+  body:has(#printable-area) #printable-area {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
     width: 100% !important;
-    margin: 0 auto !important;
+    margin: 0 !important;
     padding: 0 !important;
     background: #ffffff !important;
     color: #000000 !important;
     display: block !important;
+    visibility: visible !important;
   }
 
   .page-break-inside-avoid {

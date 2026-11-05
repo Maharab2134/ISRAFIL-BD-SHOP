@@ -86,6 +86,41 @@ class CategoryController extends Controller
         ]);
     }
 
+    public function bulkDelete(Request $request)
+    {
+        $ids = $request->validate([
+            'ids' => 'required|array|min:1',
+            'ids.*' => 'required|integer',
+        ])['ids'];
+
+        $deleted = 0;
+        $skipped = 0;
+        foreach ($ids as $id) {
+            $cat = Category::withCount('products')->find($id);
+            if ($cat && $cat->products_count == 0) {
+                $cat->delete();
+                $deleted++;
+            } else {
+                $skipped++;
+            }
+        }
+
+        if ($deleted > 0) {
+            ActivityLog::log('delete', "{$deleted} টি ক্যাটাগরি মুছে ফেলা হয়েছে।");
+        }
+
+        $msg = "{$deleted} টি ক্যাটাগরি সফলভাবে মুছে ফেলা হয়েছে।";
+        if ($skipped > 0) {
+            $msg .= " ({$skipped} টি ক্যাটাগরিতে পণ্য যুক্ত থাকায় বাদ দেওয়া হয়েছে)";
+        }
+
+        return response()->json([
+            'message' => $msg,
+            'deleted_count' => $deleted,
+            'skipped_count' => $skipped,
+        ]);
+    }
+
     public function importJson(Request $request)
     {
         $content = null;

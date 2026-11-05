@@ -46,12 +46,13 @@ class PosController extends Controller
             $query->where('category_id', $request->category_id);
         }
 
-        $products = $query->orderBy('name')->paginate($request->integer('per_page', 30));
+        $products = $query->orderBy('name')->get();
 
         return response()->json([
             'categories' => $categories,
             'customers' => $customers,
             'products' => $products,
+            'shop_settings' => \App\Models\Setting::pluck('value', 'key')->toArray(),
         ]);
     }
 
@@ -72,6 +73,7 @@ class PosController extends Controller
             'discount_type' => 'nullable|in:fixed,percentage',
             'discount_rate' => 'nullable|numeric|min:0',
             'discount_amount' => 'nullable|numeric|min:0',
+            'redeem_points' => 'nullable|integer|min:0',
             'paid_amount' => 'required|numeric|min:0',
             'payment_method' => 'required|string|in:cash,bkash,nagad,card,bank,split',
             'payments' => 'nullable|array',
@@ -87,6 +89,7 @@ class PosController extends Controller
             return response()->json([
                 'message' => 'বিক্রয় সফলভাবে সম্পন্ন হয়েছে!',
                 'sale' => $sale,
+                'shop_settings' => \App\Models\Setting::pluck('value', 'key')->toArray(),
             ], 201);
         } catch (Exception $e) {
             return response()->json([

@@ -38,7 +38,7 @@ export const NewPurchase = () => {
       try {
         const [supRes, prodRes] = await Promise.all([
           api.get('/suppliers'),
-          api.get('/products?per_page=100'),
+          api.get('/products?per_page=1000'),
         ]);
         setSuppliers(supRes.data.data || supRes.data || []);
         setProducts(prodRes.data.data || prodRes.data || []);

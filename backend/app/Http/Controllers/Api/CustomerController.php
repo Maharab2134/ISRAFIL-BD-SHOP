@@ -111,6 +111,41 @@ class CustomerController extends Controller
         ]);
     }
 
+    public function bulkDelete(Request $request)
+    {
+        $ids = $request->validate([
+            'ids' => 'required|array|min:1',
+            'ids.*' => 'required|integer',
+        ])['ids'];
+
+        $deleted = 0;
+        $skipped = 0;
+        foreach ($ids as $id) {
+            $customer = Customer::withCount('sales')->find($id);
+            if ($customer && $customer->sales_count == 0 && (float) $customer->current_balance == 0) {
+                $customer->delete();
+                $deleted++;
+            } else {
+                $skipped++;
+            }
+        }
+
+        if ($deleted > 0) {
+            ActivityLog::log('delete', "{$deleted} জন গ্রাহক মুছে ফেলা হয়েছে।");
+        }
+
+        $msg = "{$deleted} জন গ্রাহক সফলভাবে মুছে ফেলা হয়েছে।";
+        if ($skipped > 0) {
+            $msg .= " ({$skipped} জনের সক্রিয় বিক্রয়/বকেয়া থাকায় বাদ দেওয়া হয়েছে)";
+        }
+
+        return response()->json([
+            'message' => $msg,
+            'deleted_count' => $deleted,
+            'skipped_count' => $skipped,
+        ]);
+    }
+
     public function receivePayment(Request $request, $id)
     {
         $customer = Customer::findOrFail($id);

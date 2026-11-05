@@ -13,6 +13,7 @@ import {
   CreditCard,
   CheckCircle2,
   Calendar,
+  Sparkles,
 } from 'lucide-react';
 import api from '../../services/api';
 
@@ -99,7 +100,7 @@ export const CustomerDetails = () => {
       </div>
 
       {/* Top Profile & Balance Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="p-6 rounded-3xl bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 shadow-card space-y-3">
           <div className="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 flex items-center justify-center font-bold text-lg">
             {customer.name[0]}
@@ -122,6 +123,22 @@ export const CustomerDetails = () => {
                 <span>{customer.address}</span>
               </div>
             )}
+          </div>
+        </div>
+
+        {/* Loyalty Points Card */}
+        <div className="p-6 rounded-3xl bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 shadow-card flex flex-col justify-between">
+          <div>
+            <span className="text-xs font-semibold text-amber-600 dark:text-amber-400 uppercase tracking-wider flex items-center gap-1">
+              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+              <span>লয়ালটি পয়েন্ট ব্যালেন্স</span>
+            </span>
+            <div className="text-3xl font-black text-amber-600 dark:text-amber-400 mt-2">
+              {customer.loyalty_points || 0} <span className="text-sm font-bold text-slate-400">pts</span>
+            </div>
+          </div>
+          <div className="text-xs text-slate-500 pt-3 border-t border-slate-100 dark:border-slate-800">
+            ছাড়ের মূল্য: <span className="font-bold text-emerald-600">{formatCurrency(((customer.loyalty_points || 0) * 0.10))}</span> (১০০ pt = ৳১০)
           </div>
         </div>
 

@@ -45,8 +45,27 @@ class PosService
                     $customerPhone = $customer->phone;
                 }
             } else {
-                $customerName = $data['customer_name'] ?? 'ওয়াক-ইন কাস্টমার (Walk-in)';
                 $customerPhone = $data['customer_phone'] ?? null;
+                if (!empty($customerPhone)) {
+                    $cleanPhone = preg_replace('/[^0-9]/', '', $customerPhone);
+                    $found = Customer::lockForUpdate()
+                        ->where(function ($q) use ($customerPhone, $cleanPhone) {
+                            $q->where('phone', $customerPhone);
+                            if (strlen($cleanPhone) >= 6) {
+                                $q->orWhereRaw("REPLACE(REPLACE(REPLACE(phone, '-', ''), ' ', ''), '+88', '') LIKE ?", ["%{$cleanPhone}%"]);
+                            }
+                        })
+                        ->first();
+                    if ($found) {
+                        $customer = $found;
+                        $customerId = $customer->id;
+                        $customerName = $customer->name;
+                        $customerPhone = $customer->phone;
+                    }
+                }
+                if (!$customer) {
+                    $customerName = $data['customer_name'] ?? 'ওয়াক-ইন কাস্টমার (Walk-in)';
+                }
             }
 
             // 3. Process items with row locking & stock validation
@@ -116,7 +135,7 @@ class PosService
                 ];
             }
 
-            // 4. Order Level Discount & Tax
+            // 4. Order Level Discount & Loyalty Points
             $orderDiscountType = $data['discount_type'] ?? 'fixed';
             $orderDiscountRate = (float) ($data['discount_rate'] ?? 0);
             $orderDiscountAmount = (float) ($data['discount_amount'] ?? 0);
@@ -125,8 +144,44 @@ class PosService
                 $orderDiscountAmount = ($subtotal * $orderDiscountRate) / 100;
             }
 
-            $grandTotal = max(0, ($subtotal - $productDiscountTotal - $orderDiscountAmount) + $totalTax);
+            // Loyalty Points Redemption: 100 points = 75 BDT discount (0.75 BDT per point)
+            // Minimum 100 points threshold required for redemption eligibility
+            $pointsRedeemed = 0;
+            $pointsDiscountAmount = 0.0;
+            $requestedPoints = isset($data['redeem_points']) ? (int) $data['redeem_points'] : 0;
+
+            if ($customer && $requestedPoints > 0 && (int) $customer->loyalty_points >= 100) {
+                $availablePoints = (int) $customer->loyalty_points;
+                $pointsRedeemed = min($availablePoints, $requestedPoints);
+                $calculatedDiscount = round($pointsRedeemed * 0.75, 2);
+
+                $maxPayable = max(0, ($subtotal - $productDiscountTotal - $orderDiscountAmount));
+                if ($calculatedDiscount > $maxPayable) {
+                    $calculatedDiscount = $maxPayable;
+                    $pointsRedeemed = (int) ceil($calculatedDiscount / 0.75);
+                }
+
+                $pointsDiscountAmount = $calculatedDiscount;
+                if ($pointsRedeemed > 0) {
+                    $customer->decrement('loyalty_points', $pointsRedeemed);
+                    $customer->refresh();
+                }
+            }
+
+            $grandTotal = max(0, ($subtotal - $productDiscountTotal - $orderDiscountAmount - $pointsDiscountAmount) + $totalTax);
             $totalProfit = $grandTotal - $totalTax - $totalCost;
+
+            // Loyalty Points Earning: Every 1,000 BDT purchase = 10 points (floor(grand_total / 100))
+            $pointsEarned = 0;
+            if ($customer && $grandTotal > 0) {
+                $pointsEarned = (int) floor($grandTotal / 100);
+                if ($pointsEarned > 0) {
+                    $customer->increment('loyalty_points', $pointsEarned);
+                    $customer->refresh();
+                }
+            }
+
+            $customerPointsBalance = $customer ? (int) $customer->loyalty_points : 0;
 
             // 5. Payments
             $paidAmount = (float) ($data['paid_amount'] ?? $grandTotal);
@@ -178,6 +233,10 @@ class PosService
                 'tax_rate' => 0,
                 'tax_amount' => $totalTax,
                 'grand_total' => $grandTotal,
+                'points_earned' => $pointsEarned,
+                'points_redeemed' => $pointsRedeemed,
+                'points_discount_amount' => $pointsDiscountAmount,
+                'customer_points_balance' => $customerPointsBalance,
                 'total_cost' => $totalCost,
                 'total_profit' => $totalProfit,
                 'paid_amount' => $actualPaid,

@@ -116,7 +116,8 @@ class IsrafilShopApiTest extends TestCase
             ->postJson('/api/pos/checkout', $payload);
 
         $response->assertStatus(201)
-            ->assertJsonStructure(['sale' => ['id', 'invoice_number', 'grand_total', 'items']]);
+            ->assertJsonStructure(['sale' => ['id', 'invoice_number', 'grand_total', 'items']])
+            ->assertJsonPath('sale.customer_phone', '01899999999');
 
         // Verify stock was deducted by exactly 2
         $product->refresh();
@@ -357,5 +358,220 @@ class IsrafilShopApiTest extends TestCase
         $this->assertEquals(8, (float) $product->alert_stock);
         $this->assertEquals('active', $product->status);
         $this->assertEquals('https://lh3.googleusercontent.com/d/1uTZCWKh6PftTikrXZOde-l4spvCPWBEM', $product->image_url);
+    }
+
+    public function test_customer_loyalty_points_earning_and_redemption()
+    {
+        $user = User::where('email', 'admin@israfilbd.com')->first();
+        $product = Product::first();
+        $product->update(['tax_percent' => 0]);
+
+        // 1. Create a customer with 0 points
+        $customer = \App\Models\Customer::create([
+            'name' => 'Loyalty Test Customer',
+            'phone' => '01799' . mt_rand(100000, 999999),
+            'loyalty_points' => 0,
+            'status' => 'active',
+        ]);
+
+        // 2. Buy product worth 1,000 BDT or more -> earns 10 points per 1,000 BDT (floor(total / 100))
+        $salePayload = [
+            'customer_id' => $customer->id,
+            'items' => [
+                [
+                    'product_id' => $product->id,
+                    'quantity' => 2,
+                    'unit_price' => 500, // 2 * 500 = 1000 BDT
+                    'discount_amount' => 0,
+                ]
+            ],
+            'paid_amount' => 1000,
+            'payment_method' => 'cash',
+        ];
+
+        $res1 = $this->actingAs($user, 'sanctum')->postJson('/api/pos/checkout', $salePayload);
+        $res1->assertStatus(201);
+        $sale1 = $res1->json('sale');
+
+        // Check points earned: 1000 / 100 = 10 points
+        $this->assertEquals(10, $sale1['points_earned']);
+        $this->assertEquals(0, $sale1['points_redeemed']);
+        $this->assertEquals(10, $sale1['customer_points_balance']);
+
+        $customer->refresh();
+        $this->assertEquals(10, $customer->loyalty_points);
+
+        // 2b. Attempt redemption with less than 100 points -> should not redeem (100 points threshold)
+        $failPayload = [
+            'customer_id' => $customer->id,
+            'redeem_points' => 10,
+            'items' => [
+                [
+                    'product_id' => $product->id,
+                    'quantity' => 1,
+                    'unit_price' => 200,
+                    'discount_amount' => 0,
+                ]
+            ],
+            'paid_amount' => 200,
+            'payment_method' => 'cash',
+        ];
+        $resFail = $this->actingAs($user, 'sanctum')->postJson('/api/pos/checkout', $failPayload);
+        $resFail->assertStatus(201);
+        $this->assertEquals(0, $resFail->json('sale.points_redeemed'));
+        $this->assertEquals(0, (float) $resFail->json('sale.points_discount_amount'));
+
+        // 3. Grant 100 points to customer and test redemption (100 points = 75 BDT discount)
+        $customer->update(['loyalty_points' => 100]);
+
+        $redeemPayload = [
+            'customer_id' => $customer->id,
+            'redeem_points' => 100, // 100 points = 75 BDT discount
+            'items' => [
+                [
+                    'product_id' => $product->id,
+                    'quantity' => 1,
+                    'unit_price' => 200,
+                    'discount_amount' => 0,
+                ]
+            ],
+            'paid_amount' => 125, // 200 - 75 discount = 125 BDT
+            'payment_method' => 'cash',
+        ];
+
+        $res2 = $this->actingAs($user, 'sanctum')->postJson('/api/pos/checkout', $redeemPayload);
+        $res2->assertStatus(201);
+        $sale2 = $res2->json('sale');
+
+        // Points redeemed: 100 -> 75 BDT discount -> grand total 125 BDT
+        $this->assertEquals(100, $sale2['points_redeemed']);
+        $this->assertEquals(75, (float) $sale2['points_discount_amount']);
+        $this->assertEquals(125, (float) $sale2['grand_total']);
+        // From 125 BDT, points earned: floor(125 / 100) = 1 point
+        $this->assertEquals(1, $sale2['points_earned']);
+        // Final balance: (100 - 100) + 1 = 1 point
+        $this->assertEquals(1, $sale2['customer_points_balance']);
+
+        $customer->refresh();
+        $this->assertEquals(1, $customer->loyalty_points);
+    }
+
+    public function test_super_admin_database_stats_and_clear_authorization()
+    {
+        $admin = User::where('email', 'admin@israfilbd.com')->first();
+        $cashier = User::where('email', 'cashier@israfilbd.com')->first();
+
+        // Cashier cannot access database stats
+        $resCashier = $this->actingAs($cashier, 'sanctum')->getJson('/api/settings/database/stats');
+        $resCashier->assertStatus(403);
+
+        // Admin can access database stats
+        $resAdmin = $this->actingAs($admin, 'sanctum')->getJson('/api/settings/database/stats');
+        $resAdmin->assertStatus(200)
+            ->assertJsonStructure(['stats' => ['products', 'categories', 'sales', 'customers']]);
+
+        // Clear fails with incorrect password
+        $resWrongPass = $this->actingAs($admin, 'sanctum')->postJson('/api/settings/database/clear', [
+            'mode' => 'clear_transactions',
+            'password' => 'wrongpassword',
+            'confirmation' => 'CLEAR',
+        ]);
+        $resWrongPass->assertStatus(422);
+
+        // Clear fails with missing confirmation
+        $resNoConfirm = $this->actingAs($admin, 'sanctum')->postJson('/api/settings/database/clear', [
+            'mode' => 'clear_transactions',
+            'password' => 'password123',
+            'confirmation' => 'NO',
+        ]);
+        $resNoConfirm->assertStatus(422);
+    }
+
+    public function test_bulk_delete_endpoints()
+    {
+        $admin = User::where('email', 'admin@israfilbd.com')->first();
+        $unit = \App\Models\Unit::first();
+        $cat = \App\Models\Category::first();
+
+        // 1. Bulk delete products
+        $p1 = Product::create([
+            'name' => 'Bulk Delete 1',
+            'barcode' => 'BULK_DEL_001',
+            'sku' => 'BD-001',
+            'category_id' => $cat->id,
+            'unit_id' => $unit->id,
+            'selling_price' => 100,
+        ]);
+        $p2 = Product::create([
+            'name' => 'Bulk Delete 2',
+            'barcode' => 'BULK_DEL_002',
+            'sku' => 'BD-002',
+            'category_id' => $cat->id,
+            'unit_id' => $unit->id,
+            'selling_price' => 200,
+        ]);
+
+        $res = $this->actingAs($admin, 'sanctum')->postJson('/api/products/bulk-delete', [
+            'ids' => [$p1->id, $p2->id],
+        ]);
+        $res->assertStatus(200)
+            ->assertJsonPath('deleted_count', 2);
+
+        $this->assertDatabaseMissing('products', ['id' => $p1->id]);
+        $this->assertDatabaseMissing('products', ['id' => $p2->id]);
+
+        // 2. Bulk delete empty categories
+        $c1 = \App\Models\Category::create(['name' => 'Empty Cat 1', 'slug' => 'empty-cat-1']);
+        $c2 = \App\Models\Category::create(['name' => 'Empty Cat 2', 'slug' => 'empty-cat-2']);
+
+        $resCat = $this->actingAs($admin, 'sanctum')->postJson('/api/categories/bulk-delete', [
+            'ids' => [$c1->id, $c2->id],
+        ]);
+        $resCat->assertStatus(200)
+            ->assertJsonPath('deleted_count', 2);
+
+        $this->assertDatabaseMissing('categories', ['id' => $c1->id]);
+        $this->assertDatabaseMissing('categories', ['id' => $c2->id]);
+
+        // 3. Bulk delete empty brands
+        $b1 = \App\Models\Brand::create(['name' => 'Empty Brand 1', 'slug' => 'empty-brand-1']);
+        $resBrand = $this->actingAs($admin, 'sanctum')->postJson('/api/brands/bulk-delete', [
+            'ids' => [$b1->id],
+        ]);
+        $resBrand->assertStatus(200)->assertJsonPath('deleted_count', 1);
+        $this->assertDatabaseMissing('brands', ['id' => $b1->id]);
+
+        // 4. Bulk delete customer without sales
+        $cust = \App\Models\Customer::create(['name' => 'Test Delete Cust', 'phone' => '01999999999']);
+        $resCust = $this->actingAs($admin, 'sanctum')->postJson('/api/customers/bulk-delete', [
+            'ids' => [$cust->id],
+        ]);
+        $resCust->assertStatus(200)->assertJsonPath('deleted_count', 1);
+        $this->assertDatabaseMissing('customers', ['id' => $cust->id]);
+
+        // 5. Bulk delete supplier without purchases
+        $sup = \App\Models\Supplier::create(['name' => 'Test Delete Sup', 'phone' => '01888888888']);
+        $resSup = $this->actingAs($admin, 'sanctum')->postJson('/api/suppliers/bulk-delete', [
+            'ids' => [$sup->id],
+        ]);
+        $resSup->assertStatus(200)->assertJsonPath('deleted_count', 1);
+        $this->assertDatabaseMissing('suppliers', ['id' => $sup->id]);
+
+        // 6. Bulk delete expense
+        $expCat = \App\Models\ExpenseCategory::first();
+        $exp = \App\Models\Expense::create([
+            'expense_category_id' => $expCat->id,
+            'user_id' => $admin->id,
+            'expense_number' => 'EXP-DEL-001',
+            'expense_date' => now()->toDateString(),
+            'title' => 'Test Del Expense',
+            'amount' => 50,
+            'payment_method' => 'cash',
+        ]);
+        $resExp = $this->actingAs($admin, 'sanctum')->postJson('/api/expenses/bulk-delete', [
+            'ids' => [$exp->id],
+        ]);
+        $resExp->assertStatus(200)->assertJsonPath('deleted_count', 1);
+        $this->assertDatabaseMissing('expenses', ['id' => $exp->id]);
     }
 }

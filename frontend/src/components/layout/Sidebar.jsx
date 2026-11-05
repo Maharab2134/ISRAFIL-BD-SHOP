@@ -33,11 +33,14 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
+  Keyboard,
 } from 'lucide-react';
+import { useShortcuts } from '../../context/ShortcutContext';
 
 export const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
   const { user, logout, hasPermission } = useAuth();
   const { t, lang } = useLanguage();
+  const { openShortcutsModal } = useShortcuts();
   const navigate = useNavigate();
 
   const roleSlug = user?.role?.slug;
@@ -70,7 +73,7 @@ export const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
   };
 
   const navLinkClass = ({ isActive }) =>
-    `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
+    `flex items-center ${isCollapsed ? 'justify-center px-0' : 'gap-3 px-3'} py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
       isActive
         ? 'bg-indigo-600 text-white shadow-sm font-semibold'
         : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-slate-100'
@@ -88,30 +91,47 @@ export const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
       }`}
     >
       {/* Brand Header */}
-      <div className="h-16 flex items-center justify-between px-4 border-b border-slate-200 dark:border-slate-800">
-        <div className="flex items-center gap-3 overflow-hidden">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-indigo-500 flex items-center justify-center shrink-0 shadow-md">
+      <div
+        className={`h-16 flex items-center border-b border-slate-200 dark:border-slate-800 ${
+          isCollapsed ? 'justify-center px-2' : 'justify-between px-4'
+        }`}
+      >
+        {isCollapsed ? (
+          <button
+            onClick={() => setIsCollapsed(false)}
+            className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-600 flex items-center justify-center shrink-0 shadow-md transition-transform hover:scale-105 cursor-pointer relative group"
+            title="Expand Sidebar"
+          >
             <ShoppingCart className="w-5 h-5 text-white" />
-          </div>
-          {!isCollapsed && (
-            <div className="truncate">
-              <h1 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight">
-                {t('brandName')}
-              </h1>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium truncate">
-                {t('brandSubtitle')}
-              </p>
+            <span className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-slate-900 dark:bg-slate-700 text-white text-[9px] flex items-center justify-center border border-white dark:border-slate-800 shadow-xs group-hover:scale-110 transition-transform">
+              <ChevronRight className="w-2.5 h-2.5" />
+            </span>
+          </button>
+        ) : (
+          <>
+            <div className="flex items-center gap-3 overflow-hidden">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-indigo-500 flex items-center justify-center shrink-0 shadow-md">
+                <ShoppingCart className="w-5 h-5 text-white" />
+              </div>
+              <div className="truncate">
+                <h1 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight">
+                  {t('brandName')}
+                </h1>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium truncate">
+                  {t('brandSubtitle')}
+                </p>
+              </div>
             </div>
-          )}
-        </div>
 
-        <button
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
-          title={isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
-        >
-          {isCollapsed ? <ChevronRight className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />}
-        </button>
+            <button
+              onClick={() => setIsCollapsed(true)}
+              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+              title="Collapse Sidebar"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+          </>
+        )}
       </div>
 
       {/* Navigation Links Scrollable */}
@@ -136,15 +156,15 @@ export const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
             <NavLink
               to="/pos"
               className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 ${
+                `flex items-center ${isCollapsed ? 'justify-center px-0' : 'gap-3 px-3'} py-2.5 rounded-xl text-sm font-bold transition-all duration-200 ${
                   isActive
                     ? 'bg-emerald-600 text-white shadow-md'
-                    : 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 border border-emerald-200/60 dark:border-emerald-800/60'
+                    : 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 border border-emerald-300 dark:border-emerald-700'
                 }`
               }
               title={t('pos')}
             >
-              <ShoppingCart className="w-5 h-5 shrink-0 text-emerald-600 dark:text-emerald-400" />
+              <ShoppingCart className="w-5 h-5 shrink-0" />
               {!isCollapsed && <span>{t('pos')}</span>}
             </NavLink>
           </div>
@@ -410,19 +430,58 @@ export const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
             )}
           </div>
         )}
+        {/* Keyboard Shortcuts Page Link in Sidebar */}
+        <div className="pt-2">
+          <NavLink
+            to="/shortcuts"
+            className={navLinkClass}
+            title={lang === 'bn' ? 'কীবোর্ড শর্টকাট (Alt + K)' : 'Keyboard Shortcuts (Alt + K)'}
+          >
+            <Keyboard className="w-5 h-5 shrink-0 text-indigo-500" />
+            {!isCollapsed && (
+              <div className="flex-1 flex items-center justify-between">
+                <span>{lang === 'bn' ? 'কীবোর্ড শর্টকাট' : 'Shortcuts'}</span>
+                <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 font-bold border border-slate-200 dark:border-slate-700">
+                  Alt+K
+                </span>
+              </div>
+            )}
+          </NavLink>
+        </div>
       </div>
 
       {/* User Profile & Logout Section at Bottom */}
-      <div className="p-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40">
-        <div className="flex items-center justify-between gap-2">
-          <NavLink
-            to="/profile"
-            className="flex items-center gap-2.5 overflow-hidden flex-1 p-1 rounded-xl hover:bg-slate-200/50 dark:hover:bg-slate-800 transition"
-          >
-            <div className="w-9 h-9 rounded-full bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 font-bold flex items-center justify-center shrink-0 border border-indigo-200 dark:border-indigo-800">
+      <div
+        className={`border-t border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40 ${
+          isCollapsed ? 'p-2.5 flex flex-col items-center gap-2' : 'p-3'
+        }`}
+      >
+        {isCollapsed ? (
+          <>
+            <NavLink
+              to="/profile"
+              className="w-10 h-10 rounded-xl bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 font-bold flex items-center justify-center shrink-0 border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-200 dark:hover:bg-indigo-900 transition shadow-2xs cursor-pointer"
+              title={`${displayName} (${roleName})`}
+            >
               {initialLetter}
-            </div>
-            {!isCollapsed && (
+            </NavLink>
+            <button
+              onClick={handleLogout}
+              className="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 rounded-xl hover:bg-rose-50 dark:hover:bg-rose-950/40 transition shrink-0 cursor-pointer"
+              title={t('logout')}
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
+          </>
+        ) : (
+          <div className="flex items-center justify-between gap-2">
+            <NavLink
+              to="/profile"
+              className="flex items-center gap-2.5 overflow-hidden flex-1 p-1 rounded-xl hover:bg-slate-200/50 dark:hover:bg-slate-800 transition"
+            >
+              <div className="w-9 h-9 rounded-full bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 font-bold flex items-center justify-center shrink-0 border border-indigo-200 dark:border-indigo-800">
+                {initialLetter}
+              </div>
               <div className="truncate text-left">
                 <div className="text-xs font-semibold text-slate-900 dark:text-white truncate">
                   {displayName}
@@ -431,17 +490,17 @@ export const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
                   {roleName}
                 </div>
               </div>
-            )}
-          </NavLink>
+            </NavLink>
 
-          <button
-            onClick={handleLogout}
-            className="p-2 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/40 transition shrink-0"
-            title={t('logout')}
-          >
-            <LogOut className="w-4 h-4" />
-          </button>
-        </div>
+            <button
+              onClick={handleLogout}
+              className="p-2 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/40 transition shrink-0 cursor-pointer"
+              title={t('logout')}
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
+          </div>
+        )}
       </div>
     </aside>
   );

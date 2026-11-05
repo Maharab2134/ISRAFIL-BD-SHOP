@@ -16,14 +16,17 @@ import {
   X,
   Volume2,
   VolumeX,
+  Keyboard,
 } from 'lucide-react';
 import api from '../../services/api';
 import { playNotificationChime } from '../../utils/sound';
+import { useShortcuts } from '../../context/ShortcutContext';
 
 export const TopNavbar = ({ isCollapsed }) => {
   const { user, logout } = useAuth();
   const { lang, setLang, t } = useLanguage();
   const { theme, toggleTheme } = useTheme();
+  const { openShortcutsModal } = useShortcuts();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -159,8 +162,46 @@ export const TopNavbar = ({ isCollapsed }) => {
       ? user?.role?.name_bn || user?.role?.name || 'স্টাফ'
       : user?.role?.name || user?.role?.name_bn || 'Staff';
 
-  // Generate dynamic breadcrumbs
+  // Generate dynamic breadcrumbs with concise labels to prevent wrapping
   const pathnames = location.pathname.split('/').filter((x) => x);
+
+  const getBreadcrumbLabel = (segment) => {
+    const key = segment.toLowerCase();
+    const shortMap = {
+      units: lang === 'bn' ? 'একক (M.U)' : 'M.U',
+      products: lang === 'bn' ? 'পণ্য' : 'Products',
+      categories: lang === 'bn' ? 'ক্যাটাগরি' : 'Categories',
+      brands: lang === 'bn' ? 'ব্র্যান্ড' : 'Brands',
+      'barcode-generator': lang === 'bn' ? 'বারকোড' : 'Barcode',
+      inventory: lang === 'bn' ? 'ইনভেন্টরি' : 'Inventory',
+      adjustment: lang === 'bn' ? 'স্টক সমন্বয়' : 'Stock Adjust',
+      history: lang === 'bn' ? 'ইতিহাস' : 'History',
+      sales: lang === 'bn' ? 'বিক্রয়' : 'Sales',
+      returns: lang === 'bn' ? 'ফেরত' : 'Returns',
+      purchases: lang === 'bn' ? 'ক্রয়' : 'Purchases',
+      customers: lang === 'bn' ? 'ক্রেতা' : 'Customers',
+      suppliers: lang === 'bn' ? 'সাপ্লায়ার' : 'Suppliers',
+      expenses: lang === 'bn' ? 'খরচ' : 'Expenses',
+      'expense-categories': lang === 'bn' ? 'খরচ খাত' : 'Expense Cats',
+      accounting: lang === 'bn' ? 'হিসাব' : 'Accounting',
+      'cash-flow': lang === 'bn' ? 'নগদ প্রবাহ' : 'Cash Flow',
+      reports: lang === 'bn' ? 'রিপোর্ট' : 'Reports',
+      employees: lang === 'bn' ? 'কর্মী' : 'Employees',
+      'activity-logs': lang === 'bn' ? 'অডিট লগ' : 'Logs',
+      settings: lang === 'bn' ? 'সেটিংস' : 'Settings',
+      shortcuts: lang === 'bn' ? 'কীবোর্ড শর্টকাট' : 'Shortcuts',
+      pos: lang === 'bn' ? 'পিওএস' : 'POS',
+      new: lang === 'bn' ? 'নতুন' : 'New',
+      edit: lang === 'bn' ? 'সম্পাদনা' : 'Edit',
+      profile: lang === 'bn' ? 'প্রোফাইল' : 'Profile',
+      dashboard: lang === 'bn' ? 'ড্যাশবোর্ড' : 'Dashboard',
+    };
+
+    if (shortMap[key]) return shortMap[key];
+    const trans = t(key);
+    if (trans && trans !== key) return trans;
+    return segment.replace(/-/g, ' ');
+  };
 
   return (
     <header
@@ -170,29 +211,30 @@ export const TopNavbar = ({ isCollapsed }) => {
     >
       {/* Left: Breadcrumbs & Global Search */}
       <div className="flex items-center gap-6 flex-1 max-w-xl">
-        <nav className="hidden md:flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
+        <nav className="hidden md:flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap overflow-hidden">
           <Link
             to="/dashboard"
-            className="hover:text-indigo-600 dark:hover:text-indigo-400 transition font-medium"
+            className="hover:text-indigo-600 dark:hover:text-indigo-400 transition font-medium shrink-0"
           >
-            {t('dashboard')}
+            {lang === 'bn' ? 'ড্যাশবোর্ড' : 'Dashboard'}
           </Link>
           {pathnames.map((name, index) => {
             const routeTo = `/${pathnames.slice(0, index + 1).join('/')}`;
             const isLast = index === pathnames.length - 1;
+            const label = getBreadcrumbLabel(name);
             return (
-              <span key={name} className="flex items-center gap-1.5">
+              <span key={name} className="flex items-center gap-1.5 shrink-0 whitespace-nowrap">
                 <span className="text-slate-300 dark:text-slate-600">/</span>
                 {isLast ? (
-                  <span className="font-semibold text-slate-900 dark:text-white capitalize">
-                    {t(name) || name}
+                  <span className="font-semibold text-slate-900 dark:text-white capitalize whitespace-nowrap">
+                    {label}
                   </span>
                 ) : (
                   <Link
                     to={routeTo}
-                    className="hover:text-indigo-600 dark:hover:text-indigo-400 capitalize transition"
+                    className="hover:text-indigo-600 dark:hover:text-indigo-400 capitalize transition whitespace-nowrap"
                   >
-                    {t(name) || name}
+                    {label}
                   </Link>
                 )}
               </span>
@@ -260,6 +302,18 @@ export const TopNavbar = ({ isCollapsed }) => {
           ) : (
             <Moon className="w-4 h-4 text-indigo-600" />
           )}
+        </button>
+
+        {/* Keyboard Shortcuts Page Button */}
+        <button
+          onClick={() => navigate('/shortcuts')}
+          className="p-2 rounded-xl text-slate-500 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400 bg-slate-100 dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 transition cursor-pointer flex items-center gap-1.5"
+          title={lang === 'bn' ? 'কীবোর্ড শর্টকাট পেজ (Alt + K)' : 'Keyboard Shortcuts Page (Alt + K)'}
+        >
+          <Keyboard className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+          <span className="hidden xl:inline text-[10px] font-mono font-bold text-indigo-600 dark:text-indigo-400 bg-white dark:bg-slate-900 px-1.5 py-0.5 rounded-md border border-slate-200 dark:border-slate-700">
+            Alt+K
+          </span>
         </button>
 
         {/* Notification Center */}

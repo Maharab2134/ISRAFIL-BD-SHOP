@@ -38,6 +38,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/pos/checkout', [PosController::class, 'checkout']);
 
     // Products
+    Route::post('/products/bulk-delete', [ProductController::class, 'bulkDelete']);
     Route::get('/products/barcode/{barcode}', [ProductController::class, 'findByBarcode']);
     Route::post('/products/import-json', [ProductController::class, 'importJson']);
     Route::post('/products/{id}', [ProductController::class, 'update']);
@@ -45,6 +46,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('products', ProductController::class);
 
     // Categories, Brands, Units
+    Route::post('/categories/bulk-delete', [CategoryController::class, 'bulkDelete']);
+    Route::post('/brands/bulk-delete', [BrandController::class, 'bulkDelete']);
+    Route::post('/units/bulk-delete', [UnitController::class, 'bulkDelete']);
     Route::post('/categories/import-json', [CategoryController::class, 'importJson']);
     Route::post('/brands/import-json', [BrandController::class, 'importJson']);
     Route::apiResource('categories', CategoryController::class);
@@ -57,10 +61,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/inventory/history', [InventoryController::class, 'history']);
 
     // Customers
+    Route::post('/customers/bulk-delete', [CustomerController::class, 'bulkDelete']);
     Route::post('/customers/{id}/payment', [CustomerController::class, 'receivePayment']);
     Route::apiResource('customers', CustomerController::class);
 
     // Suppliers
+    Route::post('/suppliers/bulk-delete', [SupplierController::class, 'bulkDelete']);
     Route::post('/suppliers/{id}/payment', [SupplierController::class, 'paySupplier']);
     Route::apiResource('suppliers', SupplierController::class);
 
@@ -76,8 +82,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/sales-returns', [SaleController::class, 'returnsList']);
 
     // Expenses
+    Route::post('/expenses/bulk-delete', [ExpenseController::class, 'bulkDelete']);
     Route::get('/expense-categories', [ExpenseController::class, 'categories']);
     Route::post('/expense-categories', [ExpenseController::class, 'storeCategory']);
+    Route::delete('/expense-categories/{id}', [ExpenseController::class, 'destroyCategory']);
+    Route::post('/expense-categories/bulk-delete', [ExpenseController::class, 'bulkDeleteCategories']);
     Route::apiResource('expenses', ExpenseController::class);
 
     // Accounting
@@ -94,10 +103,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/reports/stock', [ReportController::class, 'stockReport']);
 
     // Employees, Roles & Logs
+    Route::post('/employees/bulk-delete', [EmployeeController::class, 'bulkDelete']);
     Route::get('/employees', [EmployeeController::class, 'index']);
     Route::post('/employees', [EmployeeController::class, 'store']);
     Route::get('/employees/{id}', [EmployeeController::class, 'show']);
     Route::put('/employees/{id}', [EmployeeController::class, 'update']);
+    Route::delete('/employees/{id}', [EmployeeController::class, 'destroy']);
     Route::get('/roles', [EmployeeController::class, 'roles']);
     Route::get('/permissions', [EmployeeController::class, 'permissions']);
     Route::get('/activity-logs', [EmployeeController::class, 'activityLogs']);
@@ -107,4 +118,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/settings', [SettingController::class, 'update']);
     Route::post('/settings/logo', [SettingController::class, 'uploadLogo']);
     Route::get('/settings/backup', [SettingController::class, 'downloadBackup']);
+    Route::get('/settings/backup/download', [SettingController::class, 'downloadBackup']);
+    Route::get('/settings/database/stats', [SettingController::class, 'getDatabaseStats']);
+    Route::post('/settings/database/clear', [SettingController::class, 'clearDatabase']);
 });

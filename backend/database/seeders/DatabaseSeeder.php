@@ -112,7 +112,7 @@ class DatabaseSeeder extends Seeder
             [
                 'name' => 'ইসরাফিল মজুমদার (Israfil)',
                 'phone' => '01711000001',
-                'password' => Hash::make('admin123'),
+                'password' => Hash::make('password123'),
                 'role_id' => $superAdminRole->id,
                 'status' => 'active',
             ]
@@ -123,7 +123,7 @@ class DatabaseSeeder extends Seeder
             [
                 'name' => 'তারেক মাহমুদ (Tarek - Manager)',
                 'phone' => '01711000002',
-                'password' => Hash::make('manager123'),
+                'password' => Hash::make('password123'),
                 'role_id' => $managerRole->id,
                 'status' => 'active',
             ]
@@ -134,7 +134,7 @@ class DatabaseSeeder extends Seeder
             [
                 'name' => 'সাকিব হাসান (Sakib - Cashier)',
                 'phone' => '01711000003',
-                'password' => Hash::make('cashier123'),
+                'password' => Hash::make('password123'),
                 'role_id' => $cashierRole->id,
                 'status' => 'active',
             ]

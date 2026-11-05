@@ -4,11 +4,10 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Sale extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory;
 
     protected $fillable = [
         'invoice_number',
@@ -26,6 +25,10 @@ class Sale extends Model
         'tax_rate',
         'tax_amount',
         'grand_total',
+        'points_earned',
+        'points_redeemed',
+        'points_discount_amount',
+        'customer_points_balance',
         'total_cost',
         'total_profit',
         'paid_amount',
@@ -45,6 +48,10 @@ class Sale extends Model
         'tax_rate' => 'decimal:2',
         'tax_amount' => 'decimal:2',
         'grand_total' => 'decimal:2',
+        'points_earned' => 'integer',
+        'points_redeemed' => 'integer',
+        'points_discount_amount' => 'decimal:2',
+        'customer_points_balance' => 'integer',
         'total_cost' => 'decimal:2',
         'total_profit' => 'decimal:2',
         'paid_amount' => 'decimal:2',

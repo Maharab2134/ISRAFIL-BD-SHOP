@@ -11,6 +11,11 @@ export default defineConfig(({ mode }) => {
     server: {
       port: 5173,
       host: true,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
+        'Access-Control-Allow-Headers': '*',
+      },
       proxy: {
         '/api': {
           target: backendUrl,

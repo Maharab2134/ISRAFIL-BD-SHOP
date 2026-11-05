@@ -23,7 +23,7 @@ export const StockAdjustment = () => {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const res = await api.get('/products?per_page=150');
+        const res = await api.get('/products?per_page=1000');
         setProducts(res.data.data || []);
       } catch (e) {
         error(lang === 'bn' ? 'পণ্য লোড করতে ব্যর্থ হয়েছে।' : 'Failed to load products.');

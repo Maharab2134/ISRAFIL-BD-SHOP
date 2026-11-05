@@ -108,5 +108,59 @@ class EmployeeController extends Controller
 
         return response()->json($logs);
     }
+
+    public function destroy($id, Request $request)
+    {
+        $employee = User::findOrFail($id);
+        if ($employee->id === $request->user()->id) {
+            return response()->json(['message' => 'আপনি নিজের অ্যাকাউন্ট মুছতে পারবেন না।'], 422);
+        }
+        if ($employee->role?->slug === 'super-admin') {
+            return response()->json(['message' => 'সুপার অ্যাডমিন অ্যাকাউন্ট মুছে ফেলা সম্ভব নয়।'], 422);
+        }
+
+        $name = $employee->name;
+        $employee->delete();
+        ActivityLog::log('delete', "কর্মী '{$name}' কে মুছে ফেলা হয়েছে।");
+
+        return response()->json(['message' => 'কর্মী সফলভাবে মুছে ফেলা হয়েছে।']);
+    }
+
+    public function bulkDelete(Request $request)
+    {
+        $ids = $request->validate([
+            'ids' => 'required|array|min:1',
+            'ids.*' => 'required|integer',
+        ])['ids'];
+
+        $currentUserId = $request->user()->id;
+        $deleted = 0;
+        $skipped = 0;
+
+        foreach ($ids as $id) {
+            $emp = User::with('role')->find($id);
+            if ($emp && $emp->id !== $currentUserId && $emp->role?->slug !== 'super-admin') {
+                $emp->delete();
+                $deleted++;
+            } else {
+                $skipped++;
+            }
+        }
+
+        if ($deleted > 0) {
+            ActivityLog::log('delete', "{$deleted} জন কর্মী একসাথে মুছে ফেলা হয়েছে।");
+        }
+
+        $msg = "{$deleted} জন কর্মী সফলভাবে মুছে ফেলা হয়েছে।";
+        if ($skipped > 0) {
+            $msg .= " (সুপার অ্যাডমিন বা আপনার নিজের অ্যাকাউন্ট বাদ দেওয়া হয়েছে)";
+        }
+
+        return response()->json([
+            'message' => $msg,
+            'deleted_count' => $deleted,
+            'skipped_count' => $skipped,
+        ]);
+    }
 }
 

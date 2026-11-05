@@ -12,3 +12,7 @@ temp/
 *.swp
 *.swo
 *~
+
+# Database Backups & SQL dumps
+*.sql
+backend/database/backups/

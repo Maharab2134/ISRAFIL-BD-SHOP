@@ -10,17 +10,24 @@ import {
   Eye,
   ChevronLeft,
   ChevronRight,
+  Trash2,
 } from 'lucide-react';
 import api from '../../services/api';
+import { ConfirmDeleteModal } from '../../components/common/ConfirmDeleteModal';
 
 export const SupplierList = () => {
   const { t, lang, formatCurrency, formatNumber } = useLanguage();
-  const { error } = useToast();
+  const { success, error } = useToast();
 
   const [suppliers, setSuppliers] = useState([]);
   const [search, setSearch] = useState('');
   const [pagination, setPagination] = useState({ current_page: 1, last_page: 1, total: 0 });
   const [loading, setLoading] = useState(true);
+
+  // Multi-select & Delete Modal
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [deleteModal, setDeleteModal] = useState({ isOpen: false, item: null, isBulk: false });
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     fetchSuppliers(pagination.current_page);
@@ -42,6 +49,43 @@ export const SupplierList = () => {
       error(lang === 'bn' ? 'সরবরাহকারী তালিকা লোড করতে সমস্যা হয়েছে।' : 'Failed to load supplier list.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Selection handlers
+  const isAllSelected = suppliers.length > 0 && suppliers.every((s) => selectedIds.includes(s.id));
+  const toggleSelectAll = () => {
+    if (isAllSelected) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(suppliers.map((s) => s.id));
+    }
+  };
+
+  const toggleSelectOne = (id) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleConfirmDelete = async () => {
+    setDeleting(true);
+    try {
+      if (deleteModal.isBulk) {
+        const res = await api.post('/suppliers/bulk-delete', { ids: selectedIds });
+        success(res.data.message || (lang === 'bn' ? 'নির্বাচিত সরবরাহকারী মুছে ফেলা হয়েছে।' : 'Suppliers deleted.'));
+        setSelectedIds([]);
+      } else if (deleteModal.item) {
+        await api.delete(`/suppliers/${deleteModal.item.id}`);
+        success(lang === 'bn' ? `"${deleteModal.item.name}" মুছে ফেলা হয়েছে।` : 'Supplier deleted successfully.');
+        setSelectedIds((prev) => prev.filter((id) => id !== deleteModal.item.id));
+      }
+      setDeleteModal({ isOpen: false, item: null, isBulk: false });
+      fetchSuppliers(pagination.current_page);
+    } catch (err) {
+      error(err.response?.data?.message || (lang === 'bn' ? 'মুছে ফেলতে ব্যর্থ হয়েছে।' : 'Failed to delete.'));
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -83,12 +127,49 @@ export const SupplierList = () => {
         </div>
       </div>
 
+      {/* Bulk Action Bar */}
+      {selectedIds.length > 0 && (
+        <div className="p-3 bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 rounded-2xl flex items-center justify-between gap-3 animate-in fade-in">
+          <div className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-indigo-600 animate-pulse" />
+            <span className="text-xs font-bold text-indigo-900 dark:text-indigo-200">
+              {lang === 'bn'
+                ? `${formatNumber(selectedIds.length)} টি সরবরাহকারী বাছাই করা হয়েছে`
+                : `${selectedIds.length} supplier(s) selected`}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setSelectedIds([])}
+              className="py-1 px-3 text-xs font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
+            >
+              {lang === 'bn' ? 'বাছাই বাতিল' : 'Deselect'}
+            </button>
+            <button
+              onClick={() => setDeleteModal({ isOpen: true, item: null, isBulk: true })}
+              className="py-1.5 px-3.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold shadow flex items-center gap-1.5 transition"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>{lang === 'bn' ? 'নির্বাচিতগুলো মুছুন' : 'Delete Selected'}</span>
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Suppliers Table */}
       <div className="rounded-3xl bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 shadow-card overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs border-collapse">
             <thead>
               <tr className="bg-slate-50 dark:bg-slate-850/60 border-b border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 font-bold uppercase tracking-wider">
+                <th className="p-4 w-12 text-center">
+                  <input
+                    type="checkbox"
+                    checked={isAllSelected}
+                    onChange={toggleSelectAll}
+                    className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                  />
+                </th>
                 <th className="p-4">{lang === 'bn' ? 'সরবরাহকারী ও প্রতিষ্ঠান' : 'Supplier & Company'}</th>
                 <th className="p-4">{lang === 'bn' ? 'মোবাইল' : 'Phone'}</th>
                 <th className="p-4">{lang === 'bn' ? 'ঠিকানা' : 'Address'}</th>
@@ -100,21 +181,35 @@ export const SupplierList = () => {
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {loading ? (
                 <tr>
-                  <td colSpan="6" className="p-8 text-center text-slate-400">
+                  <td colSpan="7" className="p-8 text-center text-slate-400">
                     {t('loading')}
                   </td>
                 </tr>
               ) : suppliers.length === 0 ? (
                 <tr>
-                  <td colSpan="6" className="p-8 text-center text-slate-400">
+                  <td colSpan="7" className="p-8 text-center text-slate-400">
                     {t('noData')}
                   </td>
                 </tr>
               ) : (
                 suppliers.map((s) => {
                   const hasDue = Number(s.current_balance) > 0;
+                  const isSelected = selectedIds.includes(s.id);
                   return (
-                    <tr key={s.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition">
+                    <tr
+                      key={s.id}
+                      className={`hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition ${
+                        isSelected ? 'bg-indigo-50/40 dark:bg-indigo-950/20' : ''
+                      }`}
+                    >
+                      <td className="p-4 text-center">
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => toggleSelectOne(s.id)}
+                          className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                        />
+                      </td>
                       <td className="p-4 font-bold text-slate-900 dark:text-white">
                         <div>{s.name}</div>
                         {s.company_name && <div className="text-[11px] text-slate-400 font-normal">{s.company_name}</div>}
@@ -140,13 +235,22 @@ export const SupplierList = () => {
                         </span>
                       </td>
                       <td className="p-4 text-right">
-                        <Link
-                          to={`/suppliers/${s.id}`}
-                          className="py-1.5 px-3 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 font-bold hover:bg-indigo-100 transition inline-flex items-center gap-1"
-                        >
-                          <Eye className="w-3.5 h-3.5" />
-                          <span>{lang === 'bn' ? 'বিবরণ ও পেমেন্ট' : 'Details & Pay'}</span>
-                        </Link>
+                        <div className="flex items-center justify-end gap-1">
+                          <Link
+                            to={`/suppliers/${s.id}`}
+                            className="py-1.5 px-3 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 font-bold hover:bg-indigo-100 transition inline-flex items-center gap-1"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                            <span>{lang === 'bn' ? 'বিবরণ' : 'Details'}</span>
+                          </Link>
+                          <button
+                            onClick={() => setDeleteModal({ isOpen: true, item: s, isBulk: false })}
+                            className="p-1.5 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/40 transition"
+                            title={lang === 'bn' ? 'মুছে ফেলুন' : 'Delete'}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -181,6 +285,16 @@ export const SupplierList = () => {
           </div>
         </div>
       </div>
+
+      {/* Confirm Delete Dialog Box */}
+      <ConfirmDeleteModal
+        isOpen={deleteModal.isOpen}
+        onClose={() => setDeleteModal({ isOpen: false, item: null, isBulk: false })}
+        onConfirm={handleConfirmDelete}
+        itemName={deleteModal.item?.name}
+        count={deleteModal.isBulk ? selectedIds.length : 1}
+        loading={deleting}
+      />
     </div>
   );
 };

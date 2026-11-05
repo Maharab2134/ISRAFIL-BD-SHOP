@@ -67,5 +67,40 @@ class UnitController extends Controller
             'message' => 'পরিমাপক একক সফলভাবে মুছে ফেলা হয়েছে।'
         ]);
     }
+
+    public function bulkDelete(Request $request)
+    {
+        $ids = $request->validate([
+            'ids' => 'required|array|min:1',
+            'ids.*' => 'required|integer',
+        ])['ids'];
+
+        $deleted = 0;
+        $skipped = 0;
+        foreach ($ids as $id) {
+            $unit = Unit::withCount('products')->find($id);
+            if ($unit && $unit->products_count == 0) {
+                $unit->delete();
+                $deleted++;
+            } else {
+                $skipped++;
+            }
+        }
+
+        if ($deleted > 0) {
+            ActivityLog::log('delete', "{$deleted} টি পরিমাপক একক মুছে ফেলা হয়েছে।");
+        }
+
+        $msg = "{$deleted} টি পরিমাপক একক সফলভাবে মুছে ফেলা হয়েছে।";
+        if ($skipped > 0) {
+            $msg .= " ({$skipped} টি এককে পণ্য যুক্ত থাকায় বাদ দেওয়া হয়েছে)";
+        }
+
+        return response()->json([
+            'message' => $msg,
+            'deleted_count' => $deleted,
+            'skipped_count' => $skipped,
+        ]);
+    }
 }
 

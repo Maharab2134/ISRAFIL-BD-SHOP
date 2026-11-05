@@ -35,7 +35,7 @@ import api from '../../services/api';
 const PAYMENT_COLORS = ['#4F46E5', '#06B6D4', '#10B981', '#F59E0B', '#EC4899'];
 
 export const Dashboard = () => {
-  const { t, formatCurrency, formatNumber } = useLanguage();
+  const { t, lang, formatCurrency, formatNumber } = useLanguage();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -51,7 +51,7 @@ export const Dashboard = () => {
       }
     };
     fetchDashboard();
-  }, []);
+  }, [lang]);
 
   if (loading) {
     return (
@@ -81,8 +81,10 @@ export const Dashboard = () => {
           <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
             {t('dashboard')}
           </h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            দোকানের দৈনিক বিক্রয়, ইনভেন্টরি ও লাভ-ক্ষতির রিয়েলটাইম সারসংক্ষেপ
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+            {lang === 'bn'
+              ? 'দোকানের দৈনিক বিক্রয়, ইনভেন্টরি ও লাভ-ক্ষতির রিয়েলটাইম সারসংক্ষেপ'
+              : 'Real-time overview of daily sales, inventory, and gross profit'}
           </p>
         </div>
 
@@ -92,14 +94,14 @@ export const Dashboard = () => {
             className="px-4 py-2.5 rounded-xl font-bold text-sm bg-emerald-600 hover:bg-emerald-700 text-white shadow-md flex items-center gap-2 transition"
           >
             <ShoppingCart className="w-4 h-4" />
-            <span>নতুন পিওএস বিক্রয়</span>
+            <span>{lang === 'bn' ? 'নতুন পিওএস বিক্রয়' : 'New POS Sale'}</span>
           </Link>
           <Link
             to="/products/new"
             className="px-4 py-2.5 rounded-xl font-semibold text-sm bg-indigo-600 hover:bg-indigo-700 text-white shadow-md flex items-center gap-2 transition"
           >
             <Plus className="w-4 h-4" />
-            <span>পণ্য যুক্ত করুন</span>
+            <span>{lang === 'bn' ? 'পণ্য যুক্ত করুন' : 'Add Product'}</span>
           </Link>
         </div>
       </div>
@@ -120,7 +122,9 @@ export const Dashboard = () => {
             </div>
             <div className="flex items-center gap-1 mt-1 text-[11px] font-medium text-emerald-600">
               <ArrowUpRight className="w-3.5 h-3.5" />
-              <span>{formatNumber(kpis.sales_change_percent)}% গতকালের তুলনায়</span>
+              <span>
+                {formatNumber(kpis.sales_change_percent)}% {lang === 'bn' ? 'গতকালের তুলনায়' : 'vs yesterday'}
+              </span>
             </div>
           </div>
         </div>
@@ -135,9 +139,11 @@ export const Dashboard = () => {
           </div>
           <div className="mt-2">
             <div className="text-lg font-bold text-slate-900 dark:text-white">
-              {formatNumber(kpis.today_orders)} টি
+              {formatNumber(kpis.today_orders)} {lang === 'bn' ? 'টি' : 'orders'}
             </div>
-            <div className="mt-1 text-[11px] text-slate-400 font-medium">আজকের সম্পন্ন চালান</div>
+            <div className="mt-1 text-[11px] text-slate-400 font-medium">
+              {lang === 'bn' ? 'আজকের সম্পন্ন চালান' : 'Completed invoices today'}
+            </div>
           </div>
         </div>
 
@@ -153,7 +159,9 @@ export const Dashboard = () => {
             <div className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
               {formatCurrency(kpis.today_profit)}
             </div>
-            <div className="mt-1 text-[11px] text-slate-400 font-medium">বিক্রয় লাভ (COGS বাদে)</div>
+            <div className="mt-1 text-[11px] text-slate-400 font-medium">
+              {lang === 'bn' ? 'বিক্রয় লাভ (COGS বাদে)' : 'Gross Profit (excl. COGS)'}
+            </div>
           </div>
         </div>
 
@@ -169,7 +177,9 @@ export const Dashboard = () => {
             <div className="text-lg font-bold text-rose-600 dark:text-rose-400">
               {formatCurrency(kpis.today_expenses)}
             </div>
-            <div className="mt-1 text-[11px] text-slate-400 font-medium">দোকানের পরিচালন ব্যয়</div>
+            <div className="mt-1 text-[11px] text-slate-400 font-medium">
+              {lang === 'bn' ? 'দোকানের পরিচালন ব্যয়' : 'Operating store expenses'}
+            </div>
           </div>
         </div>
 
@@ -183,9 +193,11 @@ export const Dashboard = () => {
           </div>
           <div className="mt-2">
             <div className="text-lg font-bold text-slate-900 dark:text-white">
-              {formatNumber(kpis.total_products)} প্রকার
+              {formatNumber(kpis.total_products)} {lang === 'bn' ? 'প্রকার' : 'items'}
             </div>
-            <div className="mt-1 text-[11px] text-slate-400 font-medium">সক্রিয় পণ্যের আইটেম</div>
+            <div className="mt-1 text-[11px] text-slate-400 font-medium">
+              {lang === 'bn' ? 'সক্রিয় পণ্যের আইটেম' : 'Active catalog items'}
+            </div>
           </div>
         </div>
 
@@ -199,9 +211,11 @@ export const Dashboard = () => {
           </div>
           <div className="mt-2">
             <div className="text-lg font-bold text-rose-600">
-              {formatNumber(kpis.low_stock_count)} টি
+              {formatNumber(kpis.low_stock_count)} {lang === 'bn' ? 'টি' : 'alerts'}
             </div>
-            <div className="mt-1 text-[11px] text-rose-500 font-medium">অবিলম্বে রি-অর্ডার প্রয়োজন</div>
+            <div className="mt-1 text-[11px] text-rose-500 font-medium">
+              {lang === 'bn' ? 'অবিলম্বে রি-অর্ডার প্রয়োজন' : 'Immediate reorder needed'}
+            </div>
           </div>
         </div>
       </div>
@@ -213,18 +227,24 @@ export const Dashboard = () => {
           <div className="flex items-center justify-between mb-4">
             <div>
               <h2 className="text-sm font-bold text-slate-900 dark:text-white">
-                বিক্রয় ও লাভের প্রবণতা (বিগত ১৪ দিন)
+                {lang === 'bn' ? 'বিক্রয় ও লাভের প্রবণতা (বিগত ১৪ দিন)' : 'Sales & Profit Trends (Last 14 Days)'}
               </h2>
-              <p className="text-xs text-slate-500">প্রতিদিনের অর্জিত রাজস্ব ও মোট নিট মুনাফা</p>
+              <p className="text-xs text-slate-500 mt-0.5">
+                {lang === 'bn' ? 'প্রতিদিনের অর্জিত রাজস্ব ও মোট নিট মুনাফা' : 'Daily gross revenue and net profit performance'}
+              </p>
             </div>
             <div className="flex items-center gap-4 text-xs font-medium">
               <div className="flex items-center gap-1.5">
                 <div className="w-3 h-3 rounded-full bg-indigo-600" />
-                <span className="text-slate-600 dark:text-slate-300">মোট বিক্রয়</span>
+                <span className="text-slate-600 dark:text-slate-300">
+                  {lang === 'bn' ? 'মোট বিক্রয়' : 'Sales'}
+                </span>
               </div>
               <div className="flex items-center gap-1.5">
                 <div className="w-3 h-3 rounded-full bg-emerald-500" />
-                <span className="text-slate-600 dark:text-slate-300">লাভ</span>
+                <span className="text-slate-600 dark:text-slate-300">
+                  {lang === 'bn' ? 'লাভ' : 'Profit'}
+                </span>
               </div>
             </div>
           </div>
@@ -246,11 +266,14 @@ export const Dashboard = () => {
                 <XAxis dataKey="label" tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: '#64748B' }} />
                 <YAxis tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: '#64748B' }} tickFormatter={(val) => `৳${val}`} />
                 <Tooltip
-                  formatter={(val) => [`৳${val.toLocaleString()}`, '']}
+                  formatter={(val, name) => [
+                    `৳${Number(val).toLocaleString()}`,
+                    name === 'sales' ? (lang === 'bn' ? 'বিক্রয়' : 'Sales') : (lang === 'bn' ? 'লাভ' : 'Profit')
+                  ]}
                   contentStyle={{ backgroundColor: '#1E293B', borderRadius: '12px', border: 'none', color: '#fff', fontSize: '12px' }}
                 />
-                <Area type="monotone" dataKey="sales" stroke="#4F46E5" strokeWidth={2.5} fillOpacity={1} fill="url(#salesGrad)" name="বিক্রয়" />
-                <Area type="monotone" dataKey="profit" stroke="#10B981" strokeWidth={2.5} fillOpacity={1} fill="url(#profitGrad)" name="লাভ" />
+                <Area type="monotone" dataKey="sales" stroke="#4F46E5" strokeWidth={2.5} fillOpacity={1} fill="url(#salesGrad)" name="sales" />
+                <Area type="monotone" dataKey="profit" stroke="#10B981" strokeWidth={2.5} fillOpacity={1} fill="url(#profitGrad)" name="profit" />
               </AreaChart>
             </ResponsiveContainer>
           </div>
@@ -260,9 +283,11 @@ export const Dashboard = () => {
         <div className="p-6 rounded-2xl bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 shadow-card flex flex-col justify-between">
           <div>
             <h2 className="text-sm font-bold text-slate-900 dark:text-white">
-              পেমেন্ট মাধ্যম বিশ্লেষণ
+              {lang === 'bn' ? 'পেমেন্ট মাধ্যম বিশ্লেষণ' : 'Payment Methods Breakdown'}
             </h2>
-            <p className="text-xs text-slate-500">চলতি মাসের লেনদেন অনুপাত</p>
+            <p className="text-xs text-slate-500 mt-0.5">
+              {lang === 'bn' ? 'চলতি মাসের লেনদেন অনুপাত' : 'Current month transaction distribution'}
+            </p>
           </div>
 
           <div className="h-48 my-auto">
@@ -283,7 +308,7 @@ export const Dashboard = () => {
                   ))}
                 </Pie>
                 <Tooltip
-                  formatter={(val) => [`৳${Number(val).toLocaleString()}`, 'মোট টাকা']}
+                  formatter={(val) => [`৳${Number(val).toLocaleString()}`, lang === 'bn' ? 'মোট টাকা' : 'Total Amount']}
                   contentStyle={{ backgroundColor: '#1E293B', borderRadius: '12px', border: 'none', color: '#fff', fontSize: '12px' }}
                 />
               </PieChart>
@@ -309,11 +334,15 @@ export const Dashboard = () => {
         <div className="p-6 rounded-2xl bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 shadow-card">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h2 className="text-sm font-bold text-slate-900 dark:text-white">সাম্প্রতিক বিক্রয় চালান</h2>
-              <p className="text-xs text-slate-500">সর্বশেষ সম্পন্ন লেনদেনসমূহ</p>
+              <h2 className="text-sm font-bold text-slate-900 dark:text-white">
+                {lang === 'bn' ? 'সাম্প্রতিক বিক্রয় চালান' : 'Recent Sales Invoices'}
+              </h2>
+              <p className="text-xs text-slate-500 mt-0.5">
+                {lang === 'bn' ? 'সর্বশেষ সম্পন্ন লেনদেনসমূহ' : 'Latest completed transactions'}
+              </p>
             </div>
             <Link to="/sales" className="text-xs font-semibold text-indigo-600 hover:text-indigo-700 flex items-center gap-1">
-              <span>সব দেখুন</span>
+              <span>{lang === 'bn' ? 'সব দেখুন' : 'View All'}</span>
               <ChevronRight className="w-4 h-4" />
             </Link>
           </div>
@@ -324,7 +353,7 @@ export const Dashboard = () => {
                 <div>
                   <div className="font-bold text-slate-900 dark:text-white">{sale.invoice_number}</div>
                   <div className="text-[11px] text-slate-400 mt-0.5">
-                    {sale.customer_name} • {new Date(sale.sale_date).toLocaleTimeString('bn-BD', { hour: '2-digit', minute: '2-digit' })}
+                    {sale.customer_name} • {new Date(sale.sale_date).toLocaleTimeString(lang === 'bn' ? 'bn-BD' : 'en-US', { hour: '2-digit', minute: '2-digit' })}
                   </div>
                 </div>
                 <div className="text-right">
@@ -336,7 +365,7 @@ export const Dashboard = () => {
                         : 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300'
                     }`}
                   >
-                    {sale.payment_status === 'paid' ? 'পরিশোধিত' : 'বকেয়া'}
+                    {sale.payment_status === 'paid' ? (lang === 'bn' ? 'পরিশোধিত' : 'Paid') : (lang === 'bn' ? 'বকেয়া' : 'Due')}
                   </span>
                 </div>
               </div>
@@ -348,11 +377,15 @@ export const Dashboard = () => {
         <div className="p-6 rounded-2xl bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 shadow-card">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h2 className="text-sm font-bold text-slate-900 dark:text-white">কম স্টক সতর্কতা</h2>
-              <p className="text-xs text-slate-500">যেসব পণ্যের পরিমাণ সতর্কতা মাত্রায় পৌঁছেছে</p>
+              <h2 className="text-sm font-bold text-slate-900 dark:text-white">
+                {lang === 'bn' ? 'কম স্টক সতর্কতা' : 'Low Stock Alerts'}
+              </h2>
+              <p className="text-xs text-slate-500 mt-0.5">
+                {lang === 'bn' ? 'যেসব পণ্যের পরিমাণ সতর্কতা মাত্রায় পৌঁছেছে' : 'Products reaching or below reorder threshold'}
+              </p>
             </div>
             <Link to="/inventory" className="text-xs font-semibold text-rose-600 hover:text-rose-700 flex items-center gap-1">
-              <span>ইনভেন্টরি দেখুন</span>
+              <span>{lang === 'bn' ? 'ইনভেন্টরি দেখুন' : 'View Stock'}</span>
               <ChevronRight className="w-4 h-4" />
             </Link>
           </div>
@@ -360,23 +393,25 @@ export const Dashboard = () => {
           <div className="divide-y divide-slate-100 dark:divide-slate-800">
             {lowStockAlerts.length === 0 ? (
               <div className="py-8 text-center text-xs text-slate-400">
-                সব পণ্যের পর্যাপ্ত স্টক মজুদ রয়েছে!
+                {lang === 'bn' ? 'সব পণ্যের পর্যাপ্ত স্টক মজুদ রয়েছে!' : 'All products have healthy inventory levels!'}
               </div>
             ) : (
               lowStockAlerts.map((product) => (
                 <div key={product.id} className="py-3 flex items-center justify-between text-xs">
                   <div>
-                    <div className="font-bold text-slate-900 dark:text-white">{product.name}</div>
+                    <div className="font-bold text-slate-900 dark:text-white">
+                      {lang === 'bn' ? (product.name_bn || product.name) : product.name}
+                    </div>
                     <div className="text-[11px] text-slate-400 mt-0.5">
-                      বারকোড: {product.barcode}
+                      {lang === 'bn' ? 'বারকোড' : 'Barcode'}: {product.barcode}
                     </div>
                   </div>
                   <div className="text-right">
                     <span className="px-2.5 py-1 rounded-lg bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 font-bold text-xs inline-block">
-                      মজুদ: {product.current_stock} {product.unit?.name_bn}
+                      {lang === 'bn' ? 'মজুদ' : 'Stock'}: {formatNumber(product.current_stock)} {lang === 'bn' ? (product.unit?.name_bn || 'পিস') : (product.unit?.name || 'pcs')}
                     </span>
                     <div className="text-[10px] text-slate-400 mt-0.5">
-                      সতর্কতা লেভেল: {product.alert_stock}
+                      {lang === 'bn' ? 'সতর্কতা লেভেল' : 'Alert Level'}: {formatNumber(product.alert_stock)}
                     </div>
                   </div>
                 </div>
@@ -389,3 +424,4 @@ export const Dashboard = () => {
   );
 };
 
+export default Dashboard;

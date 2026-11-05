@@ -84,6 +84,41 @@ class BrandController extends Controller
         ]);
     }
 
+    public function bulkDelete(Request $request)
+    {
+        $ids = $request->validate([
+            'ids' => 'required|array|min:1',
+            'ids.*' => 'required|integer',
+        ])['ids'];
+
+        $deleted = 0;
+        $skipped = 0;
+        foreach ($ids as $id) {
+            $brand = Brand::withCount('products')->find($id);
+            if ($brand && $brand->products_count == 0) {
+                $brand->delete();
+                $deleted++;
+            } else {
+                $skipped++;
+            }
+        }
+
+        if ($deleted > 0) {
+            ActivityLog::log('delete', "{$deleted} টি ব্র্যান্ড মুছে ফেলা হয়েছে।");
+        }
+
+        $msg = "{$deleted} টি ব্র্যান্ড সফলভাবে মুছে ফেলা হয়েছে।";
+        if ($skipped > 0) {
+            $msg .= " ({$skipped} টি ব্র্যান্ডে পণ্য যুক্ত থাকায় বাদ দেওয়া হয়েছে)";
+        }
+
+        return response()->json([
+            'message' => $msg,
+            'deleted_count' => $deleted,
+            'skipped_count' => $skipped,
+        ]);
+    }
+
     public function importJson(Request $request)
     {
         $content = null;

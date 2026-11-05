@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useLanguage } from '../../context/LanguageContext';
 import { Barcode, Printer, Search, Settings2, Sparkles, CheckCircle2 } from 'lucide-react';
 import api from '../../services/api';
@@ -81,10 +82,13 @@ const BarcodeSvg = ({ code, height = 38 }) => {
 };
 
 export const BarcodeGenerator = () => {
+  const [searchParams] = useSearchParams();
+  const urlParamSearch = searchParams.get('search') || searchParams.get('barcode') || '';
+
   const { t, lang, formatCurrency } = useLanguage();
   const [products, setProducts] = useState([]);
   const [selectedProduct, setSelectedProduct] = useState(null);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState(urlParamSearch);
   const [quantity, setQuantity] = useState(12);
   const [showPrice, setShowPrice] = useState(true);
   const [showShopName, setShowShopName] = useState(true);
@@ -96,11 +100,20 @@ export const BarcodeGenerator = () => {
     const fetchProducts = async () => {
       try {
         setLoading(true);
-        const res = await api.get('/products?per_page=150');
+        const res = await api.get('/products?per_page=1000');
         const list = res.data.data || [];
         setProducts(list);
         if (list.length > 0) {
-          setSelectedProduct(list[0]);
+          if (urlParamSearch.trim()) {
+            const found = list.find(
+              (p) =>
+                String(p.barcode || '').trim() === urlParamSearch.trim() ||
+                (p.name && p.name.toLowerCase().includes(urlParamSearch.toLowerCase()))
+            );
+            setSelectedProduct(found || list[0]);
+          } else {
+            setSelectedProduct(list[0]);
+          }
         }
       } catch (e) {
         console.error(e);
@@ -109,7 +122,7 @@ export const BarcodeGenerator = () => {
       }
     };
     fetchProducts();
-  }, [lang]);
+  }, [lang, urlParamSearch]);
 
   const filteredProducts = useMemo(() => {
     if (!searchQuery.trim()) return products;

@@ -150,7 +150,44 @@ class SupplierController extends Controller
         }
 
         $supplier->delete();
+        ActivityLog::log('delete', "সরবরাহকারী '{$supplier->name}' মুছে ফেলা হয়েছে।", $supplier);
+
         return response()->json(['message' => 'সরবরাহকারী সফলভাবে মুছে ফেলা হয়েছে।']);
+    }
+
+    public function bulkDelete(Request $request)
+    {
+        $ids = $request->validate([
+            'ids' => 'required|array|min:1',
+            'ids.*' => 'required|integer',
+        ])['ids'];
+
+        $deleted = 0;
+        $skipped = 0;
+        foreach ($ids as $id) {
+            $supplier = Supplier::withCount('purchases')->find($id);
+            if ($supplier && $supplier->purchases_count == 0 && (float) $supplier->current_balance == 0) {
+                $supplier->delete();
+                $deleted++;
+            } else {
+                $skipped++;
+            }
+        }
+
+        if ($deleted > 0) {
+            ActivityLog::log('delete', "{$deleted} টি সরবরাহকারী মুছে ফেলা হয়েছে।");
+        }
+
+        $msg = "{$deleted} টি সরবরাহকারী সফলভাবে মুছে ফেলা হয়েছে।";
+        if ($skipped > 0) {
+            $msg .= " ({$skipped} টির সক্রিয় ক্রয়/বকেয়া রেকর্ড থাকায় বাদ দেওয়া হয়েছে)";
+        }
+
+        return response()->json([
+            'message' => $msg,
+            'deleted_count' => $deleted,
+            'skipped_count' => $skipped,
+        ]);
     }
 }
 

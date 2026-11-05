@@ -1,14 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { ShortcutProvider } from '../../context/ShortcutContext';
 import { Sidebar } from './Sidebar';
 import { TopNavbar } from './TopNavbar';
 
 export const AppLayout = () => {
   const { user, isAuthenticated, loading } = useAuth();
-  const [isCollapsed, setIsCollapsed] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
+  const isPos = location.pathname.startsWith('/pos');
+  const [isCollapsed, setIsCollapsed] = useState(() => window.location.pathname.startsWith('/pos'));
+
+  // Automatically collapse sidebar on POS terminal to give maximum screen width for products
+  useEffect(() => {
+    if (location.pathname.startsWith('/pos')) {
+      setIsCollapsed(true);
+    }
+  }, [location.pathname]);
 
   // Strict Role Redirection & Guard
   useEffect(() => {
@@ -16,9 +25,9 @@ export const AppLayout = () => {
       const roleSlug = user?.role?.slug;
       const path = location.pathname;
 
-      // Cashier is strictly restricted to POS, Sales, Customers, and Profile
+      // Cashier is strictly restricted to POS, Sales, Customers, Profile, and Shortcuts
       if (roleSlug === 'cashier') {
-        const allowedPaths = ['/pos', '/sales', '/customers', '/profile'];
+        const allowedPaths = ['/pos', '/sales', '/customers', '/profile', '/shortcuts'];
         const isAllowed = allowedPaths.some((p) => path.startsWith(p));
         if (!isAllowed) {
           navigate('/pos', { replace: true });
@@ -54,25 +63,23 @@ export const AppLayout = () => {
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
-
-  const isPos = location.pathname.startsWith('/pos');
-
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-[#0F172A] text-slate-900 dark:text-slate-100 font-sans">
-      <Sidebar isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
-      <TopNavbar isCollapsed={isCollapsed} />
+    <ShortcutProvider>
+      <div className="min-h-screen bg-slate-50 dark:bg-[#0F172A] text-slate-900 dark:text-slate-100 font-sans print:bg-white print:text-black">
+        <Sidebar isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
+        <TopNavbar isCollapsed={isCollapsed} />
 
-      {/* Main Content Area */}
-      <main
-        className={`pt-16 min-h-screen transition-all duration-300 print:p-0 print:m-0 print:pt-0 print:pl-0 ${
-          isCollapsed ? 'pl-20' : 'pl-72'
-        }`}
-      >
-        <div className={isPos ? "p-3 sm:p-4 w-full print:p-0 print:m-0" : "p-4 sm:p-6 w-full print:p-0 print:m-0"}>
-          <Outlet />
-        </div>
-      </main>
-    </div>
+        {/* Main Content Area */}
+        <main
+          className={`pt-16 min-h-screen transition-all duration-300 print:p-0 print:m-0 print:pt-0 print:pl-0 ${isCollapsed ? 'pl-20' : 'pl-72'
+            }`}
+        >
+          <div className={isPos ? "p-1.5 sm:p-2.5 w-full print:p-0 print:m-0" : "p-3 sm:p-4 md:p-5 w-full print:p-0 print:m-0"}>
+            <Outlet />
+          </div>
+        </main>
+      </div>
+    </ShortcutProvider>
   );
 };
 

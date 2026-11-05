@@ -62,6 +62,7 @@ import ActivityLogs from './pages/employees/ActivityLogs';
 
 // Settings
 import ShopSettings from './pages/settings/ShopSettings';
+import { KeyboardShortcuts } from './pages/settings/KeyboardShortcuts';
 
 export default function App() {
   return (
@@ -82,7 +83,6 @@ export default function App() {
         <Route path="products/new" element={<AddProduct />} />
         <Route path="products/edit/:id" element={<EditProduct />} />
         <Route path="products/:id/edit" element={<EditProduct />} />
-        <Route path="products/:id" element={<ProductDetails />} />
         <Route path="products/categories" element={<Categories />} />
         <Route path="categories" element={<Categories />} />
         <Route path="products/brands" element={<Brands />} />
@@ -90,7 +90,10 @@ export default function App() {
         <Route path="products/units" element={<Units />} />
         <Route path="units" element={<Units />} />
         <Route path="products/barcode-generator" element={<BarcodeGenerator />} />
+        <Route path="products/barcode" element={<BarcodeGenerator />} />
         <Route path="barcode-generator" element={<BarcodeGenerator />} />
+        <Route path="barcode" element={<BarcodeGenerator />} />
+        <Route path="products/:id" element={<ProductDetails />} />
 
         {/* Inventory */}
         <Route path="inventory" element={<InventoryOverview />} />
@@ -133,6 +136,8 @@ export default function App() {
         <Route path="employees/edit/:id" element={<AddEmployee />} />
         <Route path="activity-logs" element={<ActivityLogs />} />
         <Route path="settings" element={<ShopSettings />} />
+        <Route path="shortcuts" element={<KeyboardShortcuts />} />
+        <Route path="settings/shortcuts" element={<KeyboardShortcuts />} />
 
         {/* User Account */}
         <Route path="profile" element={<Profile />} />

@@ -20,6 +20,8 @@ import {
 import api from '../../services/api';
 import { normalizeImageUrl } from '../../utils/imageHelper';
 import { InlineJsonImport } from '../../components/common/InlineJsonImport';
+import { ConfirmDeleteModal } from '../../components/common/ConfirmDeleteModal';
+import { ProductCardMedia } from '../../components/common/ProductCardMedia';
 
 export const ProductList = () => {
   const { t, lang, formatCurrency, formatNumber } = useLanguage();
@@ -33,50 +35,51 @@ export const ProductList = () => {
   const [selectedCat, setSelectedCat] = useState('');
   const [selectedBrand, setSelectedBrand] = useState('');
   const [lowStockOnly, setLowStockOnly] = useState(false);
+  const [perPage, setPerPage] = useState('50');
   const [pagination, setPagination] = useState({ current_page: 1, last_page: 1, total: 0 });
   const [loading, setLoading] = useState(true);
 
-  // Inline delete confirm state
-  const [deleteConfirmId, setDeleteConfirmId] = useState(null);
+  // Delete & Multi-selection state
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [deleteModal, setDeleteModal] = useState({ isOpen: false, item: null, isBulk: false });
+  const [deleting, setDeleting] = useState(false);
   const [showImport, setShowImport] = useState(false);
 
   const sampleProducts = [
     {
-      name: 'Wireless Bluetooth Earbuds',
-      name_bn: 'ওয়্যারলেস ব্লুটুথ ইয়ারবাডস',
-      barcode: '894110001001',
-      sku: 'SKU-001001',
-      category_name: 'Electronics & Gadgets',
-      brand_name: 'Samsung',
-      unit_name: 'Piece',
-      purchase_price: 1200,
-      selling_price: 1650,
-      wholesale_price: 1450,
-      current_stock: 40,
-      alert_stock: 5,
-      tax_percent: 0,
-      discount_type: 'fixed',
-      discount_value: 50,
-      image_url: 'https://drive.google.com/file/d/1uTZCWKh6PftTikrXZOde-l4spvCPWBEM/view?usp=drive_link',
-      description: 'High-fidelity audio with active noise cancellation'
-    },
-    {
-      name: 'Dove Deep Moisture Shampoo 350ml',
-      name_bn: 'ডোভ ডিপ ময়েশ্চার শ্যাম্পু ৩৫০মি.লি.',
-      barcode: '894110001002',
-      sku: 'SKU-001002',
-      category_name: 'Cosmetics & Personal Care',
-      brand_name: 'Unilever',
-      unit_name: 'Piece',
+      name: 'Miniket Rice 5kg',
+      name_bn: 'মিনিকেট চাল ৫ কেজি',
+      barcode: '2000000000005',
+      sku: 'RICE-MINI-5KG',
+      category_name: 'Rice & Grains',
+      brand_name: 'Fresh',
+      unit_name: 'Packet',
       purchase_price: 360,
-      selling_price: 450,
-      current_stock: 60,
+      selling_price: 410,
+      wholesale_price: 395,
+      current_stock: 50,
       alert_stock: 10,
       tax_percent: 0,
       discount_type: 'none',
       discount_value: 0,
-      image_url: 'https://images.unsplash.com/photo-1535585209827-a15fcdbc4c2d',
-      description: 'Nourishing daily hair care shampoo'
+      description: 'Premium quality polished miniket rice'
+    },
+    {
+      name: 'Soybean Oil 1 Litre',
+      name_bn: 'সয়াবিন তেল ১ লিটার',
+      barcode: '2000000000101',
+      sku: 'OIL-SOY-1L',
+      category_name: 'Cooking Oil',
+      brand_name: 'Teer',
+      unit_name: 'Liter',
+      purchase_price: 165,
+      selling_price: 185,
+      current_stock: 100,
+      alert_stock: 15,
+      tax_percent: 0,
+      discount_type: 'none',
+      discount_value: 0,
+      description: 'Refined pure soybean cooking oil'
     }
   ];
 
@@ -86,7 +89,7 @@ export const ProductList = () => {
 
   useEffect(() => {
     fetchProducts(pagination.current_page);
-  }, [search, selectedCat, selectedBrand, lowStockOnly, lang]);
+  }, [search, selectedCat, selectedBrand, lowStockOnly, perPage, lang]);
 
   const fetchMetadata = async () => {
     try {
@@ -106,6 +109,7 @@ export const ProductList = () => {
     try {
       const params = {
         page,
+        per_page: perPage,
         search,
         category_id: selectedCat || undefined,
         brand_id: selectedBrand || undefined,
@@ -125,14 +129,41 @@ export const ProductList = () => {
     }
   };
 
-  const handleDelete = async (id) => {
+  const allIdsOnPage = products.map((p) => p.id);
+  const isAllSelected = allIdsOnPage.length > 0 && allIdsOnPage.every((id) => selectedIds.includes(id));
+
+  const toggleSelectAll = () => {
+    if (isAllSelected) {
+      setSelectedIds(selectedIds.filter((id) => !allIdsOnPage.includes(id)));
+    } else {
+      setSelectedIds([...new Set([...selectedIds, ...allIdsOnPage])]);
+    }
+  };
+
+  const toggleSelectOne = (id) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleConfirmDelete = async () => {
+    setDeleting(true);
     try {
-      await api.delete(`/products/${id}`);
-      success(lang === 'bn' ? 'পণ্যটি সফলভাবে মুছে ফেলা হয়েছে।' : 'Product deleted successfully.');
-      setDeleteConfirmId(null);
+      if (deleteModal.isBulk) {
+        const res = await api.post('/products/bulk-delete', { ids: selectedIds });
+        success(res.data.message || (lang === 'bn' ? 'নির্বাচিত পণ্যগুলো মুছে ফেলা হয়েছে।' : 'Products deleted.'));
+        setSelectedIds([]);
+      } else if (deleteModal.item) {
+        await api.delete(`/products/${deleteModal.item.id}`);
+        success(lang === 'bn' ? `"${deleteModal.item.name}" সফলভাবে মুছে ফেলা হয়েছে।` : 'Product deleted successfully.');
+        setSelectedIds((prev) => prev.filter((id) => id !== deleteModal.item.id));
+      }
+      setDeleteModal({ isOpen: false, item: null, isBulk: false });
       fetchProducts(pagination.current_page);
     } catch (err) {
       error(err.response?.data?.message || (lang === 'bn' ? 'মুছে ফেলতে ব্যর্থ হয়েছে।' : 'Failed to delete.'));
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -188,7 +219,7 @@ export const ProductList = () => {
       )}
 
       {/* Filter and Search Bar */}
-      <div className="p-4 rounded-2xl bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 shadow-card grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="p-4 rounded-2xl bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 shadow-card grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
         {/* Search */}
         <div className="relative">
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -229,6 +260,20 @@ export const ProductList = () => {
           ))}
         </select>
 
+        {/* Per-Page Selector */}
+        <select
+          value={perPage}
+          onChange={(e) => setPerPage(e.target.value)}
+          className="py-2 px-3 text-xs rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 font-medium"
+        >
+          <option value="25">{lang === 'bn' ? 'প্রতি পৃষ্ঠায় ২৫ টি' : 'Show 25 / page'}</option>
+          <option value="50">{lang === 'bn' ? 'প্রতি পৃষ্ঠায় ৫০ টি' : 'Show 50 / page'}</option>
+          <option value="100">{lang === 'bn' ? 'প্রতি পৃষ্ঠায় ১০০ টি' : 'Show 100 / page'}</option>
+          <option value="250">{lang === 'bn' ? 'প্রতি পৃষ্ঠায় ২৫০ টি' : 'Show 250 / page'}</option>
+          <option value="500">{lang === 'bn' ? 'প্রতি পৃষ্ঠায় ৫০০ টি' : 'Show 500 / page'}</option>
+          <option value="all">{lang === 'bn' ? 'সকল পণ্য একসাথে (All)' : 'Show All Products'}</option>
+        </select>
+
         {/* Low Stock Toggle */}
         <button
           type="button"
@@ -239,33 +284,37 @@ export const ProductList = () => {
             }`}
         >
           <AlertTriangle className="w-3.5 h-3.5" />
-          <span>{lang === 'bn' ? 'কম স্টক ফিল্টার' : 'Low Stock Filter'}</span>
+          <span>{lang === 'bn' ? 'কম স্টক ফিল্টার' : 'Low Stock'}</span>
         </button>
       </div>
 
-      {/* Delete Confirmation Box (NO MODAL POLICY) */}
-      {deleteConfirmId && (
-        <div className="p-4 rounded-2xl bg-rose-50 dark:bg-rose-950/80 border border-rose-300 dark:border-rose-800 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-3 text-rose-900 dark:text-rose-100 text-sm font-semibold">
-            <AlertTriangle className="w-5 h-5 text-rose-600" />
-            <span>
-              {lang === 'bn'
-                ? 'আপনি কি নিশ্চিতভাবে এই পণ্যটি মুছে ফেলতে চান? এটি স্টকের হিসাবকে প্রভাবিত করতে পারে।'
-                : 'Are you sure you want to delete this product? This may affect inventory records.'}
+      {/* Bulk Action Bar when items are selected */}
+      {selectedIds.length > 0 && (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3.5 px-5 rounded-2xl bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 shadow-sm animate-in fade-in slide-in-from-top-2">
+          <div className="flex items-center gap-2.5">
+            <span className="w-7 h-7 rounded-lg bg-indigo-600 text-white font-black text-xs flex items-center justify-center shadow-xs">
+              {selectedIds.length}
+            </span>
+            <span className="text-xs font-bold text-indigo-950 dark:text-indigo-200">
+              {lang === 'bn' ? `মোট ${formatNumber(selectedIds.length)} টি পণ্য নির্বাচিত হয়েছে` : `${selectedIds.length} products selected`}
             </span>
           </div>
-          <div className="flex items-center gap-2 shrink-0">
+
+          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
             <button
-              onClick={() => handleDelete(deleteConfirmId)}
-              className="py-1.5 px-4 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white transition shadow-sm"
+              type="button"
+              onClick={() => setSelectedIds([])}
+              className="px-3 py-1.5 text-xs font-semibold rounded-xl bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 hover:bg-slate-100 transition cursor-pointer"
             >
-              {lang === 'bn' ? 'হ্যাঁ, মুছে ফেলুন' : 'Yes, Delete'}
+              {lang === 'bn' ? 'বাছাই বাতিল' : 'Deselect'}
             </button>
             <button
-              onClick={() => setDeleteConfirmId(null)}
-              className="py-1.5 px-4 rounded-xl text-xs font-bold bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 transition"
+              type="button"
+              onClick={() => setDeleteModal({ isOpen: true, item: null, isBulk: true })}
+              className="px-3.5 py-1.5 text-xs font-bold rounded-xl text-white bg-rose-600 hover:bg-rose-700 transition flex items-center gap-1.5 shadow-sm shadow-rose-600/30 cursor-pointer active:scale-95"
             >
-              {t('cancel')}
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>{lang === 'bn' ? 'নির্বাচিতগুলো মুছুন' : 'Delete Selected'}</span>
             </button>
           </div>
         </div>
@@ -277,6 +326,15 @@ export const ProductList = () => {
           <table className="w-full text-left border-collapse text-xs">
             <thead>
               <tr className="bg-slate-50 dark:bg-slate-850/60 border-b border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 font-bold uppercase tracking-wider">
+                <th className="p-4 w-12 text-center">
+                  <input
+                    type="checkbox"
+                    checked={isAllSelected}
+                    onChange={toggleSelectAll}
+                    title={lang === 'bn' ? 'সবগুলো নির্বাচন করুন' : 'Select All'}
+                    className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                  />
+                </th>
                 <th className="p-4">{lang === 'bn' ? 'পণ্য' : 'Product'}</th>
                 <th className="p-4">{lang === 'bn' ? 'বারকোড / SKU' : 'Barcode / SKU'}</th>
                 <th className="p-4">{lang === 'bn' ? 'ক্যাটাগরি' : 'Category'}</th>
@@ -290,37 +348,42 @@ export const ProductList = () => {
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {loading ? (
                 <tr>
-                  <td colSpan="8" className="p-8 text-center text-slate-400">
+                  <td colSpan="9" className="p-8 text-center text-slate-400">
                     {t('loading')}
                   </td>
                 </tr>
               ) : products.length === 0 ? (
                 <tr>
-                  <td colSpan="8" className="p-8 text-center text-slate-400">
+                  <td colSpan="9" className="p-8 text-center text-slate-400">
                     {t('noData')}
                   </td>
                 </tr>
               ) : (
                 products.map((p) => {
                   const isLow = Number(p.current_stock) <= Number(p.alert_stock);
+                  const isSelected = selectedIds.includes(p.id);
                   return (
-                    <tr key={p.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition">
+                    <tr
+                      key={p.id}
+                      className={`hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition ${
+                        isSelected ? 'bg-indigo-50/50 dark:bg-indigo-950/20' : ''
+                      }`}
+                    >
+                      <td className="p-4 text-center">
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => toggleSelectOne(p.id)}
+                          className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                        />
+                      </td>
                       <td className="p-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 shrink-0 overflow-hidden flex items-center justify-center font-bold text-slate-400 border border-slate-200 dark:border-slate-700">
-                            {p.image_url ? (
-                              <img
-                                src={normalizeImageUrl(p.image_url)}
-                                alt=""
-                                onError={(e) => {
-                                  e.currentTarget.style.display = 'none';
-                                }}
-                                className="w-full h-full object-cover"
-                              />
-                            ) : (
-                              p.name.substring(0, 2).toUpperCase()
-                            )}
-                          </div>
+                          <ProductCardMedia
+                            product={p}
+                            isCompact={true}
+                            className="w-10 h-10 shrink-0"
+                          />
                           <div>
                             <div className="font-bold text-slate-900 dark:text-white line-clamp-1">{p.name}</div>
                             {p.name_bn && <div className="text-[11px] text-slate-400">{p.name_bn}</div>}
@@ -361,6 +424,11 @@ export const ProductList = () => {
                             </span>
                           </div>
                         )}
+                        {Number(p.tax_percent) > 0 && (
+                          <div className="text-[10px] text-blue-600 dark:text-blue-400 font-bold mt-0.5">
+                            +VAT {Number(p.tax_percent)}%
+                          </div>
+                        )}
                       </td>
 
                       <td className="p-4 text-center">
@@ -398,8 +466,9 @@ export const ProductList = () => {
                             <Edit className="w-4 h-4" />
                           </Link>
                           <button
-                            onClick={() => setDeleteConfirmId(p.id)}
-                            className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-slate-800 rounded-lg transition"
+                            type="button"
+                            onClick={() => setDeleteModal({ isOpen: true, item: p, isBulk: false })}
+                            className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-slate-800 rounded-lg transition cursor-pointer"
                             title={t('delete')}
                           >
                             <Trash2 className="w-4 h-4" />
@@ -439,6 +508,16 @@ export const ProductList = () => {
           </div>
         </div>
       </div>
+
+      {/* Delete Confirmation Dialog Box */}
+      <ConfirmDeleteModal
+        isOpen={deleteModal.isOpen}
+        onClose={() => setDeleteModal({ isOpen: false, item: null, isBulk: false })}
+        onConfirm={handleConfirmDelete}
+        itemName={deleteModal.item?.name}
+        count={deleteModal.isBulk ? selectedIds.length : 1}
+        loading={deleting}
+      />
     </div>
   );
 };

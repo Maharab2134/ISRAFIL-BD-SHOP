@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useLanguage } from '../../context/LanguageContext';
 import { useToast } from '../../context/ToastContext';
 import {
@@ -11,17 +11,26 @@ import {
   Tag,
   Layers,
   History,
+  ShoppingCart,
+  Plus,
+  Printer,
 } from 'lucide-react';
 import api from '../../services/api';
 import { normalizeImageUrl } from '../../utils/imageHelper';
+import { BarcodeSvg } from '../../components/common/BarcodeSvg';
+import { ProductCardMedia } from '../../components/common/ProductCardMedia';
 
 export const ProductDetails = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
+  const location = useLocation();
   const { t, lang, formatCurrency, formatNumber } = useLanguage();
-  const { error } = useToast();
+  const { error, success } = useToast();
 
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  const fromPos = location.state?.from === 'pos';
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -36,6 +45,52 @@ export const ProductDetails = () => {
     };
     fetchProduct();
   }, [id, lang]);
+
+  const handleAddToCartAndGoPos = () => {
+    if (!product) return;
+    try {
+      const saved = sessionStorage.getItem('israfil_pos_cart');
+      const cart = saved ? JSON.parse(saved) : [];
+      const sp = Number(product.selling_price) || 0;
+      let unitDiscount = 0;
+      if (product.discount_type === 'percentage') {
+        unitDiscount = (sp * (Number(product.discount_value) || 0)) / 100;
+      } else if (product.discount_type === 'fixed') {
+        unitDiscount = Math.min(sp, Number(product.discount_value) || 0);
+      }
+
+      const existingIndex = cart.findIndex((i) => i.product_id === product.id);
+      if (existingIndex >= 0) {
+        cart[existingIndex].quantity += 1;
+        cart[existingIndex].discount_amount = (cart[existingIndex].unit_discount || 0) * cart[existingIndex].quantity;
+      } else {
+        cart.push({
+          product_id: product.id,
+          name: product.name,
+          name_bn: product.name_bn,
+          barcode: product.barcode,
+          unit_price: sp,
+          purchase_price: Number(product.purchase_price),
+          tax_percent: Number(product.tax_percent || 0),
+          unit: lang === 'bn' ? (product.unit?.name_bn || 'পিস') : (product.unit?.name || 'pcs'),
+          quantity: 1,
+          discount_type: product.discount_type || 'fixed',
+          discount_value: Number(product.discount_value) || 0,
+          unit_discount: unitDiscount,
+          discount_amount: unitDiscount * 1,
+          has_discount: unitDiscount > 0,
+          discount_badge: product.discount_type === 'percentage' ? `-${product.discount_value}%` : (unitDiscount > 0 ? `-৳${product.discount_value}` : null),
+          current_stock: Number(product.current_stock),
+          image_url: product.image_url,
+        });
+      }
+      sessionStorage.setItem('israfil_pos_cart', JSON.stringify(cart));
+      success(lang === 'bn' ? `'${product.name}' কার্টে যোগ করা হয়েছে` : `'${product.name}' added to POS cart`);
+      navigate('/pos');
+    } catch (e) {
+      navigate('/pos');
+    }
+  };
 
   if (loading) {
     return (
@@ -57,58 +112,120 @@ export const ProductDetails = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <Link
-            to="/products"
-            className="p-2 rounded-xl bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition"
+          <button
+            type="button"
+            onClick={() => {
+              if (fromPos) {
+                navigate('/pos');
+              } else {
+                navigate(-1);
+              }
+            }}
+            className="p-2.5 rounded-2xl bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition cursor-pointer shadow-xs active:scale-95"
+            title={fromPos ? (lang === 'bn' ? 'পিওএস-এ ফিরুন' : 'Back to POS') : (lang === 'bn' ? 'পিছনে যান' : 'Go back')}
           >
             <ArrowLeft className="w-5 h-5" />
-          </Link>
+          </button>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
-              {product.name}
-            </h1>
-            <p className="text-xs text-slate-500">
-              {product.name_bn || (lang === 'bn' ? 'বারকোড: ' : 'Barcode: ') + product.barcode} • SKU: {product.sku}
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white">
+                {product.name}
+              </h1>
+              {fromPos && (
+                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-indigo-100 dark:bg-indigo-950/80 text-indigo-700 dark:text-indigo-300">
+                  POS
+                </span>
+              )}
+            </div>
+            <p className="text-xs text-slate-500 font-mono mt-0.5">
+              {product.name_bn ? `${product.name_bn} • ` : ''}SKU: {product.sku}
             </p>
           </div>
         </div>
 
-        <Link
-          to={`/products/${product.id}/edit`}
-          className="py-2 px-4 rounded-xl font-bold text-xs bg-amber-500 hover:bg-amber-600 text-white shadow-md flex items-center gap-1.5 transition"
-        >
-          <Edit className="w-3.5 h-3.5" />
-          <span>{t('edit')}</span>
-        </Link>
+        <div className="flex items-center gap-2.5 flex-wrap">
+          {/* Back to POS Button */}
+          <Link
+            to="/pos"
+            className="py-2 px-3.5 rounded-xl font-bold text-xs bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 flex items-center gap-1.5 transition"
+          >
+            <ShoppingCart className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+            <span>{lang === 'bn' ? 'পিওএস টার্মিনাল' : 'POS Terminal'}</span>
+          </Link>
+
+          {/* Add to POS Cart & Return */}
+          <button
+            type="button"
+            onClick={handleAddToCartAndGoPos}
+            className="py-2 px-3.5 rounded-xl font-bold text-xs bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm flex items-center gap-1.5 transition cursor-pointer active:scale-95"
+            title={lang === 'bn' ? 'কার্টে যোগ করে পিওএস টার্মিনালে যান' : 'Add to cart & go to POS'}
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>{lang === 'bn' ? 'কার্টে যোগ করুন (+১)' : 'Add to Cart (+1)'}</span>
+          </button>
+
+          <Link
+            to={`/products/${product.id}/edit`}
+            className="py-2 px-3.5 rounded-xl font-bold text-xs bg-amber-500 hover:bg-amber-600 text-white shadow-sm flex items-center gap-1.5 transition"
+          >
+            <Edit className="w-3.5 h-3.5" />
+            <span>{t('edit')}</span>
+          </Link>
+        </div>
       </div>
 
       {/* Main Specs Card */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Left: Product Image & Barcode Card */}
         <div className="p-6 rounded-3xl bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 shadow-card flex flex-col items-center text-center space-y-4">
-          <div className="w-48 h-48 rounded-2xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 overflow-hidden flex items-center justify-center">
-            {product.image_url ? (
-              <img
-                src={normalizeImageUrl(product.image_url)}
-                alt=""
-                onError={(e) => {
-                  e.currentTarget.style.display = 'none';
-                }}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <Package className="w-16 h-16 text-slate-400 stroke-1" />
-            )}
+          <div className="w-52 h-52 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-700/80 overflow-hidden flex items-center justify-center p-2">
+            <ProductCardMedia
+              product={product}
+              className="w-full h-full"
+            />
           </div>
 
-          <div className="space-y-1 w-full">
-            <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-              {lang === 'bn' ? 'বারকোড' : 'Barcode'}
+          {/* Vector Barcode Display */}
+          <div className="space-y-2 w-full">
+            <div className="flex items-center justify-between px-1">
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                {lang === 'bn' ? 'পণ্য বারকোড' : 'Product Barcode'}
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => window.print()}
+                  className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 cursor-pointer"
+                  title={lang === 'bn' ? 'সরাসরি প্রিন্ট করুন' : 'Print directly'}
+                >
+                  <Printer className="w-3 h-3" />
+                  <span>{lang === 'bn' ? 'প্রিন্ট' : 'Print'}</span>
+                </button>
+                <span className="text-slate-300 dark:text-slate-600">•</span>
+                <Link
+                  to={`/products/barcode-generator?search=${encodeURIComponent(product.barcode)}`}
+                  className="text-[11px] font-bold text-slate-500 dark:text-slate-400 hover:text-indigo-600 hover:underline flex items-center gap-1"
+                  title={lang === 'bn' ? 'বারকোড স্টিকার শিট জেনারেটর' : 'Barcode Sticker Sheet Generator'}
+                >
+                  <Barcode className="w-3 h-3" />
+                  <span>{lang === 'bn' ? 'স্টিকার শিট' : 'Stickers'}</span>
+                </Link>
+              </div>
             </div>
-            <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 font-mono text-sm font-bold text-indigo-600 dark:text-indigo-400 tracking-widest">
-              {product.barcode}
+
+            <div id="product-barcode-card" className="p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/80 shadow-xs flex flex-col items-center justify-center space-y-1.5">
+              <div className="w-full bg-white p-2 rounded-xl flex items-center justify-center">
+                <BarcodeSvg
+                  code={product.barcode}
+                  height={46}
+                  className="w-full max-w-[220px] h-12 mx-auto"
+                />
+              </div>
+              <div className="font-mono text-sm font-black text-slate-900 dark:text-white tracking-widest pt-1">
+                {product.barcode}
+              </div>
             </div>
           </div>
         </div>
@@ -168,6 +285,27 @@ export const ProductDetails = () => {
               <span className="text-sm font-bold text-emerald-600">
                 {formatCurrency(product.selling_price - product.purchase_price)}
               </span>
+            </div>
+
+            <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800">
+              <span className="text-[11px] text-slate-400 block">
+                {lang === 'bn' ? 'ভ্যাট / ট্যাক্স হার' : 'VAT / Tax Rate'}
+              </span>
+              <div className="flex items-baseline gap-1.5">
+                <span className={`text-base font-bold ${Number(product.tax_percent) > 0 ? 'text-blue-600 dark:text-blue-400' : 'text-slate-600 dark:text-slate-400'}`}>
+                  {Number(product.tax_percent || 0)}%
+                </span>
+                {Number(product.tax_percent) > 0 && (
+                  <span className="text-[11px] font-semibold text-slate-500">
+                    (+{formatCurrency((product.selling_price * product.tax_percent) / 100)})
+                  </span>
+                )}
+              </div>
+              {Number(product.tax_percent) > 0 && (
+                <span className="text-[10px] text-blue-600 dark:text-blue-400 block font-medium mt-0.5">
+                  {lang === 'bn' ? 'পিওএস-এ ভ্যাটসহ মোট:' : 'With VAT in POS:'} {formatCurrency(Number(product.selling_price) * (1 + Number(product.tax_percent) / 100))}
+                </span>
+              )}
             </div>
 
             <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800">

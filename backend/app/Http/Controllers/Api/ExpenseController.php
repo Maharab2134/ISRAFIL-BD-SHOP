@@ -117,6 +117,22 @@ class ExpenseController extends Controller
         return response()->json(['message' => 'খরচ সফলভাবে মুছে ফেলা হয়েছে।']);
     }
 
+    public function bulkDelete(Request $request)
+    {
+        $ids = $request->validate([
+            'ids' => 'required|array|min:1',
+            'ids.*' => 'required|integer',
+        ])['ids'];
+
+        $count = Expense::whereIn('id', $ids)->delete();
+        ActivityLog::log('delete', "{$count} টি খরচের এন্ট্রি মুছে ফেলা হয়েছে।");
+
+        return response()->json([
+            'message' => "{$count} টি খরচের এন্ট্রি সফলভাবে মুছে ফেলা হয়েছে।",
+            'deleted_count' => $count,
+        ]);
+    }
+
     // Categories
     public function categories()
     {
@@ -136,6 +152,50 @@ class ExpenseController extends Controller
             'message' => 'খরচের খাত সফলভাবে যুক্ত করা হয়েছে।',
             'category' => $category,
         ], 201);
+    }
+
+    public function destroyCategory($id)
+    {
+        $category = ExpenseCategory::withCount('expenses')->findOrFail($id);
+        if ($category->expenses_count > 0) {
+            return response()->json([
+                'message' => 'এই খাতের অধীনে খরচের রেকর্ড রয়েছে, তাই এটি মুছে ফেলা সম্ভব নয়।'
+            ], 422);
+        }
+
+        $category->delete();
+        return response()->json(['message' => 'খরচের খাত সফলভাবে মুছে ফেলা হয়েছে।']);
+    }
+
+    public function bulkDeleteCategories(Request $request)
+    {
+        $ids = $request->validate([
+            'ids' => 'required|array|min:1',
+            'ids.*' => 'required|integer',
+        ])['ids'];
+
+        $deleted = 0;
+        $skipped = 0;
+        foreach ($ids as $id) {
+            $cat = ExpenseCategory::withCount('expenses')->find($id);
+            if ($cat && $cat->expenses_count == 0) {
+                $cat->delete();
+                $deleted++;
+            } else {
+                $skipped++;
+            }
+        }
+
+        $msg = "{$deleted} টি খরচের খাত সফলভাবে মুছে ফেলা হয়েছে।";
+        if ($skipped > 0) {
+            $msg .= " ({$skipped} টিতে খরচের রেকর্ড থাকায় বাদ দেওয়া হয়েছে)";
+        }
+
+        return response()->json([
+            'message' => $msg,
+            'deleted_count' => $deleted,
+            'skipped_count' => $skipped,
+        ]);
     }
 }
 

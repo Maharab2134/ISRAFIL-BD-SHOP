@@ -3,6 +3,7 @@ import { useLanguage } from '../../context/LanguageContext';
 import { useToast } from '../../context/ToastContext';
 import { FolderTree, Plus, Save, Layers, Search, Trash2 } from 'lucide-react';
 import api from '../../services/api';
+import { ConfirmDeleteModal } from '../../components/common/ConfirmDeleteModal';
 
 export const ExpenseCategories = () => {
   const { t, lang, formatNumber } = useLanguage();
@@ -15,7 +16,11 @@ export const ExpenseCategories = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [deleteConfirmId, setDeleteConfirmId] = useState(null);
+
+  // Multi-select & Delete Modal
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [deleteModal, setDeleteModal] = useState({ isOpen: false, item: null, isBulk: false });
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     fetchCategories();
@@ -55,22 +60,48 @@ export const ExpenseCategories = () => {
     }
   };
 
-  const handleDelete = async (id) => {
-    try {
-      await api.delete(`/expense-categories/${id}`);
-      success(lang === 'bn' ? 'খাতটি মুছে ফেলা হয়েছে।' : 'Category deleted successfully.');
-      setDeleteConfirmId(null);
-      fetchCategories();
-    } catch (err) {
-      error(err.response?.data?.message || (lang === 'bn' ? 'মুছে ফেলতে ব্যর্থ হয়েছে।' : 'Failed to delete.'));
-    }
-  };
-
   const filteredCategories = categories.filter((c) => {
     if (!search) return true;
     const q = search.toLowerCase();
     return c.name?.toLowerCase().includes(q) || c.name_bn?.toLowerCase().includes(q);
   });
+
+  // Selection handlers
+  const isAllSelected = filteredCategories.length > 0 && filteredCategories.every((c) => selectedIds.includes(c.id));
+  const toggleSelectAll = () => {
+    if (isAllSelected) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(filteredCategories.map((c) => c.id));
+    }
+  };
+
+  const toggleSelectOne = (id) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleConfirmDelete = async () => {
+    setDeleting(true);
+    try {
+      if (deleteModal.isBulk) {
+        const res = await api.post('/expense-categories/bulk-delete', { ids: selectedIds });
+        success(res.data.message || (lang === 'bn' ? 'নির্বাচিত খাতসমূহ মুছে ফেলা হয়েছে।' : 'Categories deleted.'));
+        setSelectedIds([]);
+      } else if (deleteModal.item) {
+        await api.delete(`/expense-categories/${deleteModal.item.id}`);
+        success(lang === 'bn' ? `"${deleteModal.item.name}" মুছে ফেলা হয়েছে।` : 'Category deleted successfully.');
+        setSelectedIds((prev) => prev.filter((id) => id !== deleteModal.item.id));
+      }
+      setDeleteModal({ isOpen: false, item: null, isBulk: false });
+      fetchCategories();
+    } catch (err) {
+      error(err.response?.data?.message || (lang === 'bn' ? 'মুছে ফেলতে ব্যর্থ হয়েছে।' : 'Failed to delete.'));
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -84,23 +115,30 @@ export const ExpenseCategories = () => {
         </p>
       </div>
 
-      {deleteConfirmId && (
-        <div className="p-4 rounded-2xl bg-rose-50 dark:bg-rose-950/80 border border-rose-300 dark:border-rose-800 flex items-center justify-between">
-          <span className="text-xs font-bold text-rose-900 dark:text-rose-200">
-            {lang === 'bn' ? 'আপনি কি নিশ্চিতভাবে এই খরচের খাতটি মুছে ফেলতে চান?' : 'Are you sure you want to delete this category?'}
-          </span>
-          <div className="flex gap-2">
+      {/* Bulk Action Bar */}
+      {selectedIds.length > 0 && (
+        <div className="p-3 bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 rounded-2xl flex items-center justify-between gap-3 animate-in fade-in">
+          <div className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-indigo-600 animate-pulse" />
+            <span className="text-xs font-bold text-indigo-900 dark:text-indigo-200">
+              {lang === 'bn'
+                ? `${formatNumber(selectedIds.length)} টি খাত বাছাই করা হয়েছে`
+                : `${selectedIds.length} category(ies) selected`}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
             <button
-              onClick={() => handleDelete(deleteConfirmId)}
-              className="py-1 px-3 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold transition"
+              onClick={() => setSelectedIds([])}
+              className="py-1 px-3 text-xs font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
             >
-              {lang === 'bn' ? 'হ্যাঁ, মুছুন' : 'Yes, Delete'}
+              {lang === 'bn' ? 'বাছাই বাতিল' : 'Deselect'}
             </button>
             <button
-              onClick={() => setDeleteConfirmId(null)}
-              className="py-1 px-3 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-semibold"
+              onClick={() => setDeleteModal({ isOpen: true, item: null, isBulk: true })}
+              className="py-1.5 px-3.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold shadow flex items-center gap-1.5 transition"
             >
-              {t('cancel')}
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>{lang === 'bn' ? 'নির্বাচিতগুলো মুছুন' : 'Delete Selected'}</span>
             </button>
           </div>
         </div>
@@ -191,6 +229,14 @@ export const ExpenseCategories = () => {
             <table className="w-full text-left text-xs border-collapse">
               <thead>
                 <tr className="bg-slate-50 dark:bg-slate-800 text-slate-500 font-bold uppercase border-b border-slate-200 dark:border-slate-700">
+                  <th className="p-3.5 w-10 text-center">
+                    <input
+                      type="checkbox"
+                      checked={isAllSelected}
+                      onChange={toggleSelectAll}
+                      className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                    />
+                  </th>
                   <th className="p-3.5">{lang === 'bn' ? 'খাতের নাম' : 'Category Name'}</th>
                   <th className="p-3.5">{lang === 'bn' ? 'বিবরণ' : 'Description'}</th>
                   <th className="p-3.5 text-center">{lang === 'bn' ? 'মোট খরচের সংখ্যা' : 'Expenses'}</th>
@@ -199,35 +245,61 @@ export const ExpenseCategories = () => {
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {loading ? (
-                  <tr><td colSpan="4" className="p-6 text-center text-slate-400">{t('loading')}</td></tr>
+                  <tr><td colSpan="5" className="p-6 text-center text-slate-400">{t('loading')}</td></tr>
                 ) : filteredCategories.length === 0 ? (
-                  <tr><td colSpan="4" className="p-6 text-center text-slate-400">{t('noData')}</td></tr>
+                  <tr><td colSpan="5" className="p-6 text-center text-slate-400">{t('noData')}</td></tr>
                 ) : (
-                  filteredCategories.map((c) => (
-                    <tr key={c.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
-                      <td className="p-3.5 font-bold text-slate-900 dark:text-white">
-                        <div>{c.name}</div>
-                        {c.name_bn && <div className="text-[11px] text-slate-400 font-normal">{c.name_bn}</div>}
-                      </td>
-                      <td className="p-3.5 text-slate-500">{c.description || '—'}</td>
-                      <td className="p-3.5 text-center font-bold text-indigo-600">{c.expenses_count || 0}</td>
-                      <td className="p-3.5 text-right">
-                        <button
-                          onClick={() => setDeleteConfirmId(c.id)}
-                          className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-slate-800 rounded-lg transition"
-                          title={t('delete')}
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </td>
-                    </tr>
-                  ))
+                  filteredCategories.map((c) => {
+                    const isSelected = selectedIds.includes(c.id);
+                    return (
+                      <tr
+                        key={c.id}
+                        className={`hover:bg-slate-50 dark:hover:bg-slate-800/40 transition ${
+                          isSelected ? 'bg-indigo-50/40 dark:bg-indigo-950/20' : ''
+                        }`}
+                      >
+                        <td className="p-3.5 text-center">
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => toggleSelectOne(c.id)}
+                            className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                          />
+                        </td>
+                        <td className="p-3.5 font-bold text-slate-900 dark:text-white">
+                          <div>{c.name}</div>
+                          {c.name_bn && <div className="text-[11px] text-slate-400 font-normal">{c.name_bn}</div>}
+                        </td>
+                        <td className="p-3.5 text-slate-500">{c.description || '—'}</td>
+                        <td className="p-3.5 text-center font-bold text-indigo-600">{c.expenses_count || 0}</td>
+                        <td className="p-3.5 text-right">
+                          <button
+                            onClick={() => setDeleteModal({ isOpen: true, item: c, isBulk: false })}
+                            className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-slate-800 rounded-lg transition"
+                            title={t('delete')}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>
           </div>
         </div>
       </div>
+
+      {/* Confirm Delete Dialog Box */}
+      <ConfirmDeleteModal
+        isOpen={deleteModal.isOpen}
+        onClose={() => setDeleteModal({ isOpen: false, item: null, isBulk: false })}
+        onConfirm={handleConfirmDelete}
+        itemName={deleteModal.item ? (deleteModal.item.name_bn || deleteModal.item.name) : undefined}
+        count={deleteModal.isBulk ? selectedIds.length : 1}
+        loading={deleting}
+      />
     </div>
   );
 };

@@ -4,11 +4,10 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Customer extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory;
 
     protected $fillable = [
         'name',
@@ -19,6 +18,7 @@ class Customer extends Model
         'opening_balance',
         'current_balance',
         'credit_limit',
+        'loyalty_points',
         'status',
     ];
 
@@ -26,6 +26,7 @@ class Customer extends Model
         'opening_balance' => 'decimal:2',
         'current_balance' => 'decimal:2',
         'credit_limit' => 'decimal:2',
+        'loyalty_points' => 'integer',
     ];
 
     public function sales()

@@ -3,6 +3,7 @@ import { useLanguage } from '../../context/LanguageContext';
 import { useToast } from '../../context/ToastContext';
 import { Scale, Plus, Edit, Trash2, Save, X, Search } from 'lucide-react';
 import api from '../../services/api';
+import { ConfirmDeleteModal } from '../../components/common/ConfirmDeleteModal';
 
 export const Units = () => {
   const { t, lang, formatNumber } = useLanguage();
@@ -17,7 +18,9 @@ export const Units = () => {
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [deleteConfirmId, setDeleteConfirmId] = useState(null);
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [deleteModal, setDeleteModal] = useState({ isOpen: false, item: null, isBulk: false });
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     fetchUnits();
@@ -72,17 +75,6 @@ export const Units = () => {
     }
   };
 
-  const handleDelete = async (id) => {
-    try {
-      await api.delete(`/units/${id}`);
-      success(lang === 'bn' ? 'একক মুছে ফেলা হয়েছে।' : 'Unit deleted successfully.');
-      setDeleteConfirmId(null);
-      fetchUnits();
-    } catch (err) {
-      error(err.response?.data?.message || (lang === 'bn' ? 'মুছে ফেলতে ব্যর্থ হয়েছে।' : 'Failed to delete.'));
-    }
-  };
-
   const filteredUnits = units.filter((u) => {
     if (!search) return true;
     const q = search.toLowerCase();
@@ -92,6 +84,44 @@ export const Units = () => {
       u.code?.toLowerCase().includes(q)
     );
   });
+
+  const allVisibleIds = filteredUnits.map((u) => u.id);
+  const isAllSelected = allVisibleIds.length > 0 && allVisibleIds.every((id) => selectedIds.includes(id));
+
+  const toggleSelectAll = () => {
+    if (isAllSelected) {
+      setSelectedIds(selectedIds.filter((id) => !allVisibleIds.includes(id)));
+    } else {
+      setSelectedIds([...new Set([...selectedIds, ...allVisibleIds])]);
+    }
+  };
+
+  const toggleSelectOne = (id) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleConfirmDelete = async () => {
+    setDeleting(true);
+    try {
+      if (deleteModal.isBulk) {
+        const res = await api.post('/units/bulk-delete', { ids: selectedIds });
+        success(res.data.message || (lang === 'bn' ? 'নির্বাচিত এককগুলো মুছে ফেলা হয়েছে।' : 'Units deleted.'));
+        setSelectedIds([]);
+      } else if (deleteModal.item) {
+        await api.delete(`/units/${deleteModal.item.id}`);
+        success(lang === 'bn' ? `"${deleteModal.item.name}" মুছে ফেলা হয়েছে।` : 'Unit deleted successfully.');
+        setSelectedIds((prev) => prev.filter((id) => id !== deleteModal.item.id));
+      }
+      setDeleteModal({ isOpen: false, item: null, isBulk: false });
+      fetchUnits();
+    } catch (err) {
+      error(err.response?.data?.message || (lang === 'bn' ? 'মুছে ফেলতে ব্যর্থ হয়েছে।' : 'Failed to delete.'));
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -105,23 +135,33 @@ export const Units = () => {
         </p>
       </div>
 
-      {deleteConfirmId && (
-        <div className="p-4 rounded-2xl bg-rose-50 dark:bg-rose-950/80 border border-rose-300 dark:border-rose-800 flex items-center justify-between">
-          <span className="text-xs font-bold text-rose-900 dark:text-rose-200">
-            {lang === 'bn' ? 'আপনি কি নিশ্চিতভাবে এই এককটি মুছে ফেলতে চান?' : 'Are you sure you want to delete this unit?'}
-          </span>
-          <div className="flex gap-2">
+      {/* Bulk Action Bar when items are selected */}
+      {selectedIds.length > 0 && (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3.5 px-5 rounded-2xl bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 shadow-sm animate-in fade-in slide-in-from-top-2">
+          <div className="flex items-center gap-2.5">
+            <span className="w-7 h-7 rounded-lg bg-indigo-600 text-white font-black text-xs flex items-center justify-center shadow-xs">
+              {selectedIds.length}
+            </span>
+            <span className="text-xs font-bold text-indigo-950 dark:text-indigo-200">
+              {lang === 'bn' ? `মোট ${formatNumber(selectedIds.length)} টি একক নির্বাচিত হয়েছে` : `${selectedIds.length} units selected`}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
             <button
-              onClick={() => handleDelete(deleteConfirmId)}
-              className="py-1 px-3 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold transition"
+              type="button"
+              onClick={() => setSelectedIds([])}
+              className="px-3 py-1.5 text-xs font-semibold rounded-xl bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 hover:bg-slate-100 transition cursor-pointer"
             >
-              {lang === 'bn' ? 'হ্যাঁ, মুছুন' : 'Yes, Delete'}
+              {lang === 'bn' ? 'বাছাই বাতিল' : 'Deselect'}
             </button>
             <button
-              onClick={() => setDeleteConfirmId(null)}
-              className="py-1 px-3 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-semibold"
+              type="button"
+              onClick={() => setDeleteModal({ isOpen: true, item: null, isBulk: true })}
+              className="px-3.5 py-1.5 text-xs font-bold rounded-xl text-white bg-rose-600 hover:bg-rose-700 transition flex items-center gap-1.5 shadow-sm shadow-rose-600/30 cursor-pointer active:scale-95"
             >
-              {t('cancel')}
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>{lang === 'bn' ? 'নির্বাচিতগুলো মুছুন' : 'Delete Selected'}</span>
             </button>
           </div>
         </div>
@@ -247,6 +287,15 @@ export const Units = () => {
             <table className="w-full text-left text-xs border-collapse">
               <thead>
                 <tr className="bg-slate-50 dark:bg-slate-800 text-slate-500 font-bold uppercase border-b border-slate-200 dark:border-slate-700">
+                  <th className="p-3.5 w-12 text-center">
+                    <input
+                      type="checkbox"
+                      checked={isAllSelected}
+                      onChange={toggleSelectAll}
+                      title={lang === 'bn' ? 'সবগুলো নির্বাচন করুন' : 'Select All'}
+                      className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                    />
+                  </th>
                   <th className="p-3.5">{lang === 'bn' ? 'একক নাম' : 'Unit Name'}</th>
                   <th className="p-3.5">{lang === 'bn' ? 'কোড' : 'Code'}</th>
                   <th className="p-3.5 text-center">{lang === 'bn' ? 'পণ্য সংখ্যা' : 'Products'}</th>
@@ -257,62 +306,89 @@ export const Units = () => {
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {loading ? (
                   <tr>
-                    <td colSpan="5" className="p-8 text-center text-slate-400">
+                    <td colSpan="6" className="p-8 text-center text-slate-400">
                       {t('loading')}
                     </td>
                   </tr>
                 ) : filteredUnits.length === 0 ? (
                   <tr>
-                    <td colSpan="5" className="p-8 text-center text-slate-400">
+                    <td colSpan="6" className="p-8 text-center text-slate-400">
                       {t('noData')}
                     </td>
                   </tr>
                 ) : (
-                  filteredUnits.map((u) => (
-                    <tr key={u.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition">
-                      <td className="p-3.5 font-bold text-slate-900 dark:text-white">
-                        <div>{u.name}</div>
-                        {u.name_bn && <div className="text-[11px] font-normal text-slate-400">{u.name_bn}</div>}
-                      </td>
-                      <td className="p-3.5 font-mono font-bold text-indigo-600">
-                        {u.code}
-                      </td>
-                      <td className="p-3.5 text-center font-bold text-slate-700 dark:text-slate-300">
-                        {u.products_count || 0}
-                      </td>
-                      <td className="p-3.5 text-center">
-                        <span
-                          className={`inline-block w-2 h-2 rounded-full ${
-                            u.status === 'active' ? 'bg-emerald-500' : 'bg-slate-400'
-                          }`}
-                        />
-                      </td>
-                      <td className="p-3.5 text-right">
-                        <div className="flex items-center justify-end gap-1.5">
-                          <button
-                            onClick={() => handleEditClick(u)}
-                            className="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-slate-800 rounded-lg transition"
-                            title={t('edit')}
-                          >
-                            <Edit className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            onClick={() => setDeleteConfirmId(u.id)}
-                            className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-slate-800 rounded-lg transition"
-                            title={t('delete')}
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
+                  filteredUnits.map((u) => {
+                    const isSelected = selectedIds.includes(u.id);
+                    return (
+                      <tr
+                        key={u.id}
+                        className={`hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition ${
+                          isSelected ? 'bg-indigo-50/50 dark:bg-indigo-950/20' : ''
+                        }`}
+                      >
+                        <td className="p-3.5 text-center">
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => toggleSelectOne(u.id)}
+                            className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                          />
+                        </td>
+                        <td className="p-3.5 font-bold text-slate-900 dark:text-white">
+                          <div>{u.name}</div>
+                          {u.name_bn && <div className="text-[11px] font-normal text-slate-400">{u.name_bn}</div>}
+                        </td>
+                        <td className="p-3.5 font-mono font-bold text-indigo-600">
+                          {u.code}
+                        </td>
+                        <td className="p-3.5 text-center font-bold text-slate-700 dark:text-slate-300">
+                          {u.products_count || 0}
+                        </td>
+                        <td className="p-3.5 text-center">
+                          <span
+                            className={`inline-block w-2 h-2 rounded-full ${
+                              u.status === 'active' ? 'bg-emerald-500' : 'bg-slate-400'
+                            }`}
+                          />
+                        </td>
+                        <td className="p-3.5 text-right">
+                          <div className="flex items-center justify-end gap-1.5">
+                            <button
+                              onClick={() => handleEditClick(u)}
+                              className="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-slate-800 rounded-lg transition cursor-pointer"
+                              title={t('edit')}
+                            >
+                              <Edit className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setDeleteModal({ isOpen: true, item: u, isBulk: false })}
+                              className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-slate-800 rounded-lg transition cursor-pointer"
+                              title={t('delete')}
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>
           </div>
         </div>
       </div>
+
+      {/* Delete Confirmation Dialog Box */}
+      <ConfirmDeleteModal
+        isOpen={deleteModal.isOpen}
+        onClose={() => setDeleteModal({ isOpen: false, item: null, isBulk: false })}
+        onConfirm={handleConfirmDelete}
+        itemName={deleteModal.item?.name}
+        count={deleteModal.isBulk ? selectedIds.length : 1}
+        loading={deleting}
+      />
     </div>
   );
 };

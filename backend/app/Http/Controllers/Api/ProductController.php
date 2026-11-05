@@ -53,7 +53,18 @@ class ProductController extends Controller
             $query->where('status', $request->status);
         }
 
-        $perPage = $request->integer('per_page', 20);
+        if ($request->boolean('all') || $request->per_page === 'all') {
+            $products = $query->orderBy('name', 'asc')->get();
+            return response()->json([
+                'data' => $products,
+                'total' => $products->count(),
+                'current_page' => 1,
+                'last_page' => 1,
+                'per_page' => $products->count(),
+            ]);
+        }
+
+        $perPage = min(1000, max(5, $request->integer('per_page', 50)));
         $products = $query->orderBy('name', 'asc')->paginate($perPage);
 
         return response()->json($products);
@@ -71,6 +82,7 @@ class ProductController extends Controller
     public function findByBarcode($barcode)
     {
         $product = Product::with(['unit', 'category', 'brand'])
+            ->where('barcode', $barcode)
             ->where('barcode', $barcode)
             ->orWhere('sku', $barcode)
             ->first();
@@ -120,6 +132,7 @@ class ProductController extends Controller
         $validated['drive_file_id'] = $driveFileId;
         $validated['current_stock'] = $validated['current_stock'] ?? 0;
         $validated['alert_stock'] = $validated['alert_stock'] ?? 5;
+        $validated['tax_percent'] = isset($validated['tax_percent']) && $validated['tax_percent'] !== '' ? (float) $validated['tax_percent'] : 0.00;
 
         $product = Product::create($validated);
 
@@ -188,6 +201,10 @@ class ProductController extends Controller
             $validated['image_url'] = ImageHelper::normalize($request->input('image_url'));
         }
 
+        if ($request->has('tax_percent')) {
+            $validated['tax_percent'] = isset($validated['tax_percent']) && $validated['tax_percent'] !== '' ? (float) $validated['tax_percent'] : 0.00;
+        }
+
         $oldValues = $product->toArray();
         $product->update($validated);
 
@@ -203,12 +220,51 @@ class ProductController extends Controller
     {
         $product = Product::findOrFail($id);
         $name = $product->name;
+
+        // Permanently remove image files and relation records
+        if ($product->images()->exists()) {
+            $product->images()->delete();
+        }
+        if ($product->stockMovements()->exists()) {
+            $product->stockMovements()->delete();
+        }
+
+        // Hard delete row directly from MySQL database
         $product->delete();
 
-        ActivityLog::log('delete', "পণ্য '{$name}' মুছে ফেলা হয়েছে।", $product);
+        ActivityLog::log('delete', "পণ্য '{$name}' ডাটাবেজ থেকে সম্পূর্ণ মুছে ফেলা হয়েছে।");
 
         return response()->json([
-            'message' => "পণ্য '{$name}' সফলভাবে মুছে ফেলা হয়েছে।"
+            'message' => "পণ্য '{$name}' ডাটাবেজ থেকে সফলভাবে মুছে ফেলা হয়েছে।"
+        ]);
+    }
+
+    public function bulkDelete(Request $request)
+    {
+        $ids = $request->validate([
+            'ids' => 'required|array|min:1',
+            'ids.*' => 'required|integer',
+        ])['ids'];
+
+        $products = Product::whereIn('id', $ids)->get();
+        $count = $products->count();
+
+        foreach ($products as $product) {
+            if ($product->images()->exists()) {
+                $product->images()->delete();
+            }
+            if ($product->stockMovements()->exists()) {
+                $product->stockMovements()->delete();
+            }
+            // Hard delete from MySQL
+            $product->delete();
+        }
+
+        ActivityLog::log('delete', "{$count} টি পণ্য ডাটাবেজ থেকে সম্পূর্ণ মুছে ফেলা হয়েছে।");
+
+        return response()->json([
+            'message' => "{$count} টি পণ্য ডাটাবেজ থেকে সফলভাবে মুছে ফেলা হয়েছে।",
+            'deleted_count' => $count,
         ]);
     }
 
