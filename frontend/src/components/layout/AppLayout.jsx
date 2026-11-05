@@ -32,7 +32,14 @@ export const AppLayout = () => {
         if (hasPermission('reports.view')) return '/dashboard';
         if (hasPermission('sales.view')) return '/sales';
         if (hasPermission('products.view')) return '/products';
+        if (hasPermission('inventory.view')) return '/inventory';
         if (hasPermission('customers.view')) return '/customers';
+        if (hasPermission('purchases.view')) return '/purchases';
+        if (hasPermission('suppliers.view')) return '/suppliers';
+        if (hasPermission('expenses.view')) return '/expenses';
+        if (hasPermission('accounting.view')) return '/accounting';
+        if (hasPermission('employees.manage')) return '/employees';
+        if (hasPermission('settings.manage')) return '/settings';
         return '/profile';
       };
 
@@ -51,7 +58,7 @@ export const AppLayout = () => {
         navigate(getFallbackRoute(), { replace: true });
         return;
       }
-      if (path.startsWith('/dashboard') && !hasPermission('reports.view')) {
+      if ((path === '/' || path.startsWith('/dashboard')) && !hasPermission('reports.view')) {
         navigate(getFallbackRoute(), { replace: true });
         return;
       }

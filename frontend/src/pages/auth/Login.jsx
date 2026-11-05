@@ -45,10 +45,30 @@ export const Login = () => {
     try {
       const userData = await login(email, password);
       success(lang === 'bn' ? 'স্বাগতম! আপনি সফলভাবে সিস্টেমে লগইন করেছেন।' : 'Welcome! Successfully logged in.');
-      if (userData?.role?.slug === 'cashier') {
-        navigate('/pos');
-      } else {
+      const roleSlug = userData?.role?.slug;
+      const isSuper = roleSlug === 'super-admin' || userData?.email === 'admin@israfilbd.com';
+      if (isSuper) {
         navigate('/dashboard');
+      } else {
+        const perms = userData?.role?.permissions || [];
+        const has = (p) =>
+          perms.includes('*') ||
+          perms.includes(p) ||
+          perms.some((x) => (typeof x === 'string' ? x === p : x?.slug === p));
+
+        if (has('pos.access')) navigate('/pos');
+        else if (has('reports.view')) navigate('/dashboard');
+        else if (has('sales.view')) navigate('/sales');
+        else if (has('products.view')) navigate('/products');
+        else if (has('inventory.view')) navigate('/inventory');
+        else if (has('customers.view')) navigate('/customers');
+        else if (has('purchases.view')) navigate('/purchases');
+        else if (has('suppliers.view')) navigate('/suppliers');
+        else if (has('expenses.view')) navigate('/expenses');
+        else if (has('accounting.view')) navigate('/accounting');
+        else if (has('employees.manage')) navigate('/employees');
+        else if (has('settings.manage')) navigate('/settings');
+        else navigate('/profile');
       }
     } catch (err) {
       const msg = err.response?.data?.message || (lang === 'bn' ? 'লগইন ব্যর্থ হয়েছে। ইমেইল ও পাসওয়ার্ড চেক করুন।' : 'Login failed. Please check credentials.');

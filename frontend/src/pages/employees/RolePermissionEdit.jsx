@@ -666,3 +666,4 @@ export const RolePermissionEdit = () => {
 };
 
 export default RolePermissionEdit;
+
