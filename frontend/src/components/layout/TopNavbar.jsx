@@ -296,10 +296,12 @@ export const TopNavbar = ({ isCollapsed }) => {
           <div className="w-px h-3 bg-slate-300 dark:bg-slate-700" />
           <div className="flex items-center gap-1">
             <Clock className="w-3.5 h-3.5 text-indigo-500" />
-            <span>
+            <span className="font-mono tabular-nums">
               {currentTime.toLocaleTimeString(lang === 'bn' ? 'bn-BD' : 'en-US', {
                 hour: '2-digit',
                 minute: '2-digit',
+                second: '2-digit',
+                hour12: true,
               })}
             </span>
           </div>
