@@ -35,6 +35,10 @@ export const AuthProvider = ({ children }) => {
     const res = await api.post('/login', { email, password });
     const { access_token, user: userData } = res.data;
 
+    try {
+      sessionStorage.clear();
+    } catch (e) {}
+
     setToken(access_token);
     setUser(userData);
     localStorage.setItem('israfil_token', access_token);
@@ -49,6 +53,9 @@ export const AuthProvider = ({ children }) => {
     } catch (e) {
       // ignore network errors on logout
     } finally {
+      try {
+        sessionStorage.clear();
+      } catch (e) {}
       setUser(null);
       setToken(null);
       localStorage.removeItem('israfil_token');

@@ -80,13 +80,7 @@ export const PosTerminal = () => {
       return null;
     }
   });
-  const [productSearch, setProductSearch] = useState(() => {
-    try {
-      return sessionStorage.getItem('israfil_pos_search') || '';
-    } catch (e) {
-      return '';
-    }
-  });
+  const [productSearch, setProductSearch] = useState('');
   const [barcodeInput, setBarcodeInput] = useState('');
   const [loading, setLoading] = useState(() => {
     try {
@@ -127,10 +121,16 @@ export const PosTerminal = () => {
     }
   };
 
+  useEffect(() => {
+    try {
+      sessionStorage.removeItem('israfil_pos_search');
+    } catch (e) {}
+  }, []);
+
   const handleSearchChange = (val) => {
     setProductSearch(val);
     try {
-      sessionStorage.setItem('israfil_pos_search', val);
+      sessionStorage.removeItem('israfil_pos_search');
       sessionStorage.setItem('israfil_pos_catalog_scroll', '0');
     } catch (e) {}
     if (catalogScrollRef.current) {
@@ -1425,6 +1425,28 @@ export const PosTerminal = () => {
                 </button>
               </div>
             </div>
+
+            {/* Active Search Filter Banner */}
+            {productSearch && (
+              <div className="flex items-center justify-between px-3.5 py-2 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200/80 dark:border-amber-800/60 text-xs text-amber-800 dark:text-amber-300 animate-in fade-in">
+                <span className="flex items-center gap-1.5 font-medium">
+                  <Search className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+                  <span>
+                    {lang === 'bn'
+                      ? `"${productSearch}" অনুসন্ধানের ফলাফল: ${filteredProducts.length}টি পণ্য পাওয়া গেছে`
+                      : `Search results for "${productSearch}": ${filteredProducts.length} items`}
+                  </span>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => handleSearchChange('')}
+                  className="px-2 py-0.5 rounded-lg bg-amber-200/70 dark:bg-amber-900/60 hover:bg-amber-300 dark:hover:bg-amber-800 text-[11px] font-bold text-amber-900 dark:text-amber-200 flex items-center gap-1 transition cursor-pointer"
+                >
+                  <X className="w-3 h-3" />
+                  <span>{lang === 'bn' ? 'সব পণ্য দেখান' : 'Show All'}</span>
+                </button>
+              </div>
+            )}
 
             {/* Products Display (Empty State / 4-Col Grid View / List View) */}
             {filteredProducts.length === 0 ? (
