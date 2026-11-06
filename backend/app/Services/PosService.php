@@ -26,11 +26,30 @@ class PosService
                 throw new Exception('কার্ট খালি! কোনো পণ্য নির্বাচন করা হয়নি।');
             }
 
-            // 1. Generate unique invoice number
+            // 1. Generate unique collision-proof invoice number (scales safely to 100,000+ daily sales)
             $today = date('Ymd');
-            $lastSaleToday = Sale::whereDate('created_at', today())->latest('id')->first();
-            $seq = $lastSaleToday ? ((int) substr($lastSaleToday->invoice_number, -4)) + 1 : 1;
-            $invoiceNumber = 'INV-' . $today . '-' . str_pad($seq, 4, '0', STR_PAD_LEFT);
+            $prefix = 'INV-' . $today . '-';
+
+            // Find highest sequence today with row locking
+            $lastTodayInvoice = Sale::withTrashed()
+                ->where('invoice_number', 'like', "{$prefix}%")
+                ->orderByRaw('LENGTH(invoice_number) DESC, invoice_number DESC')
+                ->lockForUpdate()
+                ->value('invoice_number');
+
+            $seq = 1;
+            if ($lastTodayInvoice && str_starts_with($lastTodayInvoice, $prefix)) {
+                $numPart = substr($lastTodayInvoice, strlen($prefix));
+                if (is_numeric($numPart)) {
+                    $seq = (int) $numPart + 1;
+                }
+            }
+
+            $invoiceNumber = $prefix . str_pad($seq, 5, '0', STR_PAD_LEFT);
+            while (Sale::withTrashed()->where('invoice_number', $invoiceNumber)->exists()) {
+                $seq++;
+                $invoiceNumber = $prefix . str_pad($seq, 5, '0', STR_PAD_LEFT);
+            }
 
             // 2. Resolve Customer
             $customerId = $data['customer_id'] ?? null;

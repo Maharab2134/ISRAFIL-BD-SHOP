@@ -39,20 +39,8 @@ export const CustomerList = () => {
       return [];
     }
   });
-  const [search, setSearch] = useState(() => {
-    try {
-      return sessionStorage.getItem('israfil_customers_search') || '';
-    } catch (e) {
-      return '';
-    }
-  });
-  const [hasDueOnly, setHasDueOnly] = useState(() => {
-    try {
-      return sessionStorage.getItem('israfil_customers_has_due') === 'true';
-    } catch (e) {
-      return false;
-    }
-  });
+  const [search, setSearch] = useState('');
+  const [hasDueOnly, setHasDueOnly] = useState(false);
   const [pagination, setPagination] = useState(() => {
     try {
       const cached = sessionStorage.getItem('israfil_customers_pagination');
@@ -168,10 +156,11 @@ export const CustomerList = () => {
       setPagination(loadedPagination);
 
       try {
-        sessionStorage.setItem('israfil_customers_cache', JSON.stringify(loadedCustomers));
-        sessionStorage.setItem('israfil_customers_pagination', JSON.stringify(loadedPagination));
-        sessionStorage.setItem('israfil_customers_search', search);
-        sessionStorage.setItem('israfil_customers_has_due', String(hasDueOnly));
+        const custJson = JSON.stringify(loadedCustomers);
+        if (custJson.length < 500000) {
+          sessionStorage.setItem('israfil_customers_cache', custJson);
+          sessionStorage.setItem('israfil_customers_pagination', JSON.stringify(loadedPagination));
+        }
       } catch (e) {}
     } catch (e) {
       error(lang === 'bn' ? 'গ্রাহক তালিকা লোড করতে সমস্যা হয়েছে।' : 'Failed to load customer list.');

@@ -27,34 +27,10 @@ export const SaleList = () => {
       return [];
     }
   });
-  const [search, setSearch] = useState(() => {
-    try {
-      return sessionStorage.getItem('israfil_sales_search') || '';
-    } catch (e) {
-      return '';
-    }
-  });
-  const [startDate, setStartDate] = useState(() => {
-    try {
-      return sessionStorage.getItem('israfil_sales_start_date') || '';
-    } catch (e) {
-      return '';
-    }
-  });
-  const [endDate, setEndDate] = useState(() => {
-    try {
-      return sessionStorage.getItem('israfil_sales_end_date') || '';
-    } catch (e) {
-      return '';
-    }
-  });
-  const [paymentStatus, setPaymentStatus] = useState(() => {
-    try {
-      return sessionStorage.getItem('israfil_sales_payment_status') || '';
-    } catch (e) {
-      return '';
-    }
-  });
+  const [search, setSearch] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [paymentStatus, setPaymentStatus] = useState('');
   const [pagination, setPagination] = useState(() => {
     try {
       const cached = sessionStorage.getItem('israfil_sales_pagination');
@@ -99,12 +75,11 @@ export const SaleList = () => {
       setPagination(loadedPagination);
 
       try {
-        sessionStorage.setItem('israfil_sales_cache', JSON.stringify(loadedSales));
-        sessionStorage.setItem('israfil_sales_pagination', JSON.stringify(loadedPagination));
-        sessionStorage.setItem('israfil_sales_search', search);
-        sessionStorage.setItem('israfil_sales_start_date', startDate);
-        sessionStorage.setItem('israfil_sales_end_date', endDate);
-        sessionStorage.setItem('israfil_sales_payment_status', paymentStatus);
+        const salesJson = JSON.stringify(loadedSales);
+        if (salesJson.length < 500000) {
+          sessionStorage.setItem('israfil_sales_cache', salesJson);
+          sessionStorage.setItem('israfil_sales_pagination', JSON.stringify(loadedPagination));
+        }
       } catch (e) {}
     } catch (e) {
       error(lang === 'bn' ? 'বিক্রয় তালিকা লোড করতে সমস্যা হয়েছে।' : 'Failed to load sale list.');

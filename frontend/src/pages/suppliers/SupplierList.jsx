@@ -27,13 +27,7 @@ export const SupplierList = () => {
       return [];
     }
   });
-  const [search, setSearch] = useState(() => {
-    try {
-      return sessionStorage.getItem('israfil_suppliers_search') || '';
-    } catch (e) {
-      return '';
-    }
-  });
+  const [search, setSearch] = useState('');
   const [pagination, setPagination] = useState(() => {
     try {
       const cached = sessionStorage.getItem('israfil_suppliers_pagination');
@@ -78,9 +72,11 @@ export const SupplierList = () => {
       setPagination(loadedPagination);
 
       try {
-        sessionStorage.setItem('israfil_suppliers_cache', JSON.stringify(loadedSuppliers));
-        sessionStorage.setItem('israfil_suppliers_pagination', JSON.stringify(loadedPagination));
-        sessionStorage.setItem('israfil_suppliers_search', search);
+        const suppJson = JSON.stringify(loadedSuppliers);
+        if (suppJson.length < 500000) {
+          sessionStorage.setItem('israfil_suppliers_cache', suppJson);
+          sessionStorage.setItem('israfil_suppliers_pagination', JSON.stringify(loadedPagination));
+        }
       } catch (e) {}
     } catch (e) {
       error(lang === 'bn' ? 'সরবরাহকারী তালিকা লোড করতে সমস্যা হয়েছে।' : 'Failed to load supplier list.');

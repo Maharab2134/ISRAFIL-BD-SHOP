@@ -72,14 +72,7 @@ export const PosTerminal = () => {
       return [];
     }
   });
-  const [selectedCategory, setSelectedCategory] = useState(() => {
-    try {
-      const saved = sessionStorage.getItem('israfil_pos_selected_cat');
-      return saved ? JSON.parse(saved) : null;
-    } catch (e) {
-      return null;
-    }
-  });
+  const [selectedCategory, setSelectedCategory] = useState(null);
   const [productSearch, setProductSearch] = useState('');
   const [barcodeInput, setBarcodeInput] = useState('');
   const [loading, setLoading] = useState(() => {
@@ -113,7 +106,6 @@ export const PosTerminal = () => {
   const handleSelectCategory = (catId) => {
     setSelectedCategory(catId);
     try {
-      sessionStorage.setItem('israfil_pos_selected_cat', JSON.stringify(catId));
       sessionStorage.setItem('israfil_pos_catalog_scroll', '0');
     } catch (e) {}
     if (catalogScrollRef.current) {
@@ -124,6 +116,7 @@ export const PosTerminal = () => {
   useEffect(() => {
     try {
       sessionStorage.removeItem('israfil_pos_search');
+      sessionStorage.removeItem('israfil_pos_selected_cat');
     } catch (e) {}
   }, []);
 
@@ -218,11 +211,16 @@ export const PosTerminal = () => {
   });
   const [customerPhone, setCustomerPhone] = useState(() => {
     try {
-      return (
-        sessionStorage.getItem('israfil_pos_customer_phone') ||
-        sessionStorage.getItem('israfil_pos_walkin_phone') ||
-        ''
-      );
+      // Only retain phone if there is an active unsaved cart in the session
+      const savedCart = sessionStorage.getItem('israfil_pos_cart');
+      if (savedCart && JSON.parse(savedCart).length > 0) {
+        return (
+          sessionStorage.getItem('israfil_pos_customer_phone') ||
+          sessionStorage.getItem('israfil_pos_walkin_phone') ||
+          ''
+        );
+      }
+      return '';
     } catch (e) {
       return '';
     }
@@ -248,6 +246,30 @@ export const PosTerminal = () => {
   useEffect(() => {
     setIsRedeemingPoints(false);
   }, [customerPhone]);
+
+  // Live remote customer search if customer phone/name is not in preloaded 200 pool
+  useEffect(() => {
+    const trimmed = customerPhone.trim();
+    const cleanDigits = trimmed.replace(/\D/g, '');
+    if ((cleanDigits.length >= 6 || trimmed.length >= 4) && !matchedCustomer) {
+      const timer = setTimeout(async () => {
+        try {
+          const res = await api.get(`/customers?search=${encodeURIComponent(trimmed)}&per_page=5`);
+          const foundList = res.data?.data || [];
+          if (foundList.length > 0) {
+            setCustomers((prev) => {
+              const existingIds = new Set(prev.map((c) => c.id));
+              const newItems = foundList.filter((c) => !existingIds.has(c.id));
+              return newItems.length > 0 ? [...prev, ...newItems] : prev;
+            });
+          }
+        } catch (e) {
+          // ignore lookup errors
+        }
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [customerPhone, matchedCustomer]);
 
   // Sync cart & customer phone to sessionStorage
   useEffect(() => {
@@ -305,11 +327,15 @@ export const PosTerminal = () => {
       setCustomers(loadedCustomers);
       setProducts(loadedProducts);
 
-      // Persist POS cache in sessionStorage so returning from ProductDetails is instant
+      // Persist POS cache safely in sessionStorage without overflowing quota
       try {
         sessionStorage.setItem('israfil_pos_customers_cache', JSON.stringify(loadedCustomers));
         sessionStorage.setItem('israfil_pos_categories_cache', JSON.stringify(loadedCategories));
-        sessionStorage.setItem('israfil_pos_products_cache', JSON.stringify(loadedProducts));
+        const prodJson = JSON.stringify(loadedProducts);
+        // Only cache in sessionStorage if within safe browser storage size (<1.5MB)
+        if (prodJson.length < 1500000) {
+          sessionStorage.setItem('israfil_pos_products_cache', prodJson);
+        }
       } catch (e) {}
 
       if (res.data.shop_settings) {

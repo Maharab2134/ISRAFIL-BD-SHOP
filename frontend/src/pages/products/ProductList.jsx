@@ -62,34 +62,10 @@ export const ProductList = () => {
       return [];
     }
   });
-  const [search, setSearch] = useState(() => {
-    try {
-      return sessionStorage.getItem('israfil_products_search') || '';
-    } catch (e) {
-      return '';
-    }
-  });
-  const [selectedCat, setSelectedCat] = useState(() => {
-    try {
-      return sessionStorage.getItem('israfil_products_cat') || '';
-    } catch (e) {
-      return '';
-    }
-  });
-  const [selectedBrand, setSelectedBrand] = useState(() => {
-    try {
-      return sessionStorage.getItem('israfil_products_brand') || '';
-    } catch (e) {
-      return '';
-    }
-  });
-  const [lowStockOnly, setLowStockOnly] = useState(() => {
-    try {
-      return sessionStorage.getItem('israfil_products_low_stock') === 'true';
-    } catch (e) {
-      return false;
-    }
-  });
+  const [search, setSearch] = useState('');
+  const [selectedCat, setSelectedCat] = useState('');
+  const [selectedBrand, setSelectedBrand] = useState('');
+  const [lowStockOnly, setLowStockOnly] = useState(false);
   const [perPage, setPerPage] = useState(() => {
     try {
       return sessionStorage.getItem('israfil_products_per_page') || '50';
@@ -211,13 +187,12 @@ export const ProductList = () => {
 
       // Persist state so returning back from ProductDetails restores view instantly
       try {
-        sessionStorage.setItem('israfil_products_cache', JSON.stringify(loadedProducts));
-        sessionStorage.setItem('israfil_products_pagination', JSON.stringify(loadedPagination));
-        sessionStorage.setItem('israfil_products_search', search);
-        sessionStorage.setItem('israfil_products_cat', selectedCat);
-        sessionStorage.setItem('israfil_products_brand', selectedBrand);
-        sessionStorage.setItem('israfil_products_low_stock', String(lowStockOnly));
-        sessionStorage.setItem('israfil_products_per_page', String(perPage));
+        // Only cache page data if safe; avoid sticky search/filter pollution
+        const prodJson = JSON.stringify(loadedProducts);
+        if (prodJson.length < 500000) {
+          sessionStorage.setItem('israfil_products_cache', prodJson);
+          sessionStorage.setItem('israfil_products_pagination', JSON.stringify(loadedPagination));
+        }
       } catch (e) {}
     } catch (e) {
       error(lang === 'bn' ? 'পণ্য তালিকা লোড করতে সমস্যা হয়েছে।' : 'Failed to load product list.');

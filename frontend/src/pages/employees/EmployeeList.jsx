@@ -43,13 +43,7 @@ export default function EmployeeList() {
       return true;
     }
   });
-  const [search, setSearch] = useState(() => {
-    try {
-      return sessionStorage.getItem('israfil_employees_search') || '';
-    } catch (e) {
-      return '';
-    }
-  });
+  const [search, setSearch] = useState('');
   const [pagination, setPagination] = useState(() => {
     try {
       const cached = sessionStorage.getItem('israfil_employees_pagination');
@@ -82,9 +76,11 @@ export default function EmployeeList() {
       setPagination(loadedPagination);
 
       try {
-        sessionStorage.setItem('israfil_employees_cache', JSON.stringify(loadedEmployees));
-        sessionStorage.setItem('israfil_employees_pagination', JSON.stringify(loadedPagination));
-        sessionStorage.setItem('israfil_employees_search', searchQuery);
+        const empJson = JSON.stringify(loadedEmployees);
+        if (empJson.length < 500000) {
+          sessionStorage.setItem('israfil_employees_cache', empJson);
+          sessionStorage.setItem('israfil_employees_pagination', JSON.stringify(loadedPagination));
+        }
       } catch (e) {}
     } catch (err) {
       error(lang === 'bn' ? 'কর্মী তালিকা লোড করতে সমস্যা হয়েছে।' : 'Failed to load employee list.');

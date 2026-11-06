@@ -25,13 +25,7 @@ export const PurchaseList = () => {
       return [];
     }
   });
-  const [search, setSearch] = useState(() => {
-    try {
-      return sessionStorage.getItem('israfil_purchases_search') || '';
-    } catch (e) {
-      return '';
-    }
-  });
+  const [search, setSearch] = useState('');
   const [pagination, setPagination] = useState(() => {
     try {
       const cached = sessionStorage.getItem('israfil_purchases_pagination');
@@ -71,9 +65,11 @@ export const PurchaseList = () => {
       setPagination(loadedPagination);
 
       try {
-        sessionStorage.setItem('israfil_purchases_cache', JSON.stringify(loadedPurchases));
-        sessionStorage.setItem('israfil_purchases_pagination', JSON.stringify(loadedPagination));
-        sessionStorage.setItem('israfil_purchases_search', search);
+        const purJson = JSON.stringify(loadedPurchases);
+        if (purJson.length < 500000) {
+          sessionStorage.setItem('israfil_purchases_cache', purJson);
+          sessionStorage.setItem('israfil_purchases_pagination', JSON.stringify(loadedPagination));
+        }
       } catch (e) {}
     } catch (e) {
       error(lang === 'bn' ? 'ক্রয় তালিকা লোড করতে সমস্যা হয়েছে।' : 'Failed to load purchase list.');

@@ -93,8 +93,11 @@ export const ExpenseList = () => {
       setPagination(loadedPagination);
 
       try {
-        sessionStorage.setItem('israfil_expenses_cache', JSON.stringify(loadedExpenses));
-        sessionStorage.setItem('israfil_expenses_pagination', JSON.stringify(loadedPagination));
+        const expJson = JSON.stringify(loadedExpenses);
+        if (expJson.length < 500000) {
+          sessionStorage.setItem('israfil_expenses_cache', expJson);
+          sessionStorage.setItem('israfil_expenses_pagination', JSON.stringify(loadedPagination));
+        }
       } catch (e) {}
     } catch (e) {
       error(lang === 'bn' ? 'খরচের তালিকা লোড করতে সমস্যা হয়েছে।' : 'Failed to load expense list.');

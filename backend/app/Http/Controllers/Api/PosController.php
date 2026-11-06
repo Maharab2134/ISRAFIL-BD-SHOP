@@ -27,7 +27,9 @@ class PosController extends Controller
     public function getPosData(Request $request)
     {
         $categories = Category::where('status', 'active')->orderBy('name')->get();
-        $customers = Customer::where('status', 'active')->orderBy('name')->get();
+        // Limit initial preloaded customers to the 200 most recent active customers for fast load time.
+        // POS terminal performs live remote search when typing customer phone/name outside this pool.
+        $customers = Customer::where('status', 'active')->latest('id')->limit(200)->get();
 
         $query = Product::with(['unit', 'category', 'brand'])
             ->where('status', 'active');
