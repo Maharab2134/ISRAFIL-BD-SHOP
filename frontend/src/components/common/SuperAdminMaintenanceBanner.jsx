@@ -62,3 +62,6 @@ export const SuperAdminMaintenanceBanner = ({ module }) => {
     </div>
   );
 };
+
+export default SuperAdminMaintenanceBanner;
+

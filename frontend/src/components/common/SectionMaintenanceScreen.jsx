@@ -78,3 +78,6 @@ export const SectionMaintenanceScreen = ({ module }) => {
     </div>
   );
 };
+
+export default SectionMaintenanceScreen;
+

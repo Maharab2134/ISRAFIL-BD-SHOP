@@ -7,7 +7,7 @@ import { LanguageProvider } from './context/LanguageContext';
 import { ToastProvider } from './context/ToastContext';
 import { AuthProvider } from './context/AuthContext';
 import { SystemModuleProvider } from './context/SystemModuleContext';
-import { ErrorBoundary } from './components/common/ErrorBoundary';
+import ErrorBoundary from './components/common/ErrorBoundary';
 import './index.css';
 
 ReactDOM.createRoot(document.getElementById('root')).render(

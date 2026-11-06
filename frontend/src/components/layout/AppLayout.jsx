@@ -3,9 +3,9 @@ import { Outlet, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { ShortcutProvider } from '../../context/ShortcutContext';
 import { useSystemModules } from '../../context/SystemModuleContext';
-import { ErrorBoundary } from '../common/ErrorBoundary';
-import { SectionMaintenanceScreen } from '../common/SectionMaintenanceScreen';
-import { SuperAdminMaintenanceBanner } from '../common/SuperAdminMaintenanceBanner';
+import ErrorBoundary from '../common/ErrorBoundary';
+import SectionMaintenanceScreen from '../common/SectionMaintenanceScreen';
+import SuperAdminMaintenanceBanner from '../common/SuperAdminMaintenanceBanner';
 import { Sidebar } from './Sidebar';
 import { TopNavbar } from './TopNavbar';
 
