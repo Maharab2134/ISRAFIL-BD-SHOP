@@ -2,15 +2,23 @@ import React, { useState, useEffect } from 'react';
 import { Outlet, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { ShortcutProvider } from '../../context/ShortcutContext';
+import { useSystemModules } from '../../context/SystemModuleContext';
+import { ErrorBoundary } from '../common/ErrorBoundary';
+import { SectionMaintenanceScreen } from '../common/SectionMaintenanceScreen';
+import { SuperAdminMaintenanceBanner } from '../common/SuperAdminMaintenanceBanner';
 import { Sidebar } from './Sidebar';
 import { TopNavbar } from './TopNavbar';
 
 export const AppLayout = () => {
   const { user, isAuthenticated, loading, hasPermission } = useAuth();
+  const { getMaintenanceInfo } = useSystemModules();
   const location = useLocation();
   const navigate = useNavigate();
   const isPos = location.pathname.startsWith('/pos');
   const [isCollapsed, setIsCollapsed] = useState(() => window.location.pathname.startsWith('/pos'));
+
+  const isSuperAdmin = user?.role?.slug === 'super-admin' || user?.email === 'admin@israfilbd.com';
+  const { isUnderMaintenance, module: currentModule } = getMaintenanceInfo(location.pathname);
 
   // Automatically collapse sidebar on POS terminal to give maximum screen width for products
   useEffect(() => {
@@ -163,7 +171,16 @@ export const AppLayout = () => {
             }`}
         >
           <div className={isPos ? "p-1.5 sm:p-2.5 w-full print:p-0 print:m-0" : "p-3 sm:p-4 md:p-5 w-full print:p-0 print:m-0"}>
-            <Outlet />
+            {isUnderMaintenance && !isSuperAdmin ? (
+              <SectionMaintenanceScreen module={currentModule} />
+            ) : (
+              <ErrorBoundary key={location.pathname} section={currentModule?.name_bn || currentModule?.name || location.pathname}>
+                {isUnderMaintenance && isSuperAdmin && (
+                  <SuperAdminMaintenanceBanner module={currentModule} />
+                )}
+                <Outlet />
+              </ErrorBoundary>
+            )}
           </div>
         </main>
       </div>

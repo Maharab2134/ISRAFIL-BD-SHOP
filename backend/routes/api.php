@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\SaleController;
 use App\Http\Controllers\Api\SettingController;
 use App\Http\Controllers\Api\SupplierController;
+use App\Http\Controllers\Api\SystemModuleController;
 use App\Http\Controllers\Api\UnitController;
 use Illuminate\Support\Facades\Route;
 
@@ -128,4 +129,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/settings/backup/download', [SettingController::class, 'downloadBackup']);
     Route::get('/settings/database/stats', [SettingController::class, 'getDatabaseStats']);
     Route::post('/settings/database/clear', [SettingController::class, 'clearDatabase']);
+
+    // System Modules Maintenance & Crash Error Reporting
+    Route::get('/system/modules', [SystemModuleController::class, 'getModules']);
+    Route::post('/system/modules/toggle', [SystemModuleController::class, 'toggleModule']);
+    Route::post('/system/report-error', [SystemModuleController::class, 'reportError']);
+    Route::post('/system/errors/clear', [SystemModuleController::class, 'clearErrors']);
 });
+
+// Allow client-side crash error reporting even if session expired
+Route::post('/system/report-error', [SystemModuleController::class, 'reportError']);

@@ -17,10 +17,14 @@ import {
   Volume2,
   VolumeX,
   Keyboard,
+  AlertTriangle,
+  Wrench,
+  ShieldAlert,
 } from 'lucide-react';
 import api from '../../services/api';
 import { playNotificationChime } from '../../utils/sound';
 import { useShortcuts } from '../../context/ShortcutContext';
+import { useSystemModules } from '../../context/SystemModuleContext';
 
 export const TopNavbar = ({ isCollapsed }) => {
   const { user, logout, hasPermission } = useAuth();
@@ -55,6 +59,8 @@ export const TopNavbar = ({ isCollapsed }) => {
   const [notifications, setNotifications] = useState([]);
   const [activeDropdown, setActiveDropdown] = useState(null); // 'notifications' | 'user' | null
   const [currentTime, setCurrentTime] = useState(new Date());
+
+  const { recentErrors = [], unreadErrorCount = 0, fetchModules } = useSystemModules();
 
   // Refs for outside-click detection
   const notificationsRef = useRef(null);
@@ -162,6 +168,20 @@ export const TopNavbar = ({ isCollapsed }) => {
       clearInterval(interval);
     };
   }, [soundEnabled]);
+
+  // Listen for instant client-side crash alerts
+  useEffect(() => {
+    const handleSystemErrorAlert = () => {
+      if (soundEnabled && isSuperAdmin) {
+        playNotificationChime(0.45);
+      }
+      if (isSuperAdmin && fetchModules) {
+        fetchModules();
+      }
+    };
+    window.addEventListener('israfil:system-error', handleSystemErrorAlert);
+    return () => window.removeEventListener('israfil:system-error', handleSystemErrorAlert);
+  }, [soundEnabled, isSuperAdmin, fetchModules]);
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
@@ -359,22 +379,28 @@ export const TopNavbar = ({ isCollapsed }) => {
               title={t('notifications')}
             >
               <Bell className="w-4 h-4" />
-              {notifications.length > 0 && (
+              {(notifications.length > 0 || (isSuperAdmin && unreadErrorCount > 0)) && (
                 <span className="absolute -top-1 -right-1 w-4 h-4 bg-rose-500 text-white rounded-full text-[10px] font-bold flex items-center justify-center animate-pulse">
-                  {notifications.length}
+                  {notifications.length + (isSuperAdmin ? unreadErrorCount : 0)}
                 </span>
               )}
             </button>
 
             {activeDropdown === 'notifications' && (
-              <div className="absolute right-0 mt-2 w-80 sm:w-88 rounded-2xl bg-white dark:bg-slate-800 shadow-2xl border border-slate-200 dark:border-slate-700 py-3 z-50 animate-in fade-in zoom-in-95 duration-150">
+              <div className="absolute right-0 mt-2 w-80 sm:w-92 rounded-2xl bg-white dark:bg-slate-800 shadow-2xl border border-slate-200 dark:border-slate-700 py-3 z-50 animate-in fade-in zoom-in-95 duration-150">
                 {/* Header */}
                 <div className="px-4 pb-2.5 border-b border-slate-100 dark:border-slate-700/80 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <span className="font-bold text-xs text-slate-900 dark:text-white">
                       {t('notifications')}
                     </span>
-                    <span className="text-[10px] bg-rose-100 dark:bg-rose-950 text-rose-600 dark:text-rose-300 font-bold px-1.5 py-0.5 rounded-full">
+                    {isSuperAdmin && unreadErrorCount > 0 && (
+                      <span className="text-[10px] bg-rose-500 text-white font-bold px-1.5 py-0.5 rounded-full flex items-center gap-1">
+                        <AlertTriangle className="w-2.5 h-2.5" />
+                        {unreadErrorCount}
+                      </span>
+                    )}
+                    <span className="text-[10px] bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300 font-bold px-1.5 py-0.5 rounded-full">
                       {notifications.length} {t('lowStock')}
                     </span>
                   </div>
@@ -419,8 +445,43 @@ export const TopNavbar = ({ isCollapsed }) => {
                 </div>
 
                 {/* Notification Items List */}
-                <div className="max-h-64 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-700/50">
-                  {notifications.length === 0 ? (
+                <div className="max-h-80 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-700/50">
+                  {/* System Crash Alerts for Super Admin */}
+                  {isSuperAdmin && recentErrors.length > 0 && (
+                    <div className="p-2.5 bg-rose-50/70 dark:bg-rose-950/40 border-b border-rose-100 dark:border-rose-900/60">
+                      <div className="flex items-center justify-between px-1.5 py-1 mb-1">
+                        <span className="text-[11px] font-bold text-rose-700 dark:text-rose-400 flex items-center gap-1">
+                          <AlertTriangle className="w-3.5 h-3.5" />
+                          <span>সিস্টেম ক্র্যাশ সতর্কতা (Crash Alerts)</span>
+                        </span>
+                        <Link
+                          to="/settings?tab=maintenance"
+                          onClick={() => setActiveDropdown(null)}
+                          className="text-[10px] text-indigo-600 dark:text-indigo-400 font-semibold hover:underline"
+                        >
+                          ম্যানেজ করুন
+                        </Link>
+                      </div>
+                      <div className="space-y-1.5">
+                        {recentErrors.slice(0, 3).map((err) => (
+                          <div
+                            key={err.id}
+                            className="p-2 rounded-xl bg-white dark:bg-slate-800 border border-rose-200 dark:border-rose-800/60 text-xs shadow-2xs"
+                          >
+                            <div className="flex items-center justify-between text-[10px] font-semibold text-rose-600 dark:text-rose-400 mb-0.5">
+                              <span>সেকশন: {err.new_values?.section || 'System'}</span>
+                              <span className="text-slate-400">{new Date(err.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                            </div>
+                            <p className="text-[11px] text-slate-700 dark:text-slate-200 line-clamp-2">
+                              {err.new_values?.error_message || err.description}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {notifications.length === 0 && (!isSuperAdmin || recentErrors.length === 0) ? (
                     <div className="p-4 text-xs text-center text-slate-400">
                       {lang === 'bn' ? 'কোনো নতুন নোটিফিকেশন নেই' : 'No new notifications'}
                     </div>

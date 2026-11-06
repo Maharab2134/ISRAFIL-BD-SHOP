@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useLanguage } from '../../context/LanguageContext';
 import { useToast } from '../../context/ToastContext';
+import { useSystemModules } from '../../context/SystemModuleContext';
 import api from '../../services/api';
 import { BarcodeSvg } from '../../components/common/BarcodeSvg';
 import { normalizeImageUrl } from '../../utils/imageHelper';
@@ -40,16 +42,35 @@ import {
   Package,
   ShoppingBag,
   Users,
+  Wrench,
+  Power,
+  Hammer,
 } from 'lucide-react';
 
 export default function ShopSettings() {
   const { t, lang, formatCurrency } = useLanguage();
   const { success, error, info } = useToast();
 
+  const location = useLocation();
+  const queryTab = new URLSearchParams(location.search).get('tab');
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [backupLoading, setBackupLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState('general');
+  const [activeTab, setActiveTab] = useState(queryTab || 'general');
+
+  // System Module Maintenance & Error Logging Context
+  const { modules = {}, toggleModuleMaintenance, recentErrors = [], clearErrorLogs, fetchModules } = useSystemModules();
+  const [moduleToggling, setModuleToggling] = useState({});
+  const [clearingErrors, setClearingErrors] = useState(false);
+  const [expandedErrorId, setExpandedErrorId] = useState(null);
+  const [customMessages, setCustomMessages] = useState({});
+
+  useEffect(() => {
+    if (queryTab) {
+      setActiveTab(queryTab);
+    }
+  }, [queryTab]);
 
   // Database Management State
   const [dbStats, setDbStats] = useState(null);
@@ -403,10 +424,27 @@ export default function ShopSettings() {
           <Database className="w-4 h-4" />
           {lang === 'bn' ? 'ডাটাবেজ ও ব্যাকআপ' : 'Database & Backup'}
         </button>
+
+        <button
+          onClick={() => setActiveTab('maintenance')}
+          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold border-b-2 transition -mb-px ${
+            activeTab === 'maintenance'
+              ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400 font-bold'
+              : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+          }`}
+        >
+          <Wrench className="w-4 h-4" />
+          <span>{lang === 'bn' ? 'সেকশন নিয়ন্ত্রণ ও রক্ষণাবেক্ষণ' : 'Section Maintenance'}</span>
+          {recentErrors.length > 0 && (
+            <span className="px-1.5 py-0.2 rounded-full bg-rose-500 text-white text-[10px] font-bold">
+              {recentErrors.length}
+            </span>
+          )}
+        </button>
       </div>
 
       {/* Main Settings Form */}
-      {activeTab !== 'backup' && (
+      {activeTab !== 'backup' && activeTab !== 'maintenance' && (
         <form onSubmit={handleSave} className="bg-white dark:bg-[#1E293B] p-6 sm:p-8 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
           {/* General Tab */}
           {activeTab === 'general' && (
@@ -1240,6 +1278,295 @@ export default function ShopSettings() {
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Section Maintenance & System Control Tab */}
+      {activeTab === 'maintenance' && (
+        <div className="space-y-6 animate-in fade-in duration-200">
+          {/* 1. Maintenance Mode Information & Explanation */}
+          <div className="bg-white dark:bg-[#1E293B] p-6 sm:p-8 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200 dark:border-slate-800">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+                  <Wrench className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
+                    <span>{lang === 'bn' ? 'সেকশন নিয়ন্ত্রণ ও রক্ষণাবেক্ষণ মোড' : 'Section Maintenance & Developer Controls'}</span>
+                    <span className="text-[10px] bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 font-extrabold px-2 py-0.5 rounded-full uppercase">
+                      {lang === 'bn' ? 'সুপার অ্যাডমিন' : 'Super Admin'}
+                    </span>
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    {lang === 'bn'
+                      ? 'যেকোনো সেকশন সাময়িক নিষ্ক্রিয় বা রক্ষণাবেক্ষণে রাখুন যাতে সাধারণ ব্যবহারকারীদের অসুবিধা ছাড়া নিরাপদে আপডেট করা যায়।'
+                      : 'Toggle any section into maintenance for safe upgrades. Non-admin users see maintenance screen, super admin retains full test access.'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={fetchModules}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 transition cursor-pointer"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  <span>{lang === 'bn' ? 'রিফ্রেশ' : 'Refresh'}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Explanatory Notice */}
+            <div className="p-4 rounded-xl bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 text-xs sm:text-sm text-amber-900 dark:text-amber-300 flex items-start gap-3">
+              <ShieldAlert className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+              <div className="space-y-1">
+                <p className="font-bold">
+                  {lang === 'bn' ? 'কীভাবে এটি কাজ করে?' : 'How Section Maintenance works:'}
+                </p>
+                <p className="text-xs text-amber-800 dark:text-amber-300/90 leading-relaxed">
+                  {lang === 'bn'
+                    ? '১. আপনি কোনো সেকশন বন্ধ (Maintenance ON) করলে সাধারণ ক্যাশিয়ার বা স্টাফরা ঐ সেকশনে ঢুকলে "This section will be back soon for maintenance" বার্তা দেখতে পাবেন।\n২. সুপার অ্যাডমিন ও ডেভেলপার সবসময় অবাধে ভেতরে ঢুকতে পারবেন এবং প্রিভিউ ব্যানার দেখতে পাবেন — ফলে লাইভ ওয়েবসাইটে কোনো সমস্যা ছাড়াই উন্নয়ন করা যাবে।'
+                    : 'When a section is paused, general users see a polite maintenance screen. Super admins and developers retain full access with a preview banner.'}
+                </p>
+              </div>
+            </div>
+
+            {/* Grid of Controllable Modules */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-2">
+              {Object.values(modules).map((mod) => {
+                const isUnder = Boolean(mod.is_maintenance);
+                const isBusy = Boolean(moduleToggling[mod.id]);
+                const customMsg = customMessages[mod.id] ?? (lang === 'bn' ? mod.message_bn : mod.message) ?? '';
+
+                return (
+                  <div
+                    key={mod.id}
+                    className={`p-4 sm:p-5 rounded-2xl border transition-all duration-200 flex flex-col justify-between gap-4 ${
+                      isUnder
+                        ? 'bg-amber-50/60 dark:bg-amber-950/20 border-amber-300 dark:border-amber-800/80 shadow-xs'
+                        : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-300'
+                    }`}
+                  >
+                    <div>
+                      <div className="flex items-center justify-between gap-2 mb-2">
+                        <div className="flex items-center gap-2">
+                          <div
+                            className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
+                              isUnder
+                                ? 'bg-amber-500 text-white shadow-xs'
+                                : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
+                            }`}
+                          >
+                            <Wrench className="w-4 h-4" />
+                          </div>
+                          <div>
+                            <h4 className="font-bold text-sm text-slate-900 dark:text-white">
+                              {lang === 'bn' ? mod.name_bn || mod.name : mod.name}
+                            </h4>
+                            <span className="text-[11px] text-slate-400 font-mono">
+                              {mod.routes?.join(', ') || mod.id}
+                            </span>
+                          </div>
+                        </div>
+
+                        <span
+                          className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full shrink-0 ${
+                            isUnder
+                              ? 'bg-amber-100 dark:bg-amber-900/60 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-700 animate-pulse'
+                              : 'bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
+                          }`}
+                        >
+                          {isUnder ? (lang === 'bn' ? 'রক্ষণাবেক্ষণে' : 'Maintenance') : (lang === 'bn' ? 'সক্রিয়' : 'Active')}
+                        </span>
+                      </div>
+
+                      {/* Custom Notice Input */}
+                      <div className="mt-2.5">
+                        <label className="text-[10.5px] font-semibold text-slate-500 dark:text-slate-400 block mb-1">
+                          {lang === 'bn' ? 'ইউজারদের জন্য নোটিশ বার্তা:' : 'User Maintenance Notice:'}
+                        </label>
+                        <input
+                          type="text"
+                          value={customMsg}
+                          onChange={(e) => setCustomMessages((prev) => ({ ...prev, [mod.id]: e.target.value }))}
+                          placeholder={lang === 'bn' ? 'এই সেকশনটি রক্ষণাবেক্ষণের জন্য সাময়িক বন্ধ আছে।' : 'This section is temporarily paused for maintenance.'}
+                          className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Toggle Button */}
+                    <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between">
+                      <span className="text-[11px] text-slate-400">
+                        {isUnder
+                          ? (lang === 'bn' ? 'সাধারণ ইউজার ব্লকড' : 'Blocked for users')
+                          : (lang === 'bn' ? 'সকলের জন্য উন্মুক্ত' : 'Available for all')}
+                      </span>
+
+                      <button
+                        type="button"
+                        disabled={isBusy}
+                        onClick={async () => {
+                          setModuleToggling((prev) => ({ ...prev, [mod.id]: true }));
+                          const res = await toggleModuleMaintenance(
+                            mod.id,
+                            !isUnder,
+                            customMessages[mod.id] || mod.message,
+                            customMessages[mod.id] || mod.message_bn
+                          );
+                          setModuleToggling((prev) => ({ ...prev, [mod.id]: false }));
+                          if (res.success) {
+                            success(res.message);
+                          } else {
+                            error(res.message);
+                          }
+                        }}
+                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow-xs active:scale-95 cursor-pointer disabled:opacity-50 ${
+                          isUnder
+                            ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                            : 'bg-amber-500 hover:bg-amber-600 text-white'
+                        }`}
+                      >
+                        <Power className="w-3.5 h-3.5" />
+                        <span>
+                          {isBusy
+                            ? lang === 'bn' ? 'আপডেট হচ্ছে...' : 'Updating...'
+                            : isUnder
+                            ? lang === 'bn' ? 'পুনরায় সক্রিয় করুন' : 'Turn Active'
+                            : lang === 'bn' ? 'রক্ষণাবেক্ষণে নিন' : 'Set Maintenance'}
+                        </span>
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* 2. Client-Side Crash & Error Incident Reports */}
+          <div className="bg-white dark:bg-[#1E293B] p-6 sm:p-8 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200 dark:border-slate-800">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
+                  <AlertTriangle className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
+                    <span>{lang === 'bn' ? 'সিস্টেম ক্র্যাশ ও ত্রুটির তাৎক্ষণিক রিপোর্ট' : 'Instant System Crash & Error Incident Log'}</span>
+                    {recentErrors.length > 0 && (
+                      <span className="text-[10px] bg-rose-500 text-white font-bold px-2 py-0.5 rounded-full">
+                        {recentErrors.length} টি রিপোর্ট
+                      </span>
+                    )}
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    {lang === 'bn'
+                      ? 'যেকোনো ব্যবহারকারীর ব্রাউজারে কোনো সেকশন ক্র্যাশ করলে তা তাৎক্ষণিকভাবে এখানে রিপোর্ট হবে।'
+                      : 'Live captured frontend exceptions and component crashes reported to Super Admin.'}
+                  </p>
+                </div>
+              </div>
+
+              {recentErrors.length > 0 && (
+                <button
+                  type="button"
+                  disabled={clearingErrors}
+                  onClick={async () => {
+                    if (!window.confirm(lang === 'bn' ? 'আপনি কি নিশ্চিত যে সকল ত্রুটি রিপোর্ট সমাধান বা ক্লিয়ার করতে চান?' : 'Clear all system crash logs?')) {
+                      return;
+                    }
+                    setClearingErrors(true);
+                    const res = await clearErrorLogs();
+                    setClearingErrors(false);
+                    if (res.success) {
+                      success(res.message);
+                    } else {
+                      error(res.message);
+                    }
+                  }}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-rose-50 dark:hover:bg-rose-950/50 text-rose-600 dark:text-rose-400 text-xs font-semibold transition cursor-pointer disabled:opacity-50"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>{clearingErrors ? (lang === 'bn' ? 'ক্লিয়ার হচ্ছে...' : 'Clearing...') : (lang === 'bn' ? 'সকল রিপোর্ট ক্লিয়ার করুন' : 'Clear All Errors')}</span>
+                </button>
+              )}
+            </div>
+
+            {/* Errors List */}
+            {recentErrors.length === 0 ? (
+              <div className="p-8 text-center rounded-2xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200/60 dark:border-slate-800">
+                <CheckCircle2 className="w-8 h-8 text-emerald-500 mx-auto mb-2" />
+                <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200">
+                  {lang === 'bn' ? 'আলহামদুলিল্লাহ! কোনো ক্র্যাশ বা সিস্টেম ত্রুটি নেই' : 'No System Crashes Detected'}
+                </h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-md mx-auto">
+                  {lang === 'bn'
+                    ? 'ওয়েবসাইটের সমস্ত সেকশন স্বাভাবিক ও নিরবচ্ছিন্নভাবে কাজ করছে।'
+                    : 'All application modules and components are functioning smoothly without errors.'}
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {recentErrors.map((item) => {
+                  const values = item.new_values || {};
+                  const isExpanded = expandedErrorId === item.id;
+
+                  return (
+                    <div
+                      key={item.id}
+                      className="p-4 rounded-2xl border border-rose-200 dark:border-rose-900/50 bg-rose-50/20 dark:bg-rose-950/20 space-y-2 text-xs"
+                    >
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <span className="px-2 py-0.5 rounded-md font-mono font-bold bg-rose-100 dark:bg-rose-900/60 text-rose-700 dark:text-rose-300 border border-rose-300 dark:border-rose-800 text-[11px]">
+                            {values.section || 'General'}
+                          </span>
+                          <span className="font-semibold text-slate-700 dark:text-slate-200">
+                            {item.user ? `${item.user.name} (${item.user.email})` : 'অজ্ঞাত ব্যবহারকারী'}
+                          </span>
+                        </div>
+
+                        <span className="text-[11px] text-slate-400 font-mono">
+                          {new Date(item.created_at).toLocaleString()}
+                        </span>
+                      </div>
+
+                      <p className="text-slate-800 dark:text-slate-200 font-medium text-xs leading-relaxed bg-white dark:bg-slate-900 p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-800">
+                        {values.error_message || item.description}
+                      </p>
+
+                      {values.url && (
+                        <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                          <span className="font-semibold">URL:</span> {values.url}
+                        </div>
+                      )}
+
+                      {(values.error_stack || values.component_stack) && (
+                        <div>
+                          <button
+                            type="button"
+                            onClick={() => setExpandedErrorId(isExpanded ? null : item.id)}
+                            className="text-[11px] text-indigo-600 dark:text-indigo-400 font-semibold hover:underline cursor-pointer"
+                          >
+                            {isExpanded ? (lang === 'bn' ? 'স্ট্যাক ট্রেস লুকান ▲' : 'Hide Stack Trace ▲') : (lang === 'bn' ? 'কারিগরি স্ট্যাক ট্রেস দেখুন ▼' : 'View Stack Trace ▼')}
+                          </button>
+
+                          {isExpanded && (
+                            <pre className="mt-2 p-3 rounded-xl bg-slate-950 text-slate-200 font-mono text-[10.5px] max-h-48 overflow-auto border border-slate-800 leading-snug">
+                              {values.error_stack}
+                              {values.component_stack}
+                            </pre>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
       )}

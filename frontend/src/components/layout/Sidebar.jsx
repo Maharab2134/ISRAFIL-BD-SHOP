@@ -36,11 +36,13 @@ import {
   Keyboard,
 } from 'lucide-react';
 import { useShortcuts } from '../../context/ShortcutContext';
+import { useSystemModules } from '../../context/SystemModuleContext';
 
 export const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
   const { user, logout, hasPermission } = useAuth();
   const { t, lang } = useLanguage();
   const { openShortcutsModal } = useShortcuts();
+  const { modules } = useSystemModules();
   const navigate = useNavigate();
 
   const roleSlug = user?.role?.slug;
@@ -93,6 +95,17 @@ export const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
 
   const toggleSection = (section) => {
     setExpandedSections((prev) => ({ ...prev, [section]: !prev[section] }));
+  };
+
+  const renderMaintenanceBadge = (modId) => {
+    if (modules[modId]?.is_maintenance && !isCollapsed) {
+      return (
+        <span className="ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-800 tracking-tight shrink-0 animate-pulse">
+          {lang === 'bn' ? 'রক্ষণাবেক্ষণ' : 'Maintenance'}
+        </span>
+      );
+    }
+    return null;
   };
 
   const navLinkClass = ({ isActive }) =>
@@ -191,6 +204,7 @@ export const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
                 >
                   <ShoppingCart className="w-5 h-5 shrink-0" />
                   {!isCollapsed && <span>{t('pos')}</span>}
+                  {renderMaintenanceBadge('pos')}
                 </NavLink>
               )}
             </div>
@@ -205,7 +219,10 @@ export const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
                 onClick={() => toggleSection('products')}
                 className="w-full flex items-center justify-between px-3 text-[11px] font-semibold tracking-wider uppercase text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
               >
-                <span>{lang === 'bn' ? 'পণ্য ও ক্যাটালগ' : 'Products & Catalog'}</span>
+                <div className="flex items-center gap-1.5 overflow-hidden">
+                  <span className="truncate">{lang === 'bn' ? 'পণ্য ও ক্যাটালগ' : 'Products & Catalog'}</span>
+                  {renderMaintenanceBadge('products')}
+                </div>
                 <ChevronDown
                   className={`w-3.5 h-3.5 transition-transform ${
                     expandedSections.products ? 'rotate-180' : ''
@@ -263,7 +280,10 @@ export const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
                 onClick={() => toggleSection('inventory')}
                 className="w-full flex items-center justify-between px-3 text-[11px] font-semibold tracking-wider uppercase text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
               >
-                <span>{lang === 'bn' ? 'ইনভেন্টরি ও স্টক' : 'Inventory & Stock'}</span>
+                <div className="flex items-center gap-1.5 overflow-hidden">
+                  <span className="truncate">{lang === 'bn' ? 'ইনভেন্টরি ও স্টক' : 'Inventory & Stock'}</span>
+                  {renderMaintenanceBadge('inventory')}
+                </div>
                 <ChevronDown
                   className={`w-3.5 h-3.5 transition-transform ${
                     expandedSections.inventory ? 'rotate-180' : ''
@@ -302,7 +322,10 @@ export const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
                 onClick={() => toggleSection('sales')}
                 className="w-full flex items-center justify-between px-3 text-[11px] font-semibold tracking-wider uppercase text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
               >
-                <span>{lang === 'bn' ? 'বিক্রয় চালান' : 'Sales'}</span>
+                <div className="flex items-center gap-1.5 overflow-hidden">
+                  <span className="truncate">{lang === 'bn' ? 'বিক্রয় চালান' : 'Sales'}</span>
+                  {renderMaintenanceBadge('sales')}
+                </div>
                 <ChevronDown
                   className={`w-3.5 h-3.5 transition-transform ${
                     expandedSections.sales ? 'rotate-180' : ''
@@ -334,7 +357,10 @@ export const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
                 onClick={() => toggleSection('purchases')}
                 className="w-full flex items-center justify-between px-3 text-[11px] font-semibold tracking-wider uppercase text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
               >
-                <span>{lang === 'bn' ? 'পাইকারি ক্রয়' : 'Purchases'}</span>
+                <div className="flex items-center gap-1.5 overflow-hidden">
+                  <span className="truncate">{lang === 'bn' ? 'পাইকারি ক্রয়' : 'Purchases'}</span>
+                  {renderMaintenanceBadge('purchases')}
+                </div>
                 <ChevronDown
                   className={`w-3.5 h-3.5 transition-transform ${
                     expandedSections.purchases ? 'rotate-180' : ''
@@ -368,7 +394,10 @@ export const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
                 onClick={() => toggleSection('customers')}
                 className="w-full flex items-center justify-between px-3 text-[11px] font-semibold tracking-wider uppercase text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
               >
-                <span>{lang === 'bn' ? 'গ্রাহক ও বাকি খাতা' : 'Customers'}</span>
+                <div className="flex items-center gap-1.5 overflow-hidden">
+                  <span className="truncate">{lang === 'bn' ? 'গ্রাহক ও বাকি খাতা' : 'Customers'}</span>
+                  {renderMaintenanceBadge('customers')}
+                </div>
                 <ChevronDown
                   className={`w-3.5 h-3.5 transition-transform ${
                     expandedSections.customers ? 'rotate-180' : ''
@@ -402,7 +431,10 @@ export const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
                 onClick={() => toggleSection('suppliers')}
                 className="w-full flex items-center justify-between px-3 text-[11px] font-semibold tracking-wider uppercase text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
               >
-                <span>{lang === 'bn' ? 'সরবরাহকারী' : 'Suppliers'}</span>
+                <div className="flex items-center gap-1.5 overflow-hidden">
+                  <span className="truncate">{lang === 'bn' ? 'সরবরাহকারী' : 'Suppliers'}</span>
+                  {renderMaintenanceBadge('suppliers')}
+                </div>
                 <ChevronDown
                   className={`w-3.5 h-3.5 transition-transform ${
                     expandedSections.suppliers ? 'rotate-180' : ''
@@ -429,7 +461,10 @@ export const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
                 onClick={() => toggleSection('expenses')}
                 className="w-full flex items-center justify-between px-3 text-[11px] font-semibold tracking-wider uppercase text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
               >
-                <span>{lang === 'bn' ? 'দোকানের খরচ' : 'Store Expenses'}</span>
+                <div className="flex items-center gap-1.5 overflow-hidden">
+                  <span className="truncate">{lang === 'bn' ? 'দোকানের খরচ' : 'Store Expenses'}</span>
+                  {renderMaintenanceBadge('expenses')}
+                </div>
                 <ChevronDown
                   className={`w-3.5 h-3.5 transition-transform ${
                     expandedSections.expenses ? 'rotate-180' : ''
@@ -470,7 +505,10 @@ export const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
                 onClick={() => toggleSection('accounting')}
                 className="w-full flex items-center justify-between px-3 text-[11px] font-semibold tracking-wider uppercase text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
               >
-                <span>{lang === 'bn' ? 'হিসাবরক্ষণ' : 'Accounting'}</span>
+                <div className="flex items-center gap-1.5 overflow-hidden">
+                  <span className="truncate">{lang === 'bn' ? 'হিসাবরক্ষণ' : 'Accounting'}</span>
+                  {renderMaintenanceBadge('accounting')}
+                </div>
                 <ChevronDown
                   className={`w-3.5 h-3.5 transition-transform ${
                     expandedSections.accounting ? 'rotate-180' : ''
@@ -502,7 +540,10 @@ export const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
                 onClick={() => toggleSection('reports')}
                 className="w-full flex items-center justify-between px-3 text-[11px] font-semibold tracking-wider uppercase text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
               >
-                <span>{lang === 'bn' ? 'রিপোর্ট ও বিশ্লেষণ' : 'Reports'}</span>
+                <div className="flex items-center gap-1.5 overflow-hidden">
+                  <span className="truncate">{lang === 'bn' ? 'রিপোর্ট ও বিশ্লেষণ' : 'Reports'}</span>
+                  {renderMaintenanceBadge('reports')}
+                </div>
                 <ChevronDown
                   className={`w-3.5 h-3.5 transition-transform ${
                     expandedSections.reports ? 'rotate-180' : ''
@@ -543,6 +584,7 @@ export const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
                   <NavLink to="/employees" end className={navLinkClass} title={t('employeeList')}>
                     <UserCheck className="w-5 h-5 shrink-0" />
                     {!isCollapsed && <span>{t('employeeList')}</span>}
+                    {renderMaintenanceBadge('employees')}
                   </NavLink>
                 )}
 
