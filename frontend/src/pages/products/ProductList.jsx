@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useToast } from '../../context/ToastContext';
 import {
@@ -24,9 +25,19 @@ import { ConfirmDeleteModal } from '../../components/common/ConfirmDeleteModal';
 import { ProductCardMedia } from '../../components/common/ProductCardMedia';
 
 export const ProductList = () => {
+  const { user, hasPermission } = useAuth();
   const { t, lang, formatCurrency, formatNumber } = useLanguage();
   const { success, error } = useToast();
   const navigate = useNavigate();
+
+  const isSuperAdmin = user?.role?.slug === 'super-admin' || user?.email === 'admin@israfilbd.com';
+  // Super shop cashier should NOT see wholesale cost prices or margin data
+  const canViewCostPrice = isSuperAdmin || hasPermission('purchases.view') || hasPermission('reports.view');
+  const canCreateProduct = isSuperAdmin || hasPermission('products.create');
+  const canEditProduct = isSuperAdmin || hasPermission('products.edit');
+  const canDeleteProduct = isSuperAdmin || hasPermission('products.delete');
+
+  const totalColumns = (canDeleteProduct ? 1 : 0) + 4 + (canViewCostPrice ? 1 : 0) + 4;
 
   const formatStockCount = (stock, unit) => {
     const qty = Number(stock) % 1 === 0 ? Math.round(stock) : Number(stock);
@@ -255,25 +266,29 @@ export const ProductList = () => {
         </div>
 
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setShowImport(!showImport)}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs transition border ${showImport
-                ? 'bg-indigo-600 text-white border-indigo-600 shadow-md'
-                : 'bg-white dark:bg-[#1E293B] border-slate-200 dark:border-slate-800 text-indigo-600 dark:text-indigo-400 hover:border-indigo-400 shadow-sm'
-              }`}
-          >
-            <FileJson className="w-4 h-4" />
-            <span>{lang === 'bn' ? 'products.json ইমপোর্ট' : 'Import products.json'}</span>
-          </button>
+          {canCreateProduct && (
+            <>
+              <button
+                type="button"
+                onClick={() => setShowImport(!showImport)}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs transition border ${showImport
+                    ? 'bg-indigo-600 text-white border-indigo-600 shadow-md'
+                    : 'bg-white dark:bg-[#1E293B] border-slate-200 dark:border-slate-800 text-indigo-600 dark:text-indigo-400 hover:border-indigo-400 shadow-sm'
+                  }`}
+              >
+                <FileJson className="w-4 h-4" />
+                <span>{lang === 'bn' ? 'products.json ইমপোর্ট' : 'Import products.json'}</span>
+              </button>
 
-          <Link
-            to="/products/new"
-            className="px-4 py-2.5 rounded-xl font-bold text-sm bg-indigo-600 hover:bg-indigo-700 text-white shadow-md flex items-center gap-2 transition"
-          >
-            <Plus className="w-4 h-4" />
-            <span>{t('addProduct')}</span>
-          </Link>
+              <Link
+                to="/products/new"
+                className="px-4 py-2.5 rounded-xl font-bold text-sm bg-indigo-600 hover:bg-indigo-700 text-white shadow-md flex items-center gap-2 transition"
+              >
+                <Plus className="w-4 h-4" />
+                <span>{t('addProduct')}</span>
+              </Link>
+            </>
+          )}
         </div>
       </div>
 
@@ -380,14 +395,16 @@ export const ProductList = () => {
             >
               {lang === 'bn' ? 'বাছাই বাতিল' : 'Deselect'}
             </button>
-            <button
-              type="button"
-              onClick={() => setDeleteModal({ isOpen: true, item: null, isBulk: true })}
-              className="px-3.5 py-1.5 text-xs font-bold rounded-xl text-white bg-rose-600 hover:bg-rose-700 transition flex items-center gap-1.5 shadow-sm shadow-rose-600/30 cursor-pointer active:scale-95"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-              <span>{lang === 'bn' ? 'নির্বাচিতগুলো মুছুন' : 'Delete Selected'}</span>
-            </button>
+            {canDeleteProduct && (
+              <button
+                type="button"
+                onClick={() => setDeleteModal({ isOpen: true, item: null, isBulk: true })}
+                className="px-3.5 py-1.5 text-xs font-bold rounded-xl text-white bg-rose-600 hover:bg-rose-700 transition flex items-center gap-1.5 shadow-sm shadow-rose-600/30 cursor-pointer active:scale-95"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>{lang === 'bn' ? 'নির্বাচিতগুলো মুছুন' : 'Delete Selected'}</span>
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -398,20 +415,24 @@ export const ProductList = () => {
           <table className="w-full text-left border-collapse text-xs">
             <thead>
               <tr className="bg-slate-50 dark:bg-slate-850/60 border-b border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 font-bold uppercase tracking-wider">
-                <th className="p-4 w-12 text-center">
-                  <input
-                    type="checkbox"
-                    checked={isAllSelected}
-                    onChange={toggleSelectAll}
-                    title={lang === 'bn' ? 'সবগুলো নির্বাচন করুন' : 'Select All'}
-                    className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer"
-                  />
-                </th>
+                {canDeleteProduct && (
+                  <th className="p-4 w-12 text-center">
+                    <input
+                      type="checkbox"
+                      checked={isAllSelected}
+                      onChange={toggleSelectAll}
+                      title={lang === 'bn' ? 'সবগুলো নির্বাচন করুন' : 'Select All'}
+                      className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                    />
+                  </th>
+                )}
                 <th className="p-4">{lang === 'bn' ? 'পণ্য' : 'Product'}</th>
                 <th className="p-4">{lang === 'bn' ? 'বারকোড / SKU' : 'Barcode / SKU'}</th>
                 <th className="p-4">{lang === 'bn' ? 'ক্যাটাগরি' : 'Category'}</th>
                 <th className="p-4">{lang === 'bn' ? 'পরিমাপ (Qnty)' : 'Measurement (Qnty)'}</th>
-                <th className="p-4 text-right">{lang === 'bn' ? 'ক্রয় মূল্য' : 'Cost Price'}</th>
+                {canViewCostPrice && (
+                  <th className="p-4 text-right">{lang === 'bn' ? 'ক্রয় মূল্য' : 'Cost Price'}</th>
+                )}
                 <th className="p-4 text-right">{lang === 'bn' ? 'বিক্রয় মূল্য' : 'Selling Price'}</th>
                 <th className="p-4 text-center">{lang === 'bn' ? 'বর্তমান স্টক' : 'Stock'}</th>
                 <th className="p-4 text-center">{t('status')}</th>
@@ -421,13 +442,13 @@ export const ProductList = () => {
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {loading ? (
                 <tr>
-                  <td colSpan="10" className="p-8 text-center text-slate-400">
+                  <td colSpan={totalColumns} className="p-8 text-center text-slate-400">
                     {t('loading')}
                   </td>
                 </tr>
               ) : products.length === 0 ? (
                 <tr>
-                  <td colSpan="10" className="p-8 text-center text-slate-400">
+                  <td colSpan={totalColumns} className="p-8 text-center text-slate-400">
                     {t('noData')}
                   </td>
                 </tr>
@@ -442,14 +463,16 @@ export const ProductList = () => {
                         isSelected ? 'bg-indigo-50/50 dark:bg-indigo-950/20' : ''
                       }`}
                     >
-                      <td className="p-4 text-center">
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={() => toggleSelectOne(p.id)}
-                          className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer"
-                        />
-                      </td>
+                      {canDeleteProduct && (
+                        <td className="p-4 text-center">
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => toggleSelectOne(p.id)}
+                            className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                          />
+                        </td>
+                      )}
                       <td className="p-4">
                         <div className="flex items-center gap-3">
                           <ProductCardMedia
@@ -486,9 +509,11 @@ export const ProductList = () => {
                         )}
                       </td>
 
-                      <td className="p-4 text-right text-slate-600 dark:text-slate-400 font-medium">
-                        {formatCurrency(p.purchase_price)}
-                      </td>
+                      {canViewCostPrice && (
+                        <td className="p-4 text-right text-slate-600 dark:text-slate-400 font-medium">
+                          {formatCurrency(p.purchase_price)}
+                        </td>
+                      )}
 
                       <td className="p-4 text-right">
                         <div className="font-bold text-indigo-600 dark:text-indigo-400">
@@ -542,21 +567,25 @@ export const ProductList = () => {
                           >
                             <Eye className="w-4 h-4" />
                           </Link>
-                          <Link
-                            to={`/products/${p.id}/edit`}
-                            className="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-slate-800 rounded-lg transition"
-                            title={t('edit')}
-                          >
-                            <Edit className="w-4 h-4" />
-                          </Link>
-                          <button
-                            type="button"
-                            onClick={() => setDeleteModal({ isOpen: true, item: p, isBulk: false })}
-                            className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-slate-800 rounded-lg transition cursor-pointer"
-                            title={t('delete')}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                          {canEditProduct && (
+                            <Link
+                              to={`/products/${p.id}/edit`}
+                              className="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-slate-800 rounded-lg transition"
+                              title={t('edit')}
+                            >
+                              <Edit className="w-4 h-4" />
+                            </Link>
+                          )}
+                          {canDeleteProduct && (
+                            <button
+                              type="button"
+                              onClick={() => setDeleteModal({ isOpen: true, item: p, isBulk: false })}
+                              className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-slate-800 rounded-lg transition cursor-pointer"
+                              title={t('delete')}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>

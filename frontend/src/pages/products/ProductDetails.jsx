@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useToast } from '../../context/ToastContext';
 import {
@@ -26,6 +27,11 @@ export const ProductDetails = () => {
   const location = useLocation();
   const { t, lang, formatCurrency, formatNumber } = useLanguage();
   const { error, success } = useToast();
+
+  const { user, hasPermission } = useAuth();
+  const isSuperAdmin = user?.role?.slug === 'super-admin' || user?.email === 'admin@israfilbd.com';
+  const canViewCostPrice = isSuperAdmin || hasPermission('purchases.view') || hasPermission('reports.view');
+  const canEditProduct = isSuperAdmin || hasPermission('products.edit');
 
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -166,13 +172,15 @@ export const ProductDetails = () => {
             <span>{lang === 'bn' ? 'কার্টে যোগ করুন (+১)' : 'Add to Cart (+1)'}</span>
           </button>
 
-          <Link
-            to={`/products/${product.id}/edit`}
-            className="py-2 px-3.5 rounded-xl font-bold text-xs bg-amber-500 hover:bg-amber-600 text-white shadow-sm flex items-center gap-1.5 transition"
-          >
-            <Edit className="w-3.5 h-3.5" />
-            <span>{t('edit')}</span>
-          </Link>
+          {canEditProduct && (
+            <Link
+              to={`/products/${product.id}/edit`}
+              className="py-2 px-3.5 rounded-xl font-bold text-xs bg-amber-500 hover:bg-amber-600 text-white shadow-sm flex items-center gap-1.5 transition"
+            >
+              <Edit className="w-3.5 h-3.5" />
+              <span>{t('edit')}</span>
+            </Link>
+          )}
         </div>
       </div>
 
@@ -252,14 +260,16 @@ export const ProductDetails = () => {
               </span>
             </div>
 
-            <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800">
-              <span className="text-[11px] text-slate-400 block">
-                {lang === 'bn' ? 'ক্রয় মূল্য' : 'Cost Price'}
-              </span>
-              <span className="text-lg font-bold text-slate-800 dark:text-slate-200">
-                {formatCurrency(product.purchase_price)}
-              </span>
-            </div>
+            {canViewCostPrice && (
+              <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800">
+                <span className="text-[11px] text-slate-400 block">
+                  {lang === 'bn' ? 'ক্রয় মূল্য' : 'Cost Price'}
+                </span>
+                <span className="text-lg font-bold text-slate-800 dark:text-slate-200">
+                  {formatCurrency(product.purchase_price)}
+                </span>
+              </div>
+            )}
 
             <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800">
               <span className="text-[11px] text-slate-400 block">
@@ -288,14 +298,16 @@ export const ProductDetails = () => {
               )}
             </div>
 
-            <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800">
-              <span className="text-[11px] text-slate-400 block">
-                {lang === 'bn' ? 'প্রত্যাশিত মুনাফা/পিস' : 'Unit Profit Margin'}
-              </span>
-              <span className="text-sm font-bold text-emerald-600">
-                {formatCurrency(product.selling_price - product.purchase_price)}
-              </span>
-            </div>
+            {canViewCostPrice && (
+              <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800">
+                <span className="text-[11px] text-slate-400 block">
+                  {lang === 'bn' ? 'প্রত্যাশিত মুনাফা/পিস' : 'Unit Profit Margin'}
+                </span>
+                <span className="text-sm font-bold text-emerald-600">
+                  {formatCurrency(product.selling_price - product.purchase_price)}
+                </span>
+              </div>
+            )}
 
             <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800">
               <span className="text-[11px] text-slate-400 block">
