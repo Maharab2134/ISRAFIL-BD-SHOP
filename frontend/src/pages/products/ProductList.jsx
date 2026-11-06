@@ -435,6 +435,7 @@ export const ProductList = () => {
                 <th className="p-4">{lang === 'bn' ? 'পণ্য' : 'Product'}</th>
                 <th className="p-4">{lang === 'bn' ? 'বারকোড / SKU' : 'Barcode / SKU'}</th>
                 <th className="p-4">{lang === 'bn' ? 'ক্যাটাগরি' : 'Category'}</th>
+                <th className="p-4">{lang === 'bn' ? 'পরিমাপ (Qnty)' : 'Measurement (Qnty)'}</th>
                 <th className="p-4 text-right">{lang === 'bn' ? 'ক্রয় মূল্য' : 'Cost Price'}</th>
                 <th className="p-4 text-right">{lang === 'bn' ? 'বিক্রয় মূল্য' : 'Selling Price'}</th>
                 <th className="p-4 text-center">{lang === 'bn' ? 'বর্তমান স্টক' : 'Stock'}</th>
@@ -445,13 +446,13 @@ export const ProductList = () => {
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {loading ? (
                 <tr>
-                  <td colSpan="9" className="p-8 text-center text-slate-400">
+                  <td colSpan="10" className="p-8 text-center text-slate-400">
                     {t('loading')}
                   </td>
                 </tr>
               ) : products.length === 0 ? (
                 <tr>
-                  <td colSpan="9" className="p-8 text-center text-slate-400">
+                  <td colSpan="10" className="p-8 text-center text-slate-400">
                     {t('noData')}
                   </td>
                 </tr>
@@ -483,15 +484,7 @@ export const ProductList = () => {
                           />
                           <div>
                             <div className="font-bold text-slate-900 dark:text-white line-clamp-1">{p.name}</div>
-                            <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
-                              {p.name_bn && <span className="text-[11px] text-slate-400">{p.name_bn}</span>}
-                              {(p.measurement_value || p.unit) && (
-                                <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700/80">
-                                  {p.measurement_value ? `${p.measurement_value} ` : ''}
-                                  {lang === 'bn' ? (p.unit?.name_bn || p.unit?.name) : (p.unit?.name || p.unit?.code)}
-                                </span>
-                              )}
-                            </div>
+                            {p.name_bn && <div className="text-[11px] text-slate-400 mt-0.5">{p.name_bn}</div>}
                           </div>
                         </div>
                       </td>
@@ -505,6 +498,17 @@ export const ProductList = () => {
                         {lang === 'bn'
                           ? (p.category?.name_bn || p.category?.name || '—')
                           : (p.category?.name || '—')}
+                      </td>
+
+                      <td className="p-4 whitespace-nowrap">
+                        {p.measurement_value || p.unit ? (
+                          <span className="inline-flex items-center px-2.5 py-1 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 font-mono">
+                            {p.measurement_value ? `${p.measurement_value} ` : ''}
+                            {lang === 'bn' ? (p.unit?.name_bn || p.unit?.name || '') : (p.unit?.name || p.unit?.code || '')}
+                          </span>
+                        ) : (
+                          <span className="text-slate-400 text-xs">—</span>
+                        )}
                       </td>
 
                       <td className="p-4 text-right text-slate-600 dark:text-slate-400 font-medium">
