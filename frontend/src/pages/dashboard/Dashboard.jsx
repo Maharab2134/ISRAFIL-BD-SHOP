@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
 import {
   TrendingUp,
@@ -36,6 +37,8 @@ const PAYMENT_COLORS = ['#4F46E5', '#06B6D4', '#10B981', '#F59E0B', '#EC4899'];
 
 export const Dashboard = () => {
   const { t, lang, formatCurrency, formatNumber } = useLanguage();
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -89,6 +92,8 @@ export const Dashboard = () => {
       };
     })
     .filter((p) => p.total_amount > 0);
+
+  const totalPaymentAmount = paymentBreakdownData.reduce((acc, curr) => acc + curr.total_amount, 0);
 
   return (
     <div className="space-y-8">
@@ -250,16 +255,16 @@ export const Dashboard = () => {
                 {lang === 'bn' ? 'প্রতিদিনের অর্জিত রাজস্ব ও মোট নিট মুনাফা' : 'Daily gross revenue and net profit performance'}
               </p>
             </div>
-            <div className="flex items-center gap-4 text-xs font-medium">
-              <div className="flex items-center gap-1.5">
-                <div className="w-3 h-3 rounded-full bg-indigo-600" />
-                <span className="text-slate-600 dark:text-slate-300">
+            <div className="flex items-center gap-3 text-xs font-semibold">
+              <div className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-100 dark:border-indigo-900/50">
+                <div className="w-2.5 h-2.5 rounded-full bg-indigo-600 shadow-xs" />
+                <span className="text-indigo-950 dark:text-indigo-200">
                   {lang === 'bn' ? 'মোট বিক্রয়' : 'Sales'}
                 </span>
               </div>
-              <div className="flex items-center gap-1.5">
-                <div className="w-3 h-3 rounded-full bg-emerald-500" />
-                <span className="text-slate-600 dark:text-slate-300">
+              <div className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-100 dark:border-emerald-900/50">
+                <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-xs" />
+                <span className="text-emerald-950 dark:text-emerald-200">
                   {lang === 'bn' ? 'লাভ' : 'Profit'}
                 </span>
               </div>
@@ -268,26 +273,46 @@ export const Dashboard = () => {
 
           <div className="h-72 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={charts.daily_trends || []} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+              <AreaChart data={charts.daily_trends || []} margin={{ top: 10, right: 15, left: 15, bottom: 0 }}>
                 <defs>
                   <linearGradient id="salesGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#4F46E5" stopOpacity={0.25} />
+                    <stop offset="5%" stopColor="#4F46E5" stopOpacity={0.3} />
                     <stop offset="95%" stopColor="#4F46E5" stopOpacity={0.0} />
                   </linearGradient>
                   <linearGradient id="profitGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#10B981" stopOpacity={0.25} />
+                    <stop offset="5%" stopColor="#10B981" stopOpacity={0.3} />
                     <stop offset="95%" stopColor="#10B981" stopOpacity={0.0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" opacity={0.5} />
-                <XAxis dataKey="label" tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: '#64748B' }} />
-                <YAxis tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: '#64748B' }} tickFormatter={(val) => `৳${val}`} />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? '#334155' : '#E2E8F0'} opacity={0.7} />
+                <XAxis
+                  dataKey="label"
+                  tickLine={false}
+                  axisLine={false}
+                  tick={{ fontSize: 11, fill: isDark ? '#CBD5E1' : '#1E293B', fontWeight: 600 }}
+                />
+                <YAxis
+                  tickLine={false}
+                  axisLine={false}
+                  width={68}
+                  tick={{ fontSize: 11, fill: isDark ? '#CBD5E1' : '#1E293B', fontWeight: 700 }}
+                  tickFormatter={(val) => `৳${Number(val).toLocaleString()}`}
+                />
                 <Tooltip
                   formatter={(val, name) => [
-                    `৳${Number(val).toLocaleString()}`,
-                    name === 'sales' ? (lang === 'bn' ? 'বিক্রয়' : 'Sales') : (lang === 'bn' ? 'লাভ' : 'Profit')
+                    formatCurrency(val),
+                    name === 'sales' ? (lang === 'bn' ? 'মোট বিক্রয়' : 'Total Sales') : (lang === 'bn' ? 'মোট লাভ' : 'Net Profit')
                   ]}
-                  contentStyle={{ backgroundColor: '#1E293B', borderRadius: '12px', border: 'none', color: '#fff', fontSize: '12px' }}
+                  contentStyle={{
+                    backgroundColor: isDark ? '#0F172A' : '#1E293B',
+                    borderRadius: '12px',
+                    border: '1px solid ' + (isDark ? '#334155' : '#475569'),
+                    color: '#F8FAFC',
+                    fontSize: '12px',
+                    boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.25)',
+                  }}
+                  itemStyle={{ fontWeight: 'bold' }}
+                  labelStyle={{ color: '#F8FAFC', fontWeight: 'bold' }}
                 />
                 <Area type="monotone" dataKey="sales" stroke="#4F46E5" strokeWidth={2.5} fillOpacity={1} fill="url(#salesGrad)" name="sales" />
                 <Area type="monotone" dataKey="profit" stroke="#10B981" strokeWidth={2.5} fillOpacity={1} fill="url(#profitGrad)" name="profit" />
@@ -308,14 +333,14 @@ export const Dashboard = () => {
           </div>
 
           {paymentBreakdownData.length === 0 ? (
-            <div className="h-48 my-auto flex flex-col items-center justify-center text-slate-400 dark:text-slate-500">
+            <div className="h-52 my-auto flex flex-col items-center justify-center text-slate-400 dark:text-slate-500">
               <CreditCard className="w-10 h-10 mb-2 stroke-[1.5] text-slate-300 dark:text-slate-600" />
               <p className="text-xs font-medium">
                 {lang === 'bn' ? 'চলতি মাসে কোনো লেনদেন নেই' : 'No transactions this month'}
               </p>
             </div>
           ) : (
-            <div className="h-48 my-auto w-full min-h-[192px]">
+            <div className="relative h-52 my-auto w-full min-h-[200px]">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
@@ -324,8 +349,8 @@ export const Dashboard = () => {
                     nameKey="name"
                     cx="50%"
                     cy="50%"
-                    innerRadius={50}
-                    outerRadius={75}
+                    innerRadius={55}
+                    outerRadius={80}
                     paddingAngle={paymentBreakdownData.length > 1 ? 4 : 0}
                     isAnimationActive={true}
                   >
@@ -339,32 +364,60 @@ export const Dashboard = () => {
                       name || (lang === 'bn' ? 'মোট টাকা' : 'Total Amount')
                     ]}
                     contentStyle={{
-                      backgroundColor: '#1E293B',
+                      backgroundColor: isDark ? '#0F172A' : '#1E293B',
                       borderRadius: '12px',
-                      border: 'none',
-                      color: '#fff',
+                      border: '1px solid ' + (isDark ? '#334155' : '#475569'),
+                      color: '#F8FAFC',
                       fontSize: '12px',
-                      boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+                      boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.25)',
                     }}
+                    itemStyle={{ color: '#38BDF8', fontWeight: 'bold' }}
+                    labelStyle={{ color: '#F8FAFC', fontWeight: 'bold' }}
                   />
                 </PieChart>
               </ResponsiveContainer>
+
+              {/* Center Donut Amount Highlight */}
+              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-slate-400">
+                  {lang === 'bn' ? 'মোট লেনদেন' : 'Total Amount'}
+                </span>
+                <span className="text-base font-black text-slate-900 dark:text-white mt-0.5 tracking-tight font-mono">
+                  {formatCurrency(totalPaymentAmount)}
+                </span>
+              </div>
             </div>
           )}
 
           {paymentBreakdownData.length > 0 && (
-            <div className="grid grid-cols-2 gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
-              {paymentBreakdownData.map((p, i) => (
-                <div key={p.payment_method} className="flex items-center gap-2 text-xs">
+            <div className="grid grid-cols-2 gap-2.5 pt-3 border-t border-slate-100 dark:border-slate-800">
+              {paymentBreakdownData.map((p, i) => {
+                const percent = totalPaymentAmount > 0 ? Math.round((p.total_amount / totalPaymentAmount) * 100) : 0;
+                return (
                   <div
-                    className="w-2.5 h-2.5 rounded-full shrink-0"
-                    style={{ backgroundColor: PAYMENT_COLORS[i % PAYMENT_COLORS.length] }}
-                  />
-                  <span className="capitalize font-medium text-slate-600 dark:text-slate-300 truncate">
-                    {p.name}: {formatCurrency(p.total_amount)}
-                  </span>
-                </div>
-              ))}
+                    key={p.payment_method}
+                    className="flex flex-col p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-700/60 transition hover:border-slate-300 dark:hover:border-slate-600 shadow-2xs"
+                  >
+                    <div className="flex items-center justify-between gap-1.5 mb-1">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <div
+                          className="w-2.5 h-2.5 rounded-full shrink-0 shadow-xs"
+                          style={{ backgroundColor: PAYMENT_COLORS[i % PAYMENT_COLORS.length] }}
+                        />
+                        <span className="capitalize font-semibold text-xs text-slate-700 dark:text-slate-300 truncate">
+                          {p.name}
+                        </span>
+                      </div>
+                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-slate-200/60 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
+                        {percent}%
+                      </span>
+                    </div>
+                    <div className="text-sm font-black text-slate-900 dark:text-white font-mono tracking-tight">
+                      {formatCurrency(p.total_amount)}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
