@@ -73,6 +73,23 @@ export const Dashboard = () => {
   const recentSales = data?.recent_sales || [];
   const lowStockAlerts = data?.low_stock_alerts || [];
 
+  const paymentBreakdownData = (charts.payment_breakdown || [])
+    .map((p) => {
+      const rawAmt = Number(p.total_amount) || 0;
+      const method = (p.payment_method || 'other').trim();
+      let displayName = method.charAt(0).toUpperCase() + method.slice(1);
+      if (method.toLowerCase() === 'bkash') displayName = 'bKash';
+      if (method.toLowerCase() === 'nagad') displayName = 'Nagad';
+
+      return {
+        ...p,
+        payment_method: method,
+        name: displayName,
+        total_amount: rawAmt,
+      };
+    })
+    .filter((p) => p.total_amount > 0);
+
   return (
     <div className="space-y-8">
       {/* Top Banner / Welcome & Quick Action */}
@@ -290,41 +307,66 @@ export const Dashboard = () => {
             </p>
           </div>
 
-          <div className="h-48 my-auto">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={charts.payment_breakdown || []}
-                  dataKey="total_amount"
-                  nameKey="payment_method"
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={50}
-                  outerRadius={75}
-                  paddingAngle={4}
-                >
-                  {(charts.payment_breakdown || []).map((_, index) => (
-                    <Cell key={`cell-${index}`} fill={PAYMENT_COLORS[index % PAYMENT_COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip
-                  formatter={(val) => [`৳${Number(val).toLocaleString()}`, lang === 'bn' ? 'মোট টাকা' : 'Total Amount']}
-                  contentStyle={{ backgroundColor: '#1E293B', borderRadius: '12px', border: 'none', color: '#fff', fontSize: '12px' }}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
+          {paymentBreakdownData.length === 0 ? (
+            <div className="h-48 my-auto flex flex-col items-center justify-center text-slate-400 dark:text-slate-500">
+              <CreditCard className="w-10 h-10 mb-2 stroke-[1.5] text-slate-300 dark:text-slate-600" />
+              <p className="text-xs font-medium">
+                {lang === 'bn' ? 'চলতি মাসে কোনো লেনদেন নেই' : 'No transactions this month'}
+              </p>
+            </div>
+          ) : (
+            <div className="h-48 my-auto w-full min-h-[192px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={paymentBreakdownData}
+                    dataKey="total_amount"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={50}
+                    outerRadius={75}
+                    paddingAngle={paymentBreakdownData.length > 1 ? 4 : 0}
+                    isAnimationActive={true}
+                  >
+                    {paymentBreakdownData.map((_, index) => (
+                      <Cell key={`cell-${index}`} fill={PAYMENT_COLORS[index % PAYMENT_COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    formatter={(val, name) => [
+                      formatCurrency(val),
+                      name || (lang === 'bn' ? 'মোট টাকা' : 'Total Amount')
+                    ]}
+                    contentStyle={{
+                      backgroundColor: '#1E293B',
+                      borderRadius: '12px',
+                      border: 'none',
+                      color: '#fff',
+                      fontSize: '12px',
+                      boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+                    }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          )}
 
-          <div className="grid grid-cols-2 gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
-            {(charts.payment_breakdown || []).map((p, i) => (
-              <div key={p.payment_method} className="flex items-center gap-2 text-xs">
-                <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: PAYMENT_COLORS[i % PAYMENT_COLORS.length] }} />
-                <span className="capitalize font-medium text-slate-600 dark:text-slate-300 truncate">
-                  {p.payment_method}: {formatCurrency(p.total_amount)}
-                </span>
-              </div>
-            ))}
-          </div>
+          {paymentBreakdownData.length > 0 && (
+            <div className="grid grid-cols-2 gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
+              {paymentBreakdownData.map((p, i) => (
+                <div key={p.payment_method} className="flex items-center gap-2 text-xs">
+                  <div
+                    className="w-2.5 h-2.5 rounded-full shrink-0"
+                    style={{ backgroundColor: PAYMENT_COLORS[i % PAYMENT_COLORS.length] }}
+                  />
+                  <span className="capitalize font-medium text-slate-600 dark:text-slate-300 truncate">
+                    {p.name}: {formatCurrency(p.total_amount)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 

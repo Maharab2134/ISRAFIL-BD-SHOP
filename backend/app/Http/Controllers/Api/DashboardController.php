@@ -67,7 +67,30 @@ class DashboardController extends Controller
         $paymentBreakdown = SalePayment::where('payment_date', '>=', $monthStart)
             ->select('payment_method', DB::raw('SUM(amount) as total_amount'), DB::raw('COUNT(*) as count'))
             ->groupBy('payment_method')
-            ->get();
+            ->get()
+            ->map(function ($item) {
+                return [
+                    'payment_method' => $item->payment_method,
+                    'total_amount' => (float) $item->total_amount,
+                    'count' => (int) $item->count,
+                ];
+            });
+
+        // Fallback to Sale table if no SalePayment recorded this month
+        if ($paymentBreakdown->isEmpty()) {
+            $paymentBreakdown = Sale::where('sale_date', '>=', $monthStart)
+                ->where('sale_status', '!=', 'void')
+                ->select('payment_method', DB::raw('SUM(grand_total) as total_amount'), DB::raw('COUNT(*) as count'))
+                ->groupBy('payment_method')
+                ->get()
+                ->map(function ($item) {
+                    return [
+                        'payment_method' => $item->payment_method ?? 'cash',
+                        'total_amount' => (float) $item->total_amount,
+                        'count' => (int) $item->count,
+                    ];
+                });
+        }
 
         // 4. Best Selling Products (Top 5)
         $bestSelling = SaleItem::select('product_id', 'product_name', DB::raw('SUM(quantity) as total_qty'), DB::raw('SUM(total) as total_revenue'))
