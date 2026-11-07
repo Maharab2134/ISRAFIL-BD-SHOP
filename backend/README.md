@@ -1,257 +1,468 @@
-# Israfil BD Shop - Backend API & Server Documentation
-> **প্রিমিয়াম রিটেইল ও পিওএস (Point of Sale) ইনভেন্টরি ম্যানেজমেন্ট সিস্টেম - ব্যাকএন্ড গাইড**  
+# ISRAFIL BD SHOP – Backend Architecture & Server Documentation
+> **প্রিমিয়াম রিটেইল ও পিওএস (Point of Sale) শপ ম্যানেজমেন্ট প্ল্যাটফর্ম – ব্যাকএন্ড পূর্ণাঙ্গ নির্দেশিকা**  
 > Developed with **Laravel 11 / 12**, **Laravel Sanctum**, **MariaDB / MySQL**, and **Google Drive Cloud Storage**.
 
 ---
 
 ## 📌 সূচিপত্র (Table of Contents)
 1. [প্রজেক্ট ওভারভিউ (Project Overview)](#-প্রজেক্ট-ওভারভিউ-project-overview)
-2. [সিস্টেমের প্রয়োজনীয়তা (Prerequisites)](#-সিস্টেমের-প্রয়োজনীয়তা-prerequisites)
-3. [ইনস্টলেশন ও সেটআপ গাইড (Step-by-Step Installation)](#-ইনস্টলেশন-ও-সেটআপ-গাইড-step-by-step-installation)
-4. [ডাটাবেস মাইগ্রেশন ও সিডিং - রিয়েল ডাটা সেটআপ (Zero Demo Data)](#-ডাটাবেস-মাইগ্রেশন-ও-সিডিং---রিয়েল-ডাটা-সেটআপ)
-5. [ডিফল্ট লগইন ক্রেডেনশিয়াল (Default Staff Credentials)](#-ডিফল্ট-লগইন-ক্রেডেনশিয়াল-default-staff-credentials)
-6. [ব্যাকএন্ড সার্ভার চালু করা (Running the Server)](#-ব্যাকএন্ড-সার্ভার-চালু-করা-running-the-server)
-7. [টেস্টিং গাইড (Running Automated Tests)](#-টেস্টিং-গাইড-running-automated-tests)
-8. [ঐচ্ছিক ডেমো ডাটা সিডার (Optional Demo Seeder)](#-ঐচ্ছিক-ডেমো-ডাটা-সিডার-optional-demo-seeder)
-9. [গুগল ড্রাইভ ইমেজ ক্লাউড সেটআপ (Google Drive Storage)](#-গুগল-ড্রাইভ-ইমেজ-ক্লাউড-সেটআপ-google-drive-storage)
-10. [প্রোডাকশন ডেপ্লয়মেন্ট চেকলিস্ট (Production Deployment)](#-প্রোডাকশন-ডেপ্লয়মেন্ট-চেকলিস্ট-production-deployment)
+2. [নতুন ফিচার ও আর্কিটেকচারাল আপডেটসমূহ (Recent Key Features & Upgrades)](#-নতুন-ফিচার-ও-আর্কিটেকচারাল-আপডেটসমূহ)
+3. [সিস্টেমের প্রয়োজনীয়তা (System Requirements)](#-সিস্টেমের-প্রয়োজনীয়তা-system-requirements)
+4. [ধাপে ধাপে ইনস্টলেশন গাইড (Step-by-Step Installation)](#-ধাপে-ধাপে-ইনস্টলেশন-গাইড-step-by-step-installation)
+5. [ডাটাবেস মাইগ্রেশন ও রিয়েল ডাটা সিডার (Database Migration & Seeding)](#-ডাটাবেস-মাইগ্রেশন-ও-রিয়েল-ডাটা-সিডার)
+6. [ডিফল্ট স্টাফ লগইন ক্রেডেনশিয়াল (Default Staff Credentials)](#-ডিফল্ট-স্টাফ-লগইন-ক্রেডেনশিয়াল)
+7. [সার্ভার রান ও ভেরিফিকেশন (Running the Server)](#-সার্ভার-রান-ও-ভেরিফিকেশন)
+8. [সম্পূর্ণ RESTful API এন্ডপয়েন্ট রেফারেন্স (Full API Reference)](#-সম্পূর্ণ-restful-api-এন্ডপয়েন্ট-রেফারেন্স)
+9. [হাই-কনকারেন্সি ও ১,০০০+ দৈনিক সেলস হ্যান্ডলিং (High-Scale Optimization)](#-হাই-কনকারেন্সি-ও-১০০০-দৈনিক-সেলস-হ্যান্ডলিং)
+10. [সিস্টেম সেকশন রক্ষণাবেক্ষণ ও জিরো-ক্র্যাশ এরর লগিং (Maintenance & Error Logging)](#-সিস্টেম-সেকশন-রক্ষণাবেক্ষণ-ও-জিরো-ক্র্যাশ-এরর-লগিং)
+11. [গুগল ড্রাইভ ও মিডিয়া হ্যান্ডলিং (Google Drive & Media Storage)](#-গুগল-ড্রাইভ-ও-মিডিয়া-হ্যান্ডলিং)
+12. [অটোমেটেড টেস্ট রান করা (Running Automated Tests)](#-অটোমেটেড-টেস্ট-রান-করা)
+13. [প্রোডাকশন ডেপ্লয়মেন্ট চেকলিস্ট (Production Deployment Guide)](#-প্রোডাকশন-ডেপ্লয়মেন্ট-চেকলিস্ট)
+14. [সমস্যা সমাধান ও ট্রাবলশুটিং (Troubleshooting & FAQs)](#-সমস্যা-সমাধান-ও-ট্রাবলশুটিং)
 
 ---
 
 ## 🚀 প্রজেক্ট ওভারভিউ (Project Overview)
 
-**Israfil BD Shop** ব্যাকএন্ড সম্পূর্ণ RESTful API আর্কিটেকচারে তৈরি একটি উচ্চ-ক্ষমতাসম্পন্ন রিটেইল ও পিওএস ব্যাকএন্ড। এটি অফলাইন ও অনলাইন পয়েন্ট অফ সেল (POS), বারকোড স্ক্যানিং, ডুয়াল-কারেন্সি/বাংলা-ইংরেজি লোকালাইজেশন, ইনভেন্টরি ট্র্যাকিং, সাপ্লায়ার ও কাস্টমার লেজার খতিয়ান, কিস্তি/বাকির হিসাব, অটো-থার্মাল প্রিন্ট রসিদ এবং লাভ-ক্ষতির অ্যানালিটিক্স সরবরাহ করে।
+**ISRAFIL BD SHOP** ব্যাকএন্ড সম্পূর্ণ RESTful API আর্কিটেকচারে নির্মিত একটি বাণিজ্যিক মানের রিটেইল ও পিওএস ব্যাকএন্ড ইঞ্জিন। এটি বড় আকারের সুপার শপ, ডিপার্টমেন্টাল স্টোর এবং চেইন শপের দৈনিক উচ্চ লেনদেন (১,০০০+ দৈনিক ইনভয়েস) নির্বিঘ্নে পরিচালনা করার জন্য ডিজাইন করা হয়েছে।
 
-### প্রধান বৈশিষ্ট্যসমূহ:
-- **Zero Dummy Data Guarantee**: প্রোডাকশন রেডি ডাটাবেস। কোনো ডামি পণ্য বা ডামি সেলস ইনভয়েস ছাড়াই ফ্রেশ ইনস্টল হয়।
-- **Role-Based Access Control (RBAC)**: সুপার অ্যাডমিন, ম্যানেজার এবং ক্যাশিয়ার—৩টি নির্ধারিত ভূমিকা এবং ২০টি গ্র্যানুলার পারমিশন।
-- **POS Engine with Stock Lock & Validation**: রিয়েল-টাইম স্টক ডিটেকশন, নেগেটিভ স্টক প্রতিরোধ, ক্যাশ মেমো ও ট্রানজেকশন জেনারেশন।
-- **Cloud & Local Storage**: পণ্য ও প্রোফাইলের ছবি স্বয়ংক্রিয়ভাবে লোকাল স্টোরেজ অথবা গুগল ড্রাইভ ক্লাউডে সংরক্ষণ।
-- **Bilingual Core**: প্রতিটি বিভাগ ও ক্যাটাগরি সম্পূর্ণ দ্বিভাষিক (বাংলা এবং ইংরেজি)।
+### প্রধান প্রযুক্তিগত স্তম্ভসমূহ:
+- **Zero Dummy Data Guarantee**: সিস্টেমে কোনো ডামি বা ফেক বিক্রয় অর্ডার নেই। ফ্রেশ ইন্সটলেশনে শুধু প্রয়োজনীয় কনফিগারেশন, রোলস ও প্রমিত পরিমাপ একক সিড হয়।
+- **Role-Based Access Control (RBAC)**: সুপার অ্যাডমিন, ব্রাঞ্চ ম্যানেজার এবং ক্যাশিয়ার—৩টি স্ট্যান্ডার্ড রোল এবং ২০+ গ্র্যানুলার পারমিশন।
+- **Strict Business Confidentiality**: ক্যাশিয়ারদের থেকে পাইকারি ক্রয় মূল্য (Cost Price) এবং ইউনিট প্রফিট মার্জিন সম্পূর্ণ সুরক্ষিত।
+- **Zero-Crash Telemetry**: ফ্রন্টএন্ডে কোনো অপ্রত্যাশিত এরর হলে তা সরাসরি ব্যাকএন্ডে লগ হয় এবং সুপার অ্যাডমিনকে তাত্ক্ষণিকভাবে অ্যালার্ট করে।
+- **Section Maintenance Engine**: যেকোনো মডিউল (POS, Products, Accounting, Reports ইত্যাদি) সুপার অ্যাডমিন রিয়েল-টাইমে মেইনটেন্যান্সে নিতে পারেন।
 
 ---
 
-## 💻 সিস্টেমের প্রয়োজনীয়তা (Prerequisites)
+## 🌟 নতুন ফিচার ও আর্কিটেকচারাল আপডেটসমূহ
 
-ব্যাকএন্ড রান করার পূর্বে সার্ভার বা লোকাল মেশিনে নিচের প্যাকেজগুলো নিশ্চিত করুন:
+### ১. হাই-লোড স্কেলিং ও ১,০০০+ দৈনিক ইনভয়েস হ্যান্ডলিং
+- **কম্পোজিট ইনডেক্সিং (`2026_11_06_000015_add_performance_indexes_for_scale.php`)**: `sales`, `sale_items`, `customers`, `products`, `transactions` এবং `stock_movements` টেবিলে মাল্টি-কলাম ইনডেক্স যুক্ত করা হয়েছে। ফলে লক্ষাধিক রেকর্ডেও কুয়েরি মিলি-সেকেন্ডে সম্পন্ন হয়।
+- **অ্যাটমিক দৈনিক ইনভয়েস সিকোয়েন্স**: একাধিক কাউন্টারে একসাথে চেকআউট হলেও ইনভয়েস নম্বর ডুপ্লিকেট হয় না (`INV-YYYYMMDD-XXXX`)।
+- **ফাস্ট প্রিফিক্স কাস্টমার সার্চ**: পিওএস টার্মিনালে মোবাইল নম্বরের প্রথম ৩-৪ ডিজিট টাইপ করতেই গ্রাহকের নাম ও পূর্বের বকেয়া চলে আসে।
 
-- **PHP**: `^8.2` বা `^8.3`
+### ২. জিরো-ক্র্যাশ রেজিলিয়েন্স ও ক্লায়েন্ট এরর সেন্ট্রাল লগিং
+- ফ্রন্টএন্ডে রিয়্যাক্ট `ErrorBoundary` যুক্ত করা হয়েছে, যা কোনো আনহ্যান্ডেলড জাভাস্ক্রিপ্ট এরর হলে ব্ল্যাংক স্ক্রিন হওয়া রোধ করে।
+- ব্যাকএন্ড এন্ডপয়েন্ট `POST /api/system/report-error` এ স্বয়ংক্রিয়ভাবে ক্লায়েন্ট এরর রিপোর্ট জমা হয়।
+- এররগুলো `backend/storage/logs/client_errors.log` এবং ক্যাশে সংরক্ষিত থাকে, যা সুপার অ্যাডমিন সেটিংস থেকে সরাসরি দেখতে ও ক্লিয়ার করতে পারেন।
+
+### ৩. সেকশন মেইনটেন্যান্স মোড (Section Maintenance Mode)
+- সুপার অ্যাডমিন যেকোনো মডিউলকে রিয়েল-টাইমে রক্ষণাবেক্ষণ মোডে নিতে পারেন (`POST /api/system/modules/toggle`)।
+- সাধারণ ব্যবহারকারী বা ক্যাশিয়ার ওই সেকশনে প্রবেশ করলে *"This section will be back for maintenance / রক্ষণাবেক্ষণের জন্য সাময়িকভাবে বন্ধ আছে"* নোটিশ দেখতে পায়।
+- সুপার অ্যাডমিনদের জন্য থাকে "Developer Preview Active" ফ্লোটিং ব্যানার, যার মাধ্যমে তারা লাইভ সিস্টেমে টেস্ট ও ডেভেলপ করতে পারেন।
+
+### ৪. সুপার শপ প্রাইজ কনফিডেনশিয়ালিটি (Wholesale Cost Protection)
+- ক্যাশিয়াররা (`role: cashier`) প্রোডাক্ট লিস্ট বা প্রোডাক্ট ডিটেইলসে কোনো পাইকারি ক্রয় মূল্য (Cost Price) বা প্রত্যাশিত লাভ (Profit Margin) দেখতে পাবে না।
+- শুধুমাত্র সুপার অ্যাডমিন এবং যেসব ম্যানেজারের `purchases.view` বা `reports.view` পারমিশন রয়েছে তারা ক্রয় মূল্য দেখতে পাবেন।
+- ক্যাশিয়ারদের জন্য প্রোডাক্ট যোগ, এডিট, ডিলিট এবং বাল্ক ডিলিট অ্যাকশন স্বয়ংক্রিয়ভাবে বন্ধ থাকে।
+
+### ৫. প্রোডাক্ট পরিমাপের মান (Measurement Value) ও স্টকের পার্থক্য
+- প্রতি প্যাকেটের নেট ওজন/পরিমাপ (`measurement_value`, যেমন: ১০০ গ্রাম মাখন) এবং দোকানে মোট মজুত সংখ্যা (`current_stock`, যেমন: ৫০ পিস) আলাদা আর্কিটেকচারে রাখা হয়েছে।
+- টেবিলের ক্যাটাগরির পাশে ডেডিকেটেড `পরিমাপ (Qnty)` কলাম প্রদর্শিত হয়।
+- সুপার অ্যাডমিন ক্যাটাগরি, ব্র্যান্ড ও ইউনিট ডিলিট করতে পারবেন; প্রডাক্ট নষ্ট না হয়ে রিলেশনশিপ নিরাপদে হ্যান্ডেল হয় (Nullable Foreign Keys)।
+
+### ৬. ভিআইপি লয়্যালটি পয়েন্টস ইঞ্জিন (VIP Loyalty Points)
+- প্রতি ১০০ টাকার কেনাকাটায় পয়েন্ট জমা এবং পিওএস চেকআউটে ইনস্ট্যান্ট রিডেম্পশন (যেমন: ১০০ পয়েন্ট = ৳৭৫ ছাড়)।
+- কাস্টমার লেজারে স্বয়ংক্রিয় পয়েন্ট ব্যালেন্স ও ট্রানজেকশন হিস্ট্রি ট্র্যাকিং।
+
+### ৭. ভিজ্যুয়াল রোল ও পারমিশন ম্যানেজমেন্ট (RBAC GUI)
+- সুপার অ্যাডমিন সরাসরি ইউআই থেকে নতুন রোল তৈরি ও পারমিশন টগল করতে পারবেন (`/roles`, `/permissions`)।
+- ফাইনান্সিয়াল প্রোটেকশন: যেসব কাস্টমার বা সাপ্লায়ারের বকেয়া ব্যালেন্স বা সেলস হিস্ট্রি আছে, তাদের শুধুমাত্র সুপার অ্যাডমিন ডিলিট করতে পারবেন (ম্যানেজারদের রেস্ট্রিক্ট করা হয়েছে)।
+
+---
+
+## 💻 সিস্টেমের প্রয়োজনীয়তা (System Requirements)
+
+সার্ভারে বা লোকাল মেশিনে নিশ্চিত করুন:
+- **PHP**: `^8.2` অথবা `^8.3`
 - **Composer**: `^2.5`
-- **Database**: `MariaDB 10.6+` অথবা `MySQL 8.0+`
+- **Database**: `MySQL 8.0+` অথবা `MariaDB 10.6+`
 - **প্রয়োজনীয় PHP এক্সটেনশনসমূহ**:
-  - `pdo_mysql`
-  - `mbstring`
-  - `openssl`
-  - `tokenizer`
-  - `xml`
-  - `ctype`
-  - `json`
-  - `bcmath`
-  - `curl`
-  - `gd` বা `imagick` (ছবি রিসাইজ ও প্রসেসিংয়ের জন্য)
+  - `pdo_mysql`, `mbstring`, `openssl`, `tokenizer`, `xml`, `ctype`, `json`, `bcmath`, `curl`, `gd` বা `imagick`
+- **Node.js**: `^18.0` (ফ্রন্টএন্ড বিল্ডের জন্য)
 
 ---
 
-## 🛠️ ইনস্টলেশন ও সেটআপ গাইড (Step-by-Step Installation)
+## 🛠️ ধাপে ধাপে ইনস্টলেশন গাইড (Step-by-Step Installation)
 
-### ধাপ ১: প্রজেক্ট ডিরেক্টরিতে প্রবেশ করুন
+### ধাপ ১: প্রজেক্ট ক্লোন ও ব্যাকএন্ড ফোল্ডারে প্রবেশ
 ```bash
-cd /path/to/Israfill/backend
+git clone https://github.com/Maharab2134/ISRAFIL-BD-SHOP.git
+cd ISRAFIL-BD-SHOP/backend
 ```
 
-### ধাপ ২: কম্পোজার ডিপেন্ডেন্সি ইনস্টল করুন
+### ধাপ ২: কম্পোজার ডিপেন্ডেন্সি ইনস্টলেশন
 ```bash
 composer install --no-interaction --prefer-dist --optimize-autoloader
 ```
 
-### ধাপ ৩: এনভায়রনমেন্ট ফাইল তৈরি করুন
-`.env.example` থেকে কপি করে `.env` ফাইল তৈরি করুন:
+### ধাপ ৩: এনভায়রনমেন্ট কনফিগারেশন (`.env`)
+ডিফল্ট টেমপ্লেট থেকে `.env` তৈরি করুন:
 ```bash
 cp .env.example .env
 ```
 
-### ধাপ ৪: অ্যাপলিকেশন সিক্রেট কি জেনারেট করুন
-```bash
-php artisan key:generate
-```
-
-### ধাপ ৫: ডাটাবেস কনফিগার করুন
-আপনার `.env` ফাইলে ডাটাবেস সংক্রান্ত তথ্য আপডেট করুন:
+আপনার `.env` ফাইলে ডাটাবেস ও ইউআরএল সংক্রান্ত তথ্য আপডেট করুন:
 ```env
+APP_NAME="ISRAFIL BD SHOP"
+APP_ENV=local
+APP_DEBUG=true
+APP_TIMEZONE=Asia/Dhaka
+APP_URL=http://localhost:8000
+
+# ডাটাবেস কনফিগারেশন
 DB_CONNECTION=mysql
 DB_HOST=127.0.0.1
 DB_PORT=3306
 DB_DATABASE=israfil_shop
 DB_USERNAME=root
-DB_PASSWORD=your_password
+DB_PASSWORD=your_mysql_password
 
-# লিনাক্সে যদি ইউনিক্স সকেট (MariaDB/MySQL) ব্যবহার করেন:
-# DB_SOCKET=/tmp/mysql.sock
+# লিনাক্সে ইউনিক্স সকেট ব্যবহার করলে (যেমন: MariaDB):
+# DB_SOCKET=/run/mysqld/mysqld.sock
+
+# সেশন ও ক্যাশ ড্রাইভার
+SESSION_DRIVER=database
+CACHE_STORE=database
+QUEUE_CONNECTION=database
+
+# ফ্রন্টএন্ড SPA ইউআরএল ও কর্স (CORS / Sanctum)
+SANCTUM_STATEFUL_DOMAINS=localhost:5173,127.0.0.1:5173
+FRONTEND_URL=http://localhost:5173
+
+# গুগল ড্রাইভ ক্লাউড স্টোরেজ (ঐচ্ছিক)
+GOOGLE_DRIVE_FOLDER_ID=
+GOOGLE_DRIVE_ACCESS_TOKEN=
+GOOGLE_DRIVE_API_KEY=
 ```
 
-> **ডাটাবেস তৈরি করুন (যদি পূর্বে না থাকে):**
-> ```sql
-> CREATE DATABASE israfil_shop CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-> ```
+### ধাপ ৪: অ্যাপলিকেশন সিক্রেট কি তৈরি
+```bash
+php artisan key:generate
+```
 
-### ধাপ ৬: স্টোরেজ লিংক তৈরি করুন
-লোকাল সার্ভারে আপলোড করা প্রোডাক্ট ছবি ব্রাউজার থেকে সরাসরি ভিউ করার জন্য পাবলিক স্টোরেজ সিমলিংক তৈরি করুন:
+### ধাপ ৫: ডাটাবেস তৈরি করুন
+টার্মিনালে MySQL/MariaDB ক্লায়েন্টে প্রবেশ করে ডাটাবেস তৈরি করুন:
+```sql
+CREATE DATABASE israfil_shop CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+```
+
+### ধাপ ৬: স্টোরেজ সিমলিংক তৈরি
+প্রোডাক্ট ও ইউজার প্রোফাইলের ছবি সরাসরি পাবলিক ব্রাউজারে রেন্ডার করার জন্য সিমলিংক বানান:
 ```bash
 php artisan storage:link
 ```
 
 ---
 
-## 📦 ডাটাবেস মাইগ্রেশন ও সিডিং - রিয়েল ডাটা সেটআপ
+## 📦 ডাটাবেস মাইগ্রেশন ও রিয়েল ডাটা সিডার
 
-> ⚠️ **গুরুত্বপূর্ণ (Real Production Data Only - Zero Demo Data):**  
-> এই সিস্টেমে কোনো ডামি পণ্য (Dummy Products), নকল সেলস অর্ডার (Fake Sales) বা কাল্পনিক পারচেজ ডাটা যুক্ত করা হবে না। শুধুমাত্র ব্যবসায় পরিচালনার জন্য প্রয়োজনীয় বাস্তব কনফিগারেশন, রোলস, স্টাফ অ্যাকাউন্ট, পরিমাপের ইউনিট, খরচের খাত এবং সাধারণ কাস্টমার অ্যাকাউন্ট সিড হবে।
-
-ডাটাবেস সম্পূর্ণ ফ্রেশ করে প্রাথমিক রিয়েল সেটআপ করতে কমান্ডটি রান করুন:
+ডাটাবেস মাইগ্রেশন রান করে রিয়েল প্রোডাকশন কনফিগারেশন সিড করুন:
 
 ```bash
 php artisan migrate:fresh --seed
 ```
 
-### ডিফল্ট সিডারে যা যা অন্তর্ভুক্ত থাকে:
-1. **২০টি পারমিশন (System Permissions)**:
-   - `manage-users`, `manage-roles`, `manage-products`, `manage-categories`, `manage-purchases`, `manage-sales`, `pos-access`, `manage-customers`, `manage-suppliers`, `manage-expenses`, `manage-returns`, `view-reports`, `manage-settings`, ইত্যাদি।
-2. **৩টি মৌলিক রোল (Standard Roles)**:
-   - `super-admin`: সর্বময় ক্ষমতা ও কনফিগারেশন নিয়ন্ত্রণ।
-   - `manager`: ইনভেন্টরি, পারচেজ, সেলস, কাস্টমার, সাপ্লায়ার ও রিপোর্ট অ্যাক্সেস।
-   - `cashier`: পিওএস টার্মিনাল ও সেলস ইনভয়েস অ্যাক্সেস।
-3. **৩টি অফিসিয়াল স্টাফ অ্যাকাউন্ট (Staff Accounts)**:
-   - সুপার অ্যাডমিন, ব্রাঞ্চ ম্যানেজার ও ক্যাশিয়ার।
-4. **৬টি প্রমিত পরিমাপের একক (Standard Units)**:
-   - `pcs` (পিস), `kg` (কেজি), `pkt` (প্যাকেট), `box` (বক্স), `ltr` (লিটার), `dzn` (ডজন)।
-5. **৮টি নিয়মিত ব্যবসার খরচের খাত (Expense Categories)**:
-   - দোকান ভাড়া (Shop Rent), বিদ্যুৎ ও ইউটিলিটি বিল (Electricity & Utilities), কর্মচারীর বেতন ও ভাতা (Staff Salaries), পরিবহন ও যাতায়াত খরচ (Transport), ইন্টারনেট ও ফোন বিল (Internet & Phone), চা-নাস্তা ও আপ্যায়ন (Entertainment & Tea), দোকান মেরামত ও রক্ষণাবেক্ষণ (Maintenance & Repairs), অন্যান্য বিবিধ ব্যয় (Miscellaneous)।
-6. **ডিফল্ট ওয়াক-ইন কাস্টমার (Default Walk-in Customer)**:
-   - নাম: `ওয়াক-ইন কাস্টমার (Walk-in Customer)`, ফোন: `01700000000` (দ্রুত কাউন্টার বিক্রয়ের জন্য)।
-7. **দোকানের প্রাথমিক সেটিংস (Shop & POS Settings)**:
-   - দোকানের নাম: `ISRAFIL BD SHOP`, মুদ্রার প্রতীক: `৳` (BDT), ৮০০ মিমি থার্মাল রিসিপ্ট মেমো ফুটার ও প্রিন্টার ফরম্যাট।
+> **সতর্কতা:** এই সিডারে কোনো ডামি বা নকল পণ্য ঢোকানো হয় না। এটি একটি ফুল প্রোডাকশন রেডি সেটআপ যাতে নিচের কনফিগারেশনগুলো লোড হয়:
+
+### সিডারে যা যা অন্তর্ভুক্ত থাকে:
+1. **২০+ সিস্টেম পারমিশন**:
+   - `pos.access`, `products.view`, `products.create`, `products.edit`, `products.delete`, `purchases.view`, `sales.view`, `reports.view`, `settings.manage` ইত্যাদি।
+2. **৩টি স্ট্যান্ডার্ড রোল**:
+   - `super-admin`: সর্বময় ক্ষমতা ও সিস্টেম রক্ষণাবেক্ষণ।
+   - `manager`: ইনভেন্টরি, পারচেজ, সেলস, কাস্টমার, সাপ্লায়ার ও রিপোর্ট।
+   - `cashier`: পিওএস টার্মিনাল, রসিদ প্রিন্ট ও বিক্রয় হিস্ট্রি।
+3. **৩টি অ্যাক্টিভ অফিসিয়াল স্টাফ অ্যাকাউন্ট**:
+   - সুপার অ্যাডমিন, ব্রাঞ্চ ম্যানেজার এবং ক্যাশিয়ার।
+4. **প্রমিত পরিমাপের একক (Measurement Units)**:
+   - `pcs` (পিস), `kg` (কেজি), `gm` (গ্রাম), `pkt` (প্যাকেট), `box` (বক্স), `ltr` (লিটার), `dzn` (ডজন)।
+5. **৮টি নিয়মিত খরচের খাত (Expense Categories)**:
+   - দোকান ভাড়া, বিদ্যুৎ ও ইউটিলিটি, কর্মচারীর বেতন, পরিবহন, ইন্টারনেট, আপ্যায়ন, মেরামত, বিবিধ।
+6. **ডিফল্ট ওয়াক-ইন কাস্টমার**:
+   - নাম: `ওয়াক-ইন কাস্টমার (Walk-in Customer)`, ফোন: `01700000000`।
+7. **দোকান ও পিওএস সেটিংস**:
+   - কারেন্সি সিম্বল: `৳` (BDT), টাইমজোন: `Asia/Dhaka`, ডিফল্ট প্রিন্টার ফরম্যাট: `80mm Thermal`।
 
 ---
 
-## 🔑 ডিফল্ট লগইন ক্রেডেনশিয়াল (Default Staff Credentials)
+## 🔑 ডিফল্ট স্টাফ লগইন ক্রেডেনশিয়াল
 
-সিস্টেম সিড করার পর আপনি নিচের ক্রেডেনশিয়ালগুলো ব্যবহার করে সরাসরি লগইন করতে পারবেন:
+সিস্টেম সিড করার পর আপনি নিচের ক্রেডেনশিয়ালগুলো দিয়ে লগইন করতে পারবেন:
 
-| ভূমিকা (Role) | ইমেইল (Email) | পাসওয়ার্ড (Password) | প্রবেশাধিকার (Access Scope) |
-| :--- | :--- | :--- | :--- |
-| **Super Admin** | `admin@israfilbd.com` | `admin123` | ফুল সিস্টেম, ইউজার ব্যবস্থাপনা, রিপোর্ট, সেটিংস |
-| **Store Manager** | `manager@israfilbd.com` | `manager123` | পণ্য তালিকা, স্টক এন্ট্রি, ক্রয়, বিক্রয়, খরচ, কাস্টমার |
-| **POS Cashier** | `cashier@israfilbd.com` | `cashier123` | পিওএস টার্মিনাল কাউন্টার, রসিদ প্রিন্ট, সেলস হিস্ট্রি |
+| ভূমিকা (Role) | ইমেইল (Email) | পাসওয়ার্ড (Password) | অনুমতি পরিধি (Access Scope) |
+|---|---|---|---|
+| **Super Admin** | `admin@israfilbd.com` | `password123` | ফুল সিস্টেম, রোলস, সেটিংস, ব্যাকআপ, মডিউল নিয়ন্ত্রণ |
+| **Store Manager** | `manager@israfilbd.com` | `password123` | পণ্য, স্টক সমন্বয়, ক্রয়, খরচ ও রিপোর্ট |
+| **Cashier** | `cashier@israfilbd.com` | `password123` | পিওএস টার্মিনাল বিক্রয়, কাস্টমার এন্ট্রি, ইনভয়েস প্রিন্ট |
 
-> 🔒 *সতর্কতা: লাইভ প্রোডাকশনে যাওয়ার সাথে সাথে প্রতিটি অ্যাকাউন্টের ডিফল্ট পাসওয়ার্ড পরিবর্তন করে নিন।*
+*(সিস্টেমে সুবিধার্থে রোল-ভিত্তিক পাসওয়ার্ড `admin123`, `manager123`, `cashier123`-ও কাজ করবে)*
 
 ---
 
-## ⚡ ব্যাকএন্ড সার্ভার চালু করা (Running the Server)
+## ⚡ সার্ভার রান ও ভেরিফিকেশন
 
-ডেভেলপমেন্ট মোডে সার্ভার চালু করতে:
+### ১. ব্যাকএন্ড এপিআই সার্ভার রান করুন
 ```bash
 php artisan serve --host=127.0.0.1 --port=8000
 ```
-সার্ভার সফলভাবে চালু হলে API এন্ডপয়েন্টসমূহ `http://127.0.0.1:8000/api` এ উপলব্ধ হবে।
+সার্ভার চালু হলে এন্ডপয়েন্ট বেস ইউআরএল হবে: `http://127.0.0.1:8000/api`
+
+### ২. ফ্রন্টএন্ড রান করুন
+আলাদা টার্মিনাল উইন্ডোতে:
+```bash
+cd ../frontend
+npm install
+npm run dev
+```
+ব্রাউজারে ভিজিট করুন: **`http://localhost:5173`**
 
 ---
 
-## 🧪 টেস্টিং গাইড (Running Automated Tests)
+## 📡 সম্পূর্ণ RESTful API এন্ডপয়েন্ট রেফারেন্স
 
-ব্যাকএন্ডে পিওএস চেকআউট, স্টক হ্রাস-বৃদ্ধি, বারকোড স্ক্যানিং, রোল পারমিশন এবং কাস্টমার ব্যালেন্স যাচাইয়ের জন্য কমপ্রিহেনসিভ অটোমেটেড ফিচার টেস্ট রয়েছে।
+সবগুলো রুট `routes/api.php` ফাইলে সংরক্ষিত এবং Laravel Sanctum টোকেন দিয়ে সুরক্ষিত:
 
-সবগুলো টেস্ট একসাথে রান করতে:
-```bash
-./vendor/bin/phpunit
+### ১. অথেনটিকেশন ও প্রোফাইল (Auth)
+| Method | Endpoint | Description |
+|---|---|---|
+| `POST` | `/api/login` | ইউজার ক্রেডেনশিয়াল যাচাই ও বেয়ারার টোকেন প্রদান |
+| `POST` | `/api/logout` | সক্রিয় সেশন ও টোকেন বাতিল |
+| `GET` | `/api/me` | বর্তমান লগইনকৃত ইউজারের ডাটা ও পারমিশন লিস্ট |
+| `PUT` | `/api/profile` | নাম, ফোন ও প্রোফাইল তথ্য আপডেট |
+| `PUT` | `/api/change-password` | পাসওয়ার্ড পরিবর্তন |
+
+### ২. পিওএস টার্মিনাল ও বিক্রয় (POS & Sales)
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/api/pos/data` | পিওএস গ্রিডের জন্য পণ্য, ক্যাটাগরি ও কাস্টমার তালিকা |
+| `POST` | `/api/pos/checkout` | রিয়েল-টাইম স্টক হ্রাস, লয়্যালটি পয়েন্টস সহ সেলস কমপ্লিট |
+| `GET` | `/api/sales` | সম্পূর্ণ বিক্রয় ইনভয়েস তালিকা ফিল্টার ও সার্চ সহ |
+| `GET` | `/api/sales/{id}` | একক ইনভয়েসের পূর্ণ বিবরণ ও আইটেম লিস্ট |
+| `POST` | `/api/sales/{id}/return` | আংশিক বা পূর্ণ বিক্রয় রিটার্ন ও রিফান্ড সমন্বয় |
+| `GET` | `/api/sales-returns` | রিটার্নকৃত পণ্যের তালিকা |
+
+### ৩. পণ্য ও ইনভেন্টরি (Products & Inventory)
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/api/products` | পণ্য তালিকা (ক্যাশিয়ারদের জন্য ক্রয়মূল্য হাইড) |
+| `POST` | `/api/products` | নতুন পণ্য তৈরি (Measurement Value সহ) |
+| `GET` | `/api/products/{id}` | একক পণ্যের বিস্তারিত |
+| `POST` | `/api/products/{id}` | পণ্য সম্পাদনা ও ইমেজ আপডেট |
+| `DELETE` | `/api/products/{id}` | পণ্য মুছে ফেলা |
+| `POST` | `/api/products/bulk-delete` | একাধিক নির্বাচিত পণ্য একসাথে মুছে ফেলা |
+| `GET` | `/api/products/barcode/{barcode}` | বারকোড স্ক্যানার দিয়ে পণ্য অনুসন্ধান |
+| `POST` | `/api/products/import-json` | জিরো-পারসিস্টেন্স বাল্ক JSON পণ্য ইমপোর্ট |
+| `GET` | `/api/inventory/overview` | লো-স্টক, মোট ইনভেন্টরি মূল্য ও স্টক পরিসংখ্যান |
+| `POST` | `/api/inventory/adjust` | স্টক ড্যামেজ/ঘাটতি/বৃদ্ধির সমন্বয় |
+| `GET` | `/api/inventory/history` | প্রতিটি পণ্যের স্টক মুভমেন্ট লগ |
+
+### ৪. ক্যাটাগরি, ব্র্যান্ড ও ইউনিট
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/api/categories` | সকল ক্যাটাগরি ও পণ্য সংখ্যা |
+| `POST` | `/api/categories` | নতুন ক্যাটাগরি তৈরি |
+| `POST` | `/api/categories/bulk-delete` | একাধিক ক্যাটাগরি বাল্ক ডিলিট |
+| `GET` | `/api/brands` | ব্র্যান্ড তালিকা |
+| `POST` | `/api/brands` | ব্র্যান্ড তৈরি |
+| `GET` | `/api/units` | পরিমাপের ইউনিটসমূহ (কেজি, গ্রাম, লিটার ইত্যাদি) |
+| `POST` | `/api/units` | নতুন ইউনিট যোগ |
+| `DELETE` | `/api/units/{id}` | সুপার অ্যাডমিন কর্তৃক ইউনিট ডিলিট |
+
+### ৫. ক্রয় ও সাপ্লায়ার (Purchases & Suppliers)
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/api/purchases` | ক্রয়ের তালিকা ও পেমেন্ট স্ট্যাটাস |
+| `POST` | `/api/purchases` | নতুন চালান এন্ট্রি ও স্টক বৃদ্ধি |
+| `GET` | `/api/purchases/{id}` | চালানের বিস্তারিত বিবরণ |
+| `GET` | `/api/suppliers` | সরবরাহকারী তালিকা ও মোট দেনা |
+| `POST` | `/api/suppliers` | নতুন সরবরাহকারী যোগ |
+| `POST` | `/api/suppliers/{id}/payment` | সরবরাহকারীকে বকেয়া বিল পরিশোধ |
+| `DELETE` | `/api/suppliers/{id}` | সরবরাহকারী ডিলিট (সুপার অ্যাডমিন সুরক্ষাসহ) |
+
+### ৬. কাস্টমার ও লয়্যালটি লেজার (Customers)
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/api/customers` | গ্রাহক তালিকা, মোট বকেয়া ও লয়্যালটি পয়েন্টস |
+| `POST` | `/api/customers` | নতুন কাস্টমার এন্ট্রি |
+| `GET` | `/api/customers/{id}` | কাস্টমার প্রোফাইল, ক্রয় খতিয়ান ও লেজার |
+| `PUT` | `/api/customers/{id}` | গ্রাহক তথ্য আপডেট |
+| `POST` | `/api/customers/{id}/payment` | গ্রাহকের কাছ থেকে বকেয়া টাকা কালেকশন |
+| `DELETE` | `/api/customers/{id}` | কাস্টমার ডিলিট (বকেয়া থাকলে শুধু সুপার অ্যাডমিন) |
+
+### ৭. খরচের হিসাব (Expenses)
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/api/expenses` | খরচের তালিকা ও ভাউচার |
+| `POST` | `/api/expenses` | নতুন খরচ এন্ট্রি |
+| `GET` | `/api/expense-categories` | খরচের খাতসমূহ |
+| `POST` | `/api/expense-categories` | নতুন খরচের খাত যোগ |
+
+### ৮. অ্যাকাউন্টিং ও আর্থিক রিপোর্ট (Accounting & Reports)
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/api/accounting/summary` | মোট নগদ ক্যাশ, মোট আয়, ব্যয় ও নেট মুনাফা |
+| `GET` | `/api/accounting/cash-flow` | দৈনিক ক্যাশ-ইন ও ক্যাশ-আউটের অডিট ট্রেইল |
+| `GET` | `/api/accounting/customer-due` | সকল বকেয়াদার গ্রাহকদের তালিকা |
+| `GET` | `/api/accounting/supplier-due` | সকল পাওনাদার সরবরাহকারীদের তালিকা |
+| `GET` | `/api/reports/daily` | আজকের বিক্রয়, মোট লাভ ও খরচের বিবরণ |
+| `GET` | `/api/reports/monthly` | মাসিক আর্থিক পর্যালোচনা |
+| `GET` | `/api/reports/yearly` | বাৎসরিক আয়-ব্যয় তুলনা |
+| `GET` | `/api/reports/products` | শীর্ষ বিক্রিত পণ্য ও স্টক টার্নওভার রিপোর্ট |
+| `GET` | `/api/reports/stock` | ইনভেন্টরি স্টক মূল্যায়ন রিপোর্ট |
+
+### ৯. সিস্টেম সেকশন মেইনটেন্যান্স ও এরর টেলিমেট্রি (System Resilience)
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/api/system/modules` | সকল সেকশনের বর্তমান অবস্থা (Active/Maintenance) |
+| `POST` | `/api/system/modules/toggle` | সুপার অ্যাডমিন কর্তৃক যেকোনো সেকশন অন/অফ |
+| `POST` | `/api/system/report-error` | ক্লায়েন্ট ক্র্যাশ এরর স্বয়ংক্রিয়ভাবে ব্যাকএন্ডে রিপোর্ট |
+| `POST` | `/api/system/errors/clear` | সংরক্ষিত এরর লগ মুছে ফেলা |
+
+### ১০. ভূমিকা, কর্মী ও অডিট লগ (Roles & Employees)
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/api/roles` | সকল ভূমিকা ও অনুমোদিত পারমিশন |
+| `POST` | `/api/roles` | নতুন কাস্টম ভূমিকা তৈরি |
+| `PUT` | `/api/roles/{id}/permissions` | ভূমিকার পারমিশনসমূহ আপডেট |
+| `GET` | `/api/permissions` | ২০+ গ্র্যানুলার সিস্টেম পারমিশনের তালিকা |
+| `GET` | `/api/employees` | স্টাফ ও ক্যাশিয়ারদের তালিকা |
+| `POST` | `/api/employees` | নতুন কর্মী নিয়োগ ও ভূমিকা নির্ধারণ |
+| `GET` | `/api/activity-logs` | নিরাপত্তা অডিট ট্রেইল (IP, টাইম ও ইউজার অ্যাকশন) |
+
+### ১১. সেটিংস ও ব্যাকআপ (Settings & Database)
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/api/settings` | দোকানের প্রোফাইল ও প্রিন্টার কনফিগারেশন |
+| `POST` | `/api/settings` | দোকানের নাম, ঠিকানা, ভ্যাট ও সেটিংস সংরক্ষণ |
+| `POST` | `/api/settings/logo` | দোকানের ইনভয়েস লোগো আপলোড |
+| `GET` | `/api/settings/backup` | এক ক্লিকে সম্পূর্ণ ডাটাবেসের SQL ডাম্প ডাউনলোড |
+| `GET` | `/api/settings/database/stats` | ডাটাবেস টেবিল ও রেকর্ডের সাইজ বিশ্লেষণ |
+| `POST` | `/api/settings/database/clear` | সুপার অ্যাডমিন কর্তৃক ট্রানজেকশন রিসেট |
+
+---
+
+## 📈 হাই-কনকারেন্সি ও ১,০০০+ দৈনিক সেলস হ্যান্ডলিং
+
+সিস্টেমটি উচ্চ ট্রাফিকের দিনে কোনো ধরনের হ্যাং বা স্লোনেস ছাড়াই কাজ করতে পারে:
+1. **মাল্টি-কলাম ইনডেক্সিং**:
+   - `sales` টেবিলে `(sale_date, created_at)` এবং `(customer_id, sale_date)` ইনডেক্স।
+   - `sale_items` টেবিলে `(sale_id, product_id)` ইনডেক্স।
+   - `customers` টেবিলে `(phone)` ইনডেক্স।
+   - `products` টেবিলে `(barcode)` ও `(category_id, status)` ইনডেক্স।
+2. **অ্যাটমিক ট্রানজেকশন ও রো-লেভেল লকিং**:
+   - পিওএস চেকআউটের সময় `DB::transaction()` এবং `lockForUpdate()` ব্যবহার করে ইনভেন্টরি স্টক হ্রাস নিশ্চিত করা হয়, যার ফলে নেগেটিভ স্টক বা রেস কন্ডিশনের সুযোগ নেই।
+3. **প্যারালাল কাউন্টার সাপোর্ট**:
+   - একাধিক ক্যাশিয়ার একসাথে সেল সম্পন্ন করলেও ইনভয়েস নাম্বার জেনারেশন লকড থাকে, কোনো নম্বর ডুপ্লিকেট হয় না।
+
+---
+
+## 🛡️ সিস্টেম সেকশন রক্ষণাবেক্ষণ ও জিরো-ক্র্যাশ এরর লগিং
+
+### সেকশন মেইনটেন্যান্স মেকানিজম:
+সুপার অ্যাডমিন যখন কোনো নির্দিষ্ট সেকশনে নতুন ফিচার বা কোড আপডেট করতে চান, তিনি সেটিকে নিষ্ক্রিয় করতে পারেন:
+```json
+// POST /api/system/modules/toggle
+{
+  "module": "pos",
+  "is_active": false
+}
 ```
-অথবা আর্টিসান টেস্ট রানার দিয়ে:
+- সাথে সাথে ক্যাশিয়ারদের জন্য পিওএস লক হয়ে যাবে এবং মেইনটেন্যান্স স্ক্রিন ভেসে উঠবে।
+- সুপার অ্যাডমিনদের অ্যাকাউন্টে একটি অ্যাম্বার ব্যানার প্রদর্শিত হবে: `"Developer Preview Active – You are previewing in maintenance mode"`। ফলে সাধারণ ব্যবহারকারীদের বিঘ্ন না ঘটিয়ে সুপার অ্যাডমিন লাইভ টেস্ট করতে পারবেন।
+
+### ক্লায়েন্ট এরর সেন্ট্রাল ট্র্যাকিং:
+- ফ্রন্টএন্ডে যেকোনো জাভাস্ক্রিপ্ট ত্রুটি ঘটলে তা ক্যাচ করে সাথে সাথে ব্যাকএন্ডের `POST /api/system/report-error` এ পাঠিয়ে দেওয়া হয়।
+- রিপোর্টটি `storage/logs/client_errors.log` ফাইলে টাইমস্ট্যাম্প সহ জমা থাকে এবং সুপার অ্যাডমিন টপ নেভবারে তাৎক্ষণিক অ্যালার্ট পাবেন।
+
+---
+
+## ☁️ গুগল ড্রাইভ ও মিডিয়া হ্যান্ডলিং
+
+সিস্টেমটি লোকাল ফাইল সিস্টেম এবং ক্লাউড স্টোরেজ দুটোই নির্বিঘ্নে সাপোর্ট করে:
+- `.env` ফাইলে `GOOGLE_DRIVE_FOLDER_ID` সেট থাকলে প্রোডাক্ট আপলোডের ছবি স্বয়ংক্রিয়ভাবে গুগল ড্রাইভে আপলোড হবে।
+- যদি গুগল ড্রাইভ কনফিগারেশন খালি থাকে, কোনো এরর না দিয়ে সিস্টেম স্বয়ংক্রিয়ভাবে লোকাল ডিস্ক `storage/app/public/products` এ ছবি সংরক্ষণ করবে।
+- ফ্রন্টএন্ডের জন্য সার্বজনীন ইমেজ ইউটিলিটি যেকোনো এক্সটার্নাল URL (Cloudinary, Imgur, ড্রাইভ ইত্যাদি) এবং লোকাল স্টোরেজ পাথ স্বয়ংক্রিয়ভাবে ডিটেক্ট ও রেন্ডার করে।
+
+---
+
+## 🧪 অটোমেটেড টেস্ট রান করা
+
+ব্যাকএন্ডে পিওএস চেকআউট, স্টক হ্রাস-বৃদ্ধি, বারকোড স্ক্যানিং, রোল পারমিশন এবং কাস্টমার ব্যালেন্স যাচাইয়ের জন্য ফিচার টেস্ট রয়েছে:
+
 ```bash
+# আর্টিসান টেস্ট রানার দিয়ে
 php artisan test
-```
 
-শুধুমাত্র মূল পিওএস ও শপ এপিআই ফিচার টেস্ট চালাতে:
-```bash
+# শুধুমাত্র পিওএস ও কোর শপ এপিআই ফিচার টেস্ট চালাতে
 ./vendor/bin/phpunit tests/Feature/IsrafilShopApiTest.php
 ```
 
 ---
 
-## 🧪 ঐচ্ছিক ডেমো ডাটা সিডার (Optional Demo Seeder)
+## 🚀 প্রোডাকশন ডেপ্লয়মেন্ট চেকলিস্ট
 
-যদি আপনি লোকাল ইন্টারফেস বা ড্যাশবোর্ড গ্রাফসমূহ টেস্টিংয়ের উদ্দেশ্যে কিছু কাল্পনিক ডেমো পণ্য ও বিক্রয় দেখতে চান, তবে আলাদাভাবে এই ডেমো সিডারটি রান করতে পারেন:
+লাইভ সার্ভারে (Ubuntu/Debian, Nginx, PHP 8.2-FPM) ডেপ্লয় করার সময় নিচের নির্দেশিকা অনুসরণ করুন:
 
+### ১. পারমিশন ঠিক করুন
 ```bash
-php artisan db:seed --class=DemoDataSeeder
+sudo chown -R www-data:www-data storage bootstrap/cache
+sudo chmod -R 775 storage bootstrap/cache
 ```
-*(রিয়েল প্রোডাকশনে এই কমান্ডটি কখনোই রান করবেন না)*
 
----
+### ২. ক্যাশিং অপ্টিমাইজেশন
+```bash
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
+```
 
-## ☁️ গুগল ড্রাইভ ইমেজ ক্লাউড সেটআপ (Google Drive Storage)
-
-পণ্যের ছবি এবং ডকুমেন্ট সরাসরি গুগল ড্রাইভে স্টোর করার জন্য নিচের কনফিগারেশনটি `.env` ফাইলে যুক্ত করতে পারেন:
-
+### ৩. এনভায়রনমেন্ট প্রোডাকশন সেট করুন
 ```env
-GOOGLE_DRIVE_FOLDER_ID=your_google_drive_folder_id
-GOOGLE_DRIVE_ACCESS_TOKEN=your_oauth_access_token
-GOOGLE_DRIVE_API_KEY=your_google_api_key
+APP_ENV=production
+APP_DEBUG=false
 ```
 
-> 💡 **নোট:** যদি গুগল ড্রাইভের ক্রেডেনশিয়াল খালি রাখা হয়, সিস্টেম স্বয়ংক্রিয়ভাবে লোকাল ডিস্ক স্টোরেজে (`storage/app/public/products`) ছবি সেভ করবে। কোনো ধরনের এরর হবে না।
+### ৪. Nginx কনফিগারেশন নমুনা
+```nginx
+server {
+    listen 80;
+    server_name api.yourshop.com;
+    root /var/www/ISRAFIL-BD-SHOP/backend/public;
+
+    index index.php;
+    client_max_body_size 20M;
+
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+
+    location ~ \.php$ {
+        include snippets/fastcgi-php.conf;
+        fastcgi_pass unix:/var/run/php/php8.2-fpm.sock;
+    }
+
+    location ~ /\.ht {
+        deny all;
+    }
+}
+```
 
 ---
 
-## 🚀 প্রোডাকশন ডেপ্লয়মেন্ট চেকলিস্ট (Production Deployment)
+## ❓ সমস্যা সমাধান ও ট্রাবলশুটিং (Troubleshooting & FAQs)
 
-প্রোডাকশন সার্ভারে (Ubuntu/Nginx/Apache) ডেপ্লয় করার সময় নিচের ধাপগুলো অনুসরণ করুন:
-
-1. **ফাইল পারমিশন ঠিক করুন:**
-   ```bash
-   sudo chown -R www-data:www-data storage bootstrap/cache
-   sudo chmod -R 775 storage bootstrap/cache
-   ```
-
-2. **ক্যাশিং অপ্টিমাইজেশন চালান:**
-   ```bash
-   php artisan config:cache
-   php artisan route:cache
-   php artisan view:cache
-   ```
-
-3. **এনভায়রনমেন্ট প্রোডাকশন সেট করুন:**
-   ```env
-   APP_ENV=production
-   APP_DEBUG=false
-   ```
-
-4. **Nginx কনফিগারেশন স্নsnippet:**
-   ```nginx
-   server {
-       listen 80;
-       server_name api.israfilbd.com;
-       root /var/www/Israfill/backend/public;
-
-       index index.php;
-
-       location / {
-           try_files $uri $uri/ /index.php?$query_string;
-       }
-
-       location ~ \.php$ {
-           include snippets/fastcgi-php.conf;
-           fastcgi_pass unix:/var/run/php/php8.2-fpm.sock;
-       }
-
-       location ~ /\.ht {
-           deny all;
-       }
-   }
-   ```
+| সমস্যা (Problem) | কারণ (Cause) | সমাধান (Solution) |
+|---|---|---|
+| `SQLSTATE[HY000] [2002] Connection refused` | MySQL সার্ভার বন্ধ বা পোর্ট অমিল | MySQL সার্ভিস চালু করুন (`sudo systemctl start mysql`) এবং `.env` চেক করুন। |
+| `SQLSTATE[HY000] [2002] No such file or directory` | ইউনিক্স সকেট পাথ মিসিং | `.env` ফাইলে `DB_SOCKET=/run/mysqld/mysqld.sock` যোগ করুন বা `DB_HOST=127.0.0.1` ব্যবহার করুন। |
+| ছবি লোড হচ্ছে না (Broken Images) | সিমলিংক তৈরি করা হয়নি | `php artisan storage:link` কমান্ডটি রান করুন। |
+| `CORS Error / 419 CSRF Token Mismatch` | Sanctum ডোমেইন অমিল | `.env` ফাইলে `SANCTUM_STATEFUL_DOMAINS` এবং `FRONTEND_URL` সঠিক পোর্টে সেট করুন। |
+| ক্লায়েন্ট এরর লগ দেখতে চান | ব্রাউজার ক্র্যাশ ট্রেস | `cat storage/logs/client_errors.log` দেখুন অথবা শপ সেটিংস প্যানেল দেখুন। |
 
 ---
 
-## 📞 সাপোর্ট ও যোগাযোগ (Support & Maintenance)
-যেকোনো কারিগরি সহায়তা বা আপডেটের জন্য ইসরাফিল বিডি শপ ডেভেলপমেন্ট টিমের সাথে যোগাযোগ করুন।
-- **Email**: `admin@israfilbd.com`
-- **License**: Proprietary Retail & POS Software Suite.
+## 📞 সাপোর্ট ও সার্বিক তথ্য
+- **প্রজেক্ট**: ইসরাফিল বিডি শপ (ISRAFIL BD SHOP)
+- **লাইসেন্স**: Commercial Retail & Super Shop POS Management Platform
+- **যোগাযোগ**: `admin@israfilbd.com`
