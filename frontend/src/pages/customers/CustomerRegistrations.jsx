@@ -389,7 +389,6 @@ export const CustomerRegistrations = () => {
                 <th className="p-4">{lang === 'bn' ? 'গ্রাহকের নাম ও ফোন' : 'Customer Name & Phone'}</th>
                 <th className="p-4">{lang === 'bn' ? 'ঠিকানা ও ইমেইল' : 'Address / Email'}</th>
                 <th className="p-4">{lang === 'bn' ? 'আবেদনের সময়' : 'Date / Time'}</th>
-                <th className="p-4 text-center">{lang === 'bn' ? 'বোনাস পয়েন্ট' : 'Welcome Pts'}</th>
                 <th className="p-4 text-center">{lang === 'bn' ? 'স্ট্যাটাস' : 'Status'}</th>
                 <th className="p-4 text-right">{lang === 'bn' ? 'অ্যাকশন' : 'Actions'}</th>
               </tr>
@@ -398,14 +397,14 @@ export const CustomerRegistrations = () => {
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {loading ? (
                 <tr>
-                  <td colSpan="8" className="p-8 text-center text-slate-400">
+                  <td colSpan="7" className="p-8 text-center text-slate-400">
                     <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-indigo-600" />
                     <span>{lang === 'bn' ? 'লোড হচ্ছে...' : 'Loading...'}</span>
                   </td>
                 </tr>
               ) : requests.length === 0 ? (
                 <tr>
-                  <td colSpan="8" className="p-12 text-center text-slate-400">
+                  <td colSpan="7" className="p-12 text-center text-slate-400">
                     <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center mx-auto mb-3 text-slate-400">
                       <Users className="w-6 h-6" />
                     </div>
@@ -478,13 +477,6 @@ export const CustomerRegistrations = () => {
                         <div className="text-[11px] text-slate-400 mt-0.5">
                           {new Date(r.created_at).toLocaleTimeString(lang === 'bn' ? 'bn-BD' : 'en-US', { hour: '2-digit', minute: '2-digit' })}
                         </div>
-                      </td>
-
-                      <td className="p-4 text-center">
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-300 font-bold font-mono text-xs border border-amber-200 dark:border-amber-800">
-                          <Gift className="w-3 h-3 text-amber-500" />
-                          <span>{r.welcome_points_awarded || 50} pts</span>
-                        </span>
                       </td>
 
                       <td className="p-4 text-center">

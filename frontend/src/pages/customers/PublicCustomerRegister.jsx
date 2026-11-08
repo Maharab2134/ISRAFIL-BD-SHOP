@@ -154,16 +154,6 @@ export const PublicCustomerRegister = () => {
             <p className="text-xs sm:text-sm text-slate-500 mt-2 max-w-sm">
               {formConfig?.description || 'আমাদের মেম্বারশিপ প্রোগ্রামে যুক্ত হোন এবং বিশেষ ছাড় উপভোগ করুন!'}
             </p>
-
-            {/* Welcome Loyalty Bonus Badge */}
-            {welcomePoints > 0 && (
-              <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs font-bold shadow-xs">
-                <Gift className="w-4 h-4 text-amber-600 shrink-0" />
-                <span>
-                  রেজিস্ট্রেশন করলেই পাচ্ছেন <strong className="text-amber-700 font-black">{welcomePoints} বোনাস লয়্যালটি পয়েন্ট</strong>!
-                </span>
-              </div>
-            )}
           </div>
         </div>
 

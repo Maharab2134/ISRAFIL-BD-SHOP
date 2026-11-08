@@ -113,7 +113,7 @@ export const CustomerFormBuilder = () => {
         title: title?.trim() || 'গ্রাহক মেম্বারশিপ ও কাস্টমার রেজিস্ট্রেশন',
         title_en: titleEn?.trim() || 'Customer Membership & Registration',
         description,
-        welcome_points: Number(welcomePoints) || 0,
+        welcome_points: 0,
         auto_approve: autoApprove,
         is_active: isActive,
         theme_color: themeColor,
@@ -296,12 +296,12 @@ export const CustomerFormBuilder = () => {
           </div>
 
           {/* Value Proposition */}
-          <div className="w-full bg-amber-50 border border-amber-200 rounded-2xl p-4 text-center my-2">
-            <p className="text-base font-black text-amber-900">
-              🎁 রেজিস্ট্রেশন করলেই পাচ্ছেন {welcomePoints} বোনাস লয়্যালটি পয়েন্ট!
+          <div className="w-full bg-indigo-50 border border-indigo-200 rounded-2xl p-4 text-center my-2">
+            <p className="text-base font-black text-indigo-950">
+              {lang === 'bn' ? 'ইসরাফিল বিডি শপ মেম্বারশিপে যুক্ত হোন!' : 'Join Israfil BD Shop Membership!'}
             </p>
-            <p className="text-xs text-amber-800 font-medium mt-0.5">
-              প্রতিটি কেনাকাটায় পয়েন্ট জমা হবে এবং সরাসরি ক্যাশ ডিসকাউন্ট পাওয়া যাবে।
+            <p className="text-xs text-indigo-800 font-medium mt-0.5">
+              {lang === 'bn' ? 'প্রতিটি কেনাকাটায় পয়েন্ট জমা হবে এবং সরাসরি ক্যাশ ডিসকাউন্ট পাওয়া যাবে।' : 'Earn loyalty points on purchases and enjoy instant discounts.'}
             </p>
           </div>
 
@@ -462,23 +462,6 @@ export const CustomerFormBuilder = () => {
                     onChange={(e) => setDescription(e.target.value)}
                     className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs text-slate-900 dark:text-white outline-hidden focus:border-indigo-500"
                   />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center justify-between">
-                    <span>{lang === 'bn' ? 'ওয়েলকাম বোনাস লয়্যালটি পয়েন্ট' : 'Welcome Loyalty Points'}</span>
-                    <Gift className="w-3.5 h-3.5 text-amber-500" />
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    value={welcomePoints}
-                    onChange={(e) => setWelcomePoints(e.target.value)}
-                    className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs text-slate-900 dark:text-white outline-hidden focus:border-indigo-500 font-mono font-bold"
-                  />
-                  <p className="text-[11px] text-slate-400">
-                    রেজিস্ট্রেশন অনুমোদনের পর গ্রাহকের অ্যাকাউন্টে স্বয়ংক্রিয়ভাবে যোগ হবে।
-                  </p>
                 </div>
 
                 {/* Theme Color Selector */}
@@ -781,8 +764,8 @@ export const CustomerFormBuilder = () => {
                 <div className="inline-block p-2 bg-white rounded-xl shadow-xs">
                   <QRCodeSVG value={publicUrl} size={110} level="M" />
                 </div>
-                <div className="text-[11px] font-bold text-amber-600 dark:text-amber-400">
-                  🎁 রেজিস্ট্রেশনে {welcomePoints} বোনাস লয়্যালটি পয়েন্ট!
+                <div className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400">
+                  {lang === 'bn' ? 'কেনাকাটায় আকর্ষণীয় ডিসকাউন্ট ও পয়েন্ট!' : 'Exclusive member discounts on purchases!'}
                 </div>
                 <div className="text-[10px] text-slate-400">
                   ক্যামেরা দিয়ে স্ক্যান করে সহজে নিবন্ধন করুন
@@ -827,12 +810,6 @@ export const CustomerFormBuilder = () => {
                   <p className="text-[11px] text-slate-500 mt-1">
                     {description || 'মেম্বারশিপে যুক্ত হোন ও ছাড় পান'}
                   </p>
-                  {welcomePoints > 0 && (
-                    <div className="mt-2.5 inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 text-[10px] font-bold border border-amber-200 dark:border-amber-800">
-                      <Gift className="w-3 h-3 text-amber-500" />
-                      <span>{welcomePoints} বোনাস লয়্যালটি পয়েন্ট!</span>
-                    </div>
-                  )}
                 </div>
 
                 {/* Form fields preview */}

@@ -45,7 +45,7 @@ class CustomerRegistrationController extends Controller
                 'title_en' => 'Customer Membership & Registration',
                 'description' => 'ইসরাফিল বিডি শপের মেম্বারশিপ প্রোগ্রামে যুক্ত হোন এবং প্রতিটি কেনাকাটায় বিশেষ ছাড় ও লয়্যালটি পয়েন্ট উপভোগ করুন!',
                 'description_en' => 'Join Israfil BD Shop membership to earn loyalty rewards and enjoy exclusive store discounts!',
-                'welcome_points' => 50,
+                'welcome_points' => 0,
                 'auto_approve' => false,
                 'is_active' => true,
                 'theme_color' => '#4F46E5',
@@ -118,7 +118,7 @@ class CustomerRegistrationController extends Controller
         $form->title_en = $request->input('title_en') ?: ($form->title_en ?: 'Customer Membership & Registration');
         $form->description = $request->input('description', $form->description);
         $form->description_en = $request->input('description_en', $form->description_en);
-        $form->welcome_points = $request->has('welcome_points') ? (int) $request->input('welcome_points') : ($form->welcome_points ?? 50);
+        $form->welcome_points = $request->has('welcome_points') ? (int) $request->input('welcome_points') : 0;
         $form->auto_approve = $request->has('auto_approve') ? (bool) $request->input('auto_approve') : ($form->auto_approve ?? false);
         $form->is_active = $request->has('is_active') ? (bool) $request->input('is_active') : ($form->is_active ?? true);
         $form->theme_color = $request->input('theme_color') ?: ($form->theme_color ?: '#4F46E5');
@@ -233,7 +233,7 @@ class CustomerRegistrationController extends Controller
 
         DB::beginTransaction();
         try {
-            $welcomePoints = $form ? $form->welcome_points : 50;
+            $welcomePoints = 0;
             $autoApprove = $form ? (bool)$form->auto_approve : false;
 
             $regRequest = CustomerRegistrationRequest::create([
@@ -247,7 +247,7 @@ class CustomerRegistrationController extends Controller
                 'nid' => $request->input('nid'),
                 'custom_data' => $request->input('custom_data', []),
                 'status' => $autoApprove ? 'approved' : 'pending',
-                'welcome_points_awarded' => $welcomePoints,
+                'welcome_points_awarded' => 0,
                 'ip_address' => $request->ip(),
                 'user_agent' => $request->userAgent(),
                 'reviewed_at' => $autoApprove ? now() : null,
@@ -260,7 +260,7 @@ class CustomerRegistrationController extends Controller
                     'phone' => $regRequest->phone,
                     'email' => $regRequest->email,
                     'address' => $regRequest->address,
-                    'loyalty_points' => $welcomePoints,
+                    'loyalty_points' => 0,
                     'opening_balance' => 0,
                     'current_balance' => 0,
                     'credit_limit' => 0,
@@ -276,10 +276,10 @@ class CustomerRegistrationController extends Controller
             return response()->json([
                 'status' => 'success',
                 'message' => $autoApprove
-                    ? 'অভিনন্দন! আপনার মেম্বারশিপ অ্যাকাউন্ট অবিলম্বে সক্রিয় হয়েছে এবং ' . $welcomePoints . ' বোনাস পয়েন্ট যোগ করা হয়েছে!'
-                    : 'আপনার মেম্বারশিপ আবেদন সফলভাবে জমা হয়েছে! অ্যাডমিন অনুমোদনের সাথে সাথে আপনার অ্যাকাউন্টে ' . $welcomePoints . ' পয়েন্ট যুক্ত হবে।',
+                    ? 'অভিনন্দন! আপনার মেম্বারশিপ অ্যাকাউন্ট অবিলম্বে সক্রিয় হয়েছে।'
+                    : 'আপনার মেম্বারশিপ আবেদন সফলভাবে জমা হয়েছে! অ্যাডমিন অনুমোদনের পর মেম্বারশিপ সক্রিয় হবে।',
                 'request_number' => $requestNumber,
-                'welcome_points' => $welcomePoints,
+                'welcome_points' => 0,
                 'auto_approved' => $autoApprove,
             ], 201);
         } catch (\Throwable $e) {
@@ -371,30 +371,23 @@ class CustomerRegistrationController extends Controller
 
         DB::beginTransaction();
         try {
-            $form = CustomerRegistrationForm::where('is_active', true)->first();
-            $welcomePoints = $regRequest->welcome_points_awarded > 0
-                ? $regRequest->welcome_points_awarded
-                : ($form ? $form->welcome_points : 50);
-
             // Check if customer with this phone already exists
             $customer = Customer::where('phone', $regRequest->phone)->first();
 
             if (!$customer) {
-                // Create customer
+                // Create customer with 0 initial points (points are earned through purchases only)
                 $customer = Customer::create([
                     'name' => $regRequest->name,
                     'phone' => $regRequest->phone,
                     'email' => $regRequest->email,
                     'address' => $regRequest->address,
-                    'loyalty_points' => $welcomePoints,
+                    'loyalty_points' => 0,
                     'opening_balance' => 0,
                     'current_balance' => 0,
                     'credit_limit' => 0,
                     'status' => 'active',
                 ]);
             } else {
-                // Customer already exists, award welcome points if zero or update address
-                $customer->loyalty_points = ($customer->loyalty_points ?? 0) + $welcomePoints;
                 if (!$customer->address && $regRequest->address) {
                     $customer->address = $regRequest->address;
                 }
@@ -408,14 +401,14 @@ class CustomerRegistrationController extends Controller
             $regRequest->customer_id = $customer->id;
             $regRequest->reviewed_by = auth()->id();
             $regRequest->reviewed_at = now();
-            $regRequest->welcome_points_awarded = $welcomePoints;
+            $regRequest->welcome_points_awarded = 0;
             $regRequest->rejection_reason = null;
             $regRequest->save();
 
             ActivityLog::create([
                 'user_id' => auth()->id(),
                 'action' => 'approve',
-                'description' => "Approved customer registration {$regRequest->request_number} for {$customer->name} (awarded {$welcomePoints} points)",
+                'description' => "Approved customer registration {$regRequest->request_number} for {$customer->name}",
                 'ip_address' => $request->ip(),
                 'user_agent' => $request->userAgent(),
             ]);
@@ -479,15 +472,11 @@ class CustomerRegistrationController extends Controller
 
         DB::beginTransaction();
         try {
-            $form = CustomerRegistrationForm::where('is_active', true)->first();
-            $defaultPoints = $form ? $form->welcome_points : 50;
-
             $pendingRequests = CustomerRegistrationRequest::whereIn('id', $ids)
                 ->where('status', 'pending')
                 ->get();
 
             foreach ($pendingRequests as $req) {
-                $points = $req->welcome_points_awarded > 0 ? $req->welcome_points_awarded : $defaultPoints;
                 $customer = Customer::where('phone', $req->phone)->first();
 
                 if (!$customer) {
@@ -496,22 +485,19 @@ class CustomerRegistrationController extends Controller
                         'phone' => $req->phone,
                         'email' => $req->email,
                         'address' => $req->address,
-                        'loyalty_points' => $points,
+                        'loyalty_points' => 0,
                         'opening_balance' => 0,
                         'current_balance' => 0,
                         'credit_limit' => 0,
                         'status' => 'active',
                     ]);
-                } else {
-                    $customer->loyalty_points = ($customer->loyalty_points ?? 0) + $points;
-                    $customer->save();
                 }
 
                 $req->status = 'approved';
                 $req->customer_id = $customer->id;
                 $req->reviewed_by = auth()->id();
                 $req->reviewed_at = now();
-                $req->welcome_points_awarded = $points;
+                $req->welcome_points_awarded = 0;
                 $req->save();
 
                 $approvedCount++;

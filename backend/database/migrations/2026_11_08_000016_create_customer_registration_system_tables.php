@@ -141,7 +141,7 @@ return new class extends Migration
             'title_en' => 'Customer Membership & Registration',
             'description' => 'ইসরাফিল বিডি শপের মেম্বারশিপ প্রোগ্রামে যুক্ত হোন এবং প্রতিটি কেনাকাটায় বিশেষ ছাড় ও লয়্যালটি পয়েন্ট উপভোগ করুন!',
             'description_en' => 'Join Israfil BD Shop membership to earn loyalty rewards and enjoy exclusive store discounts!',
-            'welcome_points' => 50,
+            'welcome_points' => 0,
             'auto_approve' => false,
             'is_active' => true,
             'theme_color' => '#4F46E5',
