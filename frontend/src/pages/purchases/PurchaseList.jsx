@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useToast } from '../../context/ToastContext';
 import {
@@ -14,8 +15,11 @@ import {
 import api from '../../services/api';
 
 export const PurchaseList = () => {
+  const { user, hasPermission } = useAuth();
   const { t, lang, formatCurrency, formatNumber } = useLanguage();
   const { error } = useToast();
+  const isSuperAdmin = user?.role?.slug === 'super-admin' || user?.email === 'admin@israfilbd.com';
+  const canCreatePurchase = isSuperAdmin || hasPermission('purchases.create');
 
   const [purchases, setPurchases] = useState(() => {
     try {
@@ -115,13 +119,15 @@ export const PurchaseList = () => {
           </p>
         </div>
 
-        <Link
-          to="/purchases/new"
-          className="py-2.5 px-4 rounded-xl font-bold text-sm bg-indigo-600 hover:bg-indigo-700 text-white shadow-md flex items-center gap-2 self-start transition"
-        >
-          <Plus className="w-4 h-4" />
-          <span>{t('newPurchase')}</span>
-        </Link>
+        {canCreatePurchase && (
+          <Link
+            to="/purchases/new"
+            className="py-2.5 px-4 rounded-xl font-bold text-sm bg-indigo-600 hover:bg-indigo-700 text-white shadow-md flex items-center gap-2 self-start transition"
+          >
+            <Plus className="w-4 h-4" />
+            <span>{t('newPurchase')}</span>
+          </Link>
+        )}
       </div>
 
       {/* Search */}

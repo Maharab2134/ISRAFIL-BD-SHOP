@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import {
   Boxes,
@@ -15,7 +16,12 @@ import {
 import api from '../../services/api';
 
 export const InventoryOverview = () => {
+  const { user, hasPermission } = useAuth();
   const { t, lang, formatCurrency, formatNumber } = useLanguage();
+  const isSuperAdmin = user?.role?.slug === 'super-admin' || user?.email === 'admin@israfilbd.com';
+  const canAdjustInventory = isSuperAdmin || hasPermission('inventory.adjust');
+  const canViewCost = isSuperAdmin || hasPermission('products.view_cost') || hasPermission('accounting.view') || hasPermission('reports.view');
+
   const [overview, setOverview] = useState(null);
   const [lowStockProducts, setLowStockProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -64,13 +70,15 @@ export const InventoryOverview = () => {
         </div>
 
         <div className="flex items-center gap-3">
-          <Link
-            to="/inventory/adjustment"
-            className="py-2.5 px-4 rounded-xl font-bold text-xs bg-indigo-600 hover:bg-indigo-700 text-white shadow-md flex items-center gap-2 transition"
-          >
-            <Sliders className="w-4 h-4" />
-            <span>{t('stockAdjustment')}</span>
-          </Link>
+          {canAdjustInventory && (
+            <Link
+              to="/inventory/adjustment"
+              className="py-2.5 px-4 rounded-xl font-bold text-xs bg-indigo-600 hover:bg-indigo-700 text-white shadow-md flex items-center gap-2 transition"
+            >
+              <Sliders className="w-4 h-4" />
+              <span>{t('stockAdjustment')}</span>
+            </Link>
+          )}
           <Link
             to="/inventory/history"
             className="py-2.5 px-4 rounded-xl font-bold text-xs bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 flex items-center gap-2 transition"
@@ -81,8 +89,8 @@ export const InventoryOverview = () => {
         </div>
       </div>
 
-      {/* 5 Stock Valuation KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+      {/* Stock Valuation KPI Cards */}
+      <div className={`grid grid-cols-1 sm:grid-cols-2 ${canViewCost ? 'lg:grid-cols-5' : 'lg:grid-cols-4'} gap-4`}>
         <div className="p-5 rounded-2xl bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 shadow-card">
           <div className="flex items-center justify-between text-slate-500">
             <span className="text-xs font-semibold">{lang === 'bn' ? 'মোট মজুদ পণ্য' : 'Total Stock Units'}</span>
@@ -96,18 +104,20 @@ export const InventoryOverview = () => {
           </span>
         </div>
 
-        <div className="p-5 rounded-2xl bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 shadow-card">
-          <div className="flex items-center justify-between text-slate-500">
-            <span className="text-xs font-semibold">{lang === 'bn' ? 'স্টক ক্রয়মূল্য (কেনা দর)' : 'Cost Valuation (COGS)'}</span>
-            <DollarSign className="w-4 h-4 text-amber-500" />
+        {canViewCost && overview?.stock_cost_value !== null && overview?.stock_cost_value !== undefined && (
+          <div className="p-5 rounded-2xl bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 shadow-card">
+            <div className="flex items-center justify-between text-slate-500">
+              <span className="text-xs font-semibold">{lang === 'bn' ? 'স্টক ক্রয়মূল্য (কেনা দর)' : 'Cost Valuation (COGS)'}</span>
+              <DollarSign className="w-4 h-4 text-amber-500" />
+            </div>
+            <div className="text-xl font-black text-slate-900 dark:text-white mt-2">
+              {formatCurrency(overview?.stock_cost_value)}
+            </div>
+            <span className="text-[11px] text-slate-400 mt-1 block">
+              {lang === 'bn' ? 'ইনভেন্টরি ইনভেস্টমেন্ট' : 'Total capital tied in stock'}
+            </span>
           </div>
-          <div className="text-xl font-black text-slate-900 dark:text-white mt-2">
-            {formatCurrency(overview?.stock_cost_value)}
-          </div>
-          <span className="text-[11px] text-slate-400 mt-1 block">
-            {lang === 'bn' ? 'ইনভেন্টরি ইনভেস্টমেন্ট' : 'Total capital tied in stock'}
-          </span>
-        </div>
+        )}
 
         <div className="p-5 rounded-2xl bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 shadow-card">
           <div className="flex items-center justify-between text-slate-500">
@@ -117,9 +127,11 @@ export const InventoryOverview = () => {
           <div className="text-xl font-black text-slate-900 dark:text-white mt-2">
             {formatCurrency(overview?.stock_retail_value)}
           </div>
-          <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold mt-1 block">
-            +{formatCurrency(overview?.expected_margin)} {lang === 'bn' ? 'সম্ভাব্য লাভ' : 'expected profit'}
-          </span>
+          {canViewCost && overview?.expected_margin !== null && overview?.expected_margin !== undefined && (
+            <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold mt-1 block">
+              +{formatCurrency(overview?.expected_margin)} {lang === 'bn' ? 'সম্ভাব্য লাভ' : 'expected profit'}
+            </span>
+          )}
         </div>
 
         <div className="p-5 rounded-2xl bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 shadow-card">

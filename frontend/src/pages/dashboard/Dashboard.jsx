@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
 import {
@@ -36,9 +37,19 @@ import api from '../../services/api';
 const PAYMENT_COLORS = ['#4F46E5', '#06B6D4', '#10B981', '#F59E0B', '#EC4899'];
 
 export const Dashboard = () => {
+  const { user, hasPermission } = useAuth();
   const { t, lang, formatCurrency, formatNumber } = useLanguage();
   const { theme } = useTheme();
   const isDark = theme === 'dark';
+  const isSuperAdmin = user?.role?.slug === 'super-admin' || user?.email === 'admin@israfilbd.com';
+
+  const canAccessPos = isSuperAdmin || hasPermission('pos.access');
+  const canCreateProduct = isSuperAdmin || hasPermission('products.create');
+  const canViewFinancialStats = isSuperAdmin || hasPermission('dashboard.financial_stats');
+  const canViewExpenses = isSuperAdmin || hasPermission('expenses.view');
+  const canViewProducts = isSuperAdmin || hasPermission('products.view');
+  const canViewInventory = isSuperAdmin || hasPermission('inventory.view');
+
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -111,20 +122,24 @@ export const Dashboard = () => {
         </div>
 
         <div className="flex items-center gap-3">
-          <Link
-            to="/pos"
-            className="px-4 py-2.5 rounded-xl font-bold text-sm bg-emerald-600 hover:bg-emerald-700 text-white shadow-md flex items-center gap-2 transition"
-          >
-            <ShoppingCart className="w-4 h-4" />
-            <span>{lang === 'bn' ? 'নতুন পিওএস বিক্রয়' : 'New POS Sale'}</span>
-          </Link>
-          <Link
-            to="/products/new"
-            className="px-4 py-2.5 rounded-xl font-semibold text-sm bg-indigo-600 hover:bg-indigo-700 text-white shadow-md flex items-center gap-2 transition"
-          >
-            <Plus className="w-4 h-4" />
-            <span>{lang === 'bn' ? 'পণ্য যুক্ত করুন' : 'Add Product'}</span>
-          </Link>
+          {canAccessPos && (
+            <Link
+              to="/pos"
+              className="px-4 py-2.5 rounded-xl font-bold text-sm bg-emerald-600 hover:bg-emerald-700 text-white shadow-md flex items-center gap-2 transition"
+            >
+              <ShoppingCart className="w-4 h-4" />
+              <span>{lang === 'bn' ? 'নতুন পিওএস বিক্রয়' : 'New POS Sale'}</span>
+            </Link>
+          )}
+          {canCreateProduct && (
+            <Link
+              to="/products/new"
+              className="px-4 py-2.5 rounded-xl font-semibold text-sm bg-indigo-600 hover:bg-indigo-700 text-white shadow-md flex items-center gap-2 transition"
+            >
+              <Plus className="w-4 h-4" />
+              <span>{lang === 'bn' ? 'পণ্য যুক্ত করুন' : 'Add Product'}</span>
+            </Link>
+          )}
         </div>
       </div>
 
@@ -170,76 +185,84 @@ export const Dashboard = () => {
         </div>
 
         {/* Card 3: Today's Profit */}
-        <div className="p-4 rounded-2xl bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 shadow-card flex flex-col justify-between">
-          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
-            <span className="text-xs font-semibold">{t('todayProfit')}</span>
-            <div className="p-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400">
-              <TrendingUp className="w-4 h-4" />
+        {canViewFinancialStats && (
+          <div className="p-4 rounded-2xl bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 shadow-card flex flex-col justify-between">
+            <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
+              <span className="text-xs font-semibold">{t('todayProfit')}</span>
+              <div className="p-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400">
+                <TrendingUp className="w-4 h-4" />
+              </div>
+            </div>
+            <div className="mt-2">
+              <div className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
+                {formatCurrency(kpis.today_profit)}
+              </div>
+              <div className="mt-1 text-[11px] text-slate-400 font-medium">
+                {lang === 'bn' ? 'বিক্রয় লাভ (COGS বাদে)' : 'Gross Profit (excl. COGS)'}
+              </div>
             </div>
           </div>
-          <div className="mt-2">
-            <div className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
-              {formatCurrency(kpis.today_profit)}
-            </div>
-            <div className="mt-1 text-[11px] text-slate-400 font-medium">
-              {lang === 'bn' ? 'বিক্রয় লাভ (COGS বাদে)' : 'Gross Profit (excl. COGS)'}
-            </div>
-          </div>
-        </div>
+        )}
 
         {/* Card 4: Today's Expenses */}
-        <div className="p-4 rounded-2xl bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 shadow-card flex flex-col justify-between">
-          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
-            <span className="text-xs font-semibold">{t('todayExpenses')}</span>
-            <div className="p-2 rounded-xl bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400">
-              <CreditCard className="w-4 h-4" />
+        {canViewExpenses && (
+          <div className="p-4 rounded-2xl bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 shadow-card flex flex-col justify-between">
+            <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
+              <span className="text-xs font-semibold">{t('todayExpenses')}</span>
+              <div className="p-2 rounded-xl bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400">
+                <CreditCard className="w-4 h-4" />
+              </div>
+            </div>
+            <div className="mt-2">
+              <div className="text-lg font-bold text-rose-600 dark:text-rose-400">
+                {formatCurrency(kpis.today_expenses)}
+              </div>
+              <div className="mt-1 text-[11px] text-slate-400 font-medium">
+                {lang === 'bn' ? 'দোকানের পরিচালন ব্যয়' : 'Operating store expenses'}
+              </div>
             </div>
           </div>
-          <div className="mt-2">
-            <div className="text-lg font-bold text-rose-600 dark:text-rose-400">
-              {formatCurrency(kpis.today_expenses)}
-            </div>
-            <div className="mt-1 text-[11px] text-slate-400 font-medium">
-              {lang === 'bn' ? 'দোকানের পরিচালন ব্যয়' : 'Operating store expenses'}
-            </div>
-          </div>
-        </div>
+        )}
 
         {/* Card 5: Total Products */}
-        <div className="p-4 rounded-2xl bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 shadow-card flex flex-col justify-between">
-          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
-            <span className="text-xs font-semibold">{t('totalProducts')}</span>
-            <div className="p-2 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400">
-              <Package className="w-4 h-4" />
+        {canViewProducts && (
+          <div className="p-4 rounded-2xl bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 shadow-card flex flex-col justify-between">
+            <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
+              <span className="text-xs font-semibold">{t('totalProducts')}</span>
+              <div className="p-2 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400">
+                <Package className="w-4 h-4" />
+              </div>
+            </div>
+            <div className="mt-2">
+              <div className="text-lg font-bold text-slate-900 dark:text-white">
+                {formatNumber(kpis.total_products)} {lang === 'bn' ? 'প্রকার' : 'items'}
+              </div>
+              <div className="mt-1 text-[11px] text-slate-400 font-medium">
+                {lang === 'bn' ? 'সক্রিয় পণ্যের আইটেম' : 'Active catalog items'}
+              </div>
             </div>
           </div>
-          <div className="mt-2">
-            <div className="text-lg font-bold text-slate-900 dark:text-white">
-              {formatNumber(kpis.total_products)} {lang === 'bn' ? 'প্রকার' : 'items'}
-            </div>
-            <div className="mt-1 text-[11px] text-slate-400 font-medium">
-              {lang === 'bn' ? 'সক্রিয় পণ্যের আইটেম' : 'Active catalog items'}
-            </div>
-          </div>
-        </div>
+        )}
 
         {/* Card 6: Low Stock Alerts */}
-        <div className="p-4 rounded-2xl bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 shadow-card flex flex-col justify-between">
-          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
-            <span className="text-xs font-semibold">{t('lowStock')}</span>
-            <div className="p-2 rounded-xl bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400">
-              <AlertTriangle className="w-4 h-4" />
+        {canViewInventory && (
+          <div className="p-4 rounded-2xl bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 shadow-card flex flex-col justify-between">
+            <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
+              <span className="text-xs font-semibold">{t('lowStock')}</span>
+              <div className="p-2 rounded-xl bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400">
+                <AlertTriangle className="w-4 h-4" />
+              </div>
+            </div>
+            <div className="mt-2">
+              <div className="text-lg font-bold text-rose-600">
+                {formatNumber(kpis.low_stock_count)} {lang === 'bn' ? 'টি' : 'alerts'}
+              </div>
+              <div className="mt-1 text-[11px] text-slate-400 font-medium">
+                {lang === 'bn' ? 'জরুরি রি-অর্ডার প্রয়োজন' : 'Immediate reorder needed'}
+              </div>
             </div>
           </div>
-          <div className="mt-2">
-            <div className="text-lg font-bold text-rose-600">
-              {formatNumber(kpis.low_stock_count)} {lang === 'bn' ? 'টি' : 'alerts'}
-            </div>
-            <div className="mt-1 text-[11px] text-rose-500 font-medium">
-              {lang === 'bn' ? 'অবিলম্বে রি-অর্ডার প্রয়োজন' : 'Immediate reorder needed'}
-            </div>
-          </div>
-        </div>
+        )}
       </div>
 
       {/* Main Charts Row */}
@@ -262,12 +285,14 @@ export const Dashboard = () => {
                   {lang === 'bn' ? 'মোট বিক্রয়' : 'Sales'}
                 </span>
               </div>
-              <div className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-100 dark:border-emerald-900/50">
-                <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-xs" />
-                <span className="text-emerald-950 dark:text-emerald-200">
-                  {lang === 'bn' ? 'লাভ' : 'Profit'}
-                </span>
-              </div>
+              {canViewFinancialStats && (
+                <div className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-100 dark:border-emerald-900/50">
+                  <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-xs" />
+                  <span className="text-emerald-950 dark:text-emerald-200">
+                    {lang === 'bn' ? 'লাভ' : 'Profit'}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
 
@@ -315,7 +340,9 @@ export const Dashboard = () => {
                   labelStyle={{ color: '#F8FAFC', fontWeight: 'bold' }}
                 />
                 <Area type="monotone" dataKey="sales" stroke="#4F46E5" strokeWidth={2.5} fillOpacity={1} fill="url(#salesGrad)" name="sales" />
-                <Area type="monotone" dataKey="profit" stroke="#10B981" strokeWidth={2.5} fillOpacity={1} fill="url(#profitGrad)" name="profit" />
+                {canViewFinancialStats && (
+                  <Area type="monotone" dataKey="profit" stroke="#10B981" strokeWidth={2.5} fillOpacity={1} fill="url(#profitGrad)" name="profit" />
+                )}
               </AreaChart>
             </ResponsiveContainer>
           </div>

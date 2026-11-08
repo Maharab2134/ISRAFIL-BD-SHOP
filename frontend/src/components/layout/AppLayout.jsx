@@ -37,7 +37,7 @@ export const AppLayout = () => {
 
       const getFallbackRoute = () => {
         if (hasPermission('pos.access')) return '/pos';
-        if (hasPermission('reports.view')) return '/dashboard';
+        if (hasPermission('dashboard.view') || hasPermission('reports.view')) return '/dashboard';
         if (hasPermission('sales.view')) return '/sales';
         if (hasPermission('products.view')) return '/products';
         if (hasPermission('inventory.view')) return '/inventory';
@@ -46,27 +46,32 @@ export const AppLayout = () => {
         if (hasPermission('suppliers.view')) return '/suppliers';
         if (hasPermission('expenses.view')) return '/expenses';
         if (hasPermission('accounting.view')) return '/accounting';
-        if (hasPermission('employees.manage')) return '/employees';
-        if (hasPermission('settings.manage')) return '/settings';
+        if (hasPermission('employees.view') || hasPermission('employees.manage')) return '/employees';
+        if (hasPermission('audit.view')) return '/activity-logs';
+        if (hasPermission('settings.manage') || hasPermission('settings.view')) return '/settings';
         return '/profile';
       };
 
-      // Strict Super Admin only routes
-      if (path.startsWith('/roles') || path.startsWith('/activity-logs')) {
+      // Strict roles and audit logs check
+      if (path.startsWith('/roles') && !hasPermission('employees.roles_manage')) {
+        navigate(getFallbackRoute(), { replace: true });
+        return;
+      }
+      if (path.startsWith('/activity-logs') && !hasPermission('audit.view')) {
         navigate(getFallbackRoute(), { replace: true });
         return;
       }
 
       // Permission-based route protection
-      if (path.startsWith('/employees') && !hasPermission('employees.manage')) {
+      if (path.startsWith('/employees') && !hasPermission('employees.view') && !hasPermission('employees.manage')) {
         navigate(getFallbackRoute(), { replace: true });
         return;
       }
-      if (path.startsWith('/settings') && !hasPermission('settings.manage')) {
+      if (path.startsWith('/settings') && !hasPermission('settings.manage') && !hasPermission('settings.view')) {
         navigate(getFallbackRoute(), { replace: true });
         return;
       }
-      if ((path === '/' || path.startsWith('/dashboard')) && !hasPermission('reports.view')) {
+      if ((path === '/' || path.startsWith('/dashboard')) && !hasPermission('dashboard.view') && !hasPermission('reports.view')) {
         navigate(getFallbackRoute(), { replace: true });
         return;
       }

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useToast } from '../../context/ToastContext';
 import {
@@ -19,8 +20,13 @@ import { BackButton } from '../../components/common/BackButton';
 
 export const SaleInvoice = () => {
   const { id } = useParams();
+  const { user, hasPermission } = useAuth();
   const { t, lang, formatCurrency, formatNumber } = useLanguage();
   const { success, error } = useToast();
+
+  const isSuperAdmin = user?.role?.slug === 'super-admin' || user?.email === 'admin@israfilbd.com';
+  const canApproveRefund = isSuperAdmin || hasPermission('sales.returns_approve');
+  const canPrint = isSuperAdmin || hasPermission('sales.print') || hasPermission('pos.print');
 
   const [sale, setSale] = useState(null);
   const [shopSettings, setShopSettings] = useState({});
@@ -105,42 +111,46 @@ export const SaleInvoice = () => {
         </div>
 
         <div className="flex items-center gap-2 self-start flex-wrap">
-          <div className="flex items-center gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl">
-            <button
-              onClick={() => setPrintFormat('80mm')}
-              className={`py-1.5 px-3 rounded-lg text-xs font-bold transition ${
-                printFormat === '80mm' ? 'bg-white dark:bg-slate-700 shadow-sm text-indigo-600' : 'text-slate-500'
-              }`}
-            >
-              80mm Thermal
-            </button>
-            <button
-              onClick={() => setPrintFormat('58mm')}
-              className={`py-1.5 px-3 rounded-lg text-xs font-bold transition ${
-                printFormat === '58mm' ? 'bg-white dark:bg-slate-700 shadow-sm text-indigo-600' : 'text-slate-500'
-              }`}
-            >
-              58mm Thermal
-            </button>
-            <button
-              onClick={() => setPrintFormat('a4')}
-              className={`py-1.5 px-3 rounded-lg text-xs font-bold transition ${
-                printFormat === 'a4' ? 'bg-white dark:bg-slate-700 shadow-sm text-indigo-600' : 'text-slate-500'
-              }`}
-            >
-              A4 Invoice
-            </button>
-          </div>
+          {canPrint && (
+            <>
+              <div className="flex items-center gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl">
+                <button
+                  onClick={() => setPrintFormat('80mm')}
+                  className={`py-1.5 px-3 rounded-lg text-xs font-bold transition ${
+                    printFormat === '80mm' ? 'bg-white dark:bg-slate-700 shadow-sm text-indigo-600' : 'text-slate-500'
+                  }`}
+                >
+                  80mm Thermal
+                </button>
+                <button
+                  onClick={() => setPrintFormat('58mm')}
+                  className={`py-1.5 px-3 rounded-lg text-xs font-bold transition ${
+                    printFormat === '58mm' ? 'bg-white dark:bg-slate-700 shadow-sm text-indigo-600' : 'text-slate-500'
+                  }`}
+                >
+                  58mm Thermal
+                </button>
+                <button
+                  onClick={() => setPrintFormat('a4')}
+                  className={`py-1.5 px-3 rounded-lg text-xs font-bold transition ${
+                    printFormat === 'a4' ? 'bg-white dark:bg-slate-700 shadow-sm text-indigo-600' : 'text-slate-500'
+                  }`}
+                >
+                  A4 Invoice
+                </button>
+              </div>
 
-          <button
-            onClick={() => window.print()}
-            className="py-2 px-4 rounded-xl font-bold text-xs bg-indigo-600 hover:bg-indigo-700 text-white shadow-md flex items-center gap-1.5 transition"
-          >
-            <Printer className="w-4 h-4" />
-            <span>{t('print')}</span>
-          </button>
+              <button
+                onClick={() => window.print()}
+                className="py-2 px-4 rounded-xl font-bold text-xs bg-indigo-600 hover:bg-indigo-700 text-white shadow-md flex items-center gap-1.5 transition"
+              >
+                <Printer className="w-4 h-4" />
+                <span>{t('print')}</span>
+              </button>
+            </>
+          )}
 
-          {sale.sale_status !== 'refunded' && (
+          {canApproveRefund && sale.sale_status !== 'refunded' && (
             <button
               onClick={() => setShowReturnForm(!showReturnForm)}
               className="py-2 px-4 rounded-xl font-bold text-xs bg-rose-50 text-rose-600 hover:bg-rose-100 dark:bg-rose-950/60 dark:hover:bg-rose-900 border border-rose-200 dark:border-rose-800 flex items-center gap-1.5 transition"
@@ -153,7 +163,7 @@ export const SaleInvoice = () => {
       </div>
 
       {/* Return & Refund Box (NO MODAL POLICY) */}
-      {showReturnForm && (
+      {canApproveRefund && showReturnForm && (
         <form
           onSubmit={handleReturnSubmit}
           className="p-6 rounded-3xl bg-rose-50 dark:bg-rose-950/80 border border-rose-200 dark:border-rose-800 space-y-4 no-print"

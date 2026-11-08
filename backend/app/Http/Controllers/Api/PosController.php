@@ -50,6 +50,14 @@ class PosController extends Controller
 
         $products = $query->orderBy('name')->get();
 
+        $user = $request->user();
+        $canViewCost = $user && ($user->role?->slug === 'super-admin' || $user->hasPermission('products.view_cost'));
+        if (! $canViewCost) {
+            $products->each(function ($p) {
+                $p->purchase_price = null;
+            });
+        }
+
         return response()->json([
             'categories' => $categories,
             'customers' => $customers,

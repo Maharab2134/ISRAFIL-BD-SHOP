@@ -11,11 +11,14 @@ use Illuminate\Support\Facades\DB;
 
 class InventoryController extends Controller
 {
-    public function overview()
+    public function overview(Request $request)
     {
+        $user = $request->user();
+        $canViewCost = $user && ($user->role?->slug === 'super-admin' || $user->hasPermission('products.view_cost') || $user->hasPermission('accounting.view') || $user->hasPermission('reports.view'));
+
         $totalItems = Product::where('status', 'active')->count();
         $totalStockQty = (float) Product::where('status', 'active')->sum('current_stock');
-        $stockCostValue = (float) Product::where('status', 'active')->sum(DB::raw('current_stock * purchase_price'));
+        $stockCostValue = $canViewCost ? (float) Product::where('status', 'active')->sum(DB::raw('current_stock * purchase_price')) : null;
         $stockSaleValue = (float) Product::where('status', 'active')->sum(DB::raw('current_stock * selling_price'));
         $lowStockCount = Product::where('status', 'active')->whereRaw('current_stock <= alert_stock AND current_stock > 0')->count();
         $outOfStockCount = Product::where('status', 'active')->where('current_stock', '<=', 0)->count();
@@ -25,7 +28,7 @@ class InventoryController extends Controller
             'total_quantity' => $totalStockQty,
             'stock_cost_value' => $stockCostValue,
             'stock_sale_value' => $stockSaleValue,
-            'potential_profit' => max(0, $stockSaleValue - $stockCostValue),
+            'potential_profit' => $canViewCost ? max(0, $stockSaleValue - (float)$stockCostValue) : null,
             'low_stock_count' => $lowStockCount,
             'out_of_stock_count' => $outOfStockCount,
         ]);

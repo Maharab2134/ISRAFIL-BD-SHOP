@@ -42,7 +42,7 @@ export const TopNavbar = ({ isCollapsed }) => {
   const isSuperAdmin = roleSlug === 'super-admin' || user?.email === 'admin@israfilbd.com';
   const canViewProducts = isSuperAdmin || hasPermission('products.view');
   const canViewInventory = isSuperAdmin || hasPermission('inventory.view');
-  const canViewDashboard = isSuperAdmin || hasPermission('reports.view');
+  const canViewDashboard = isSuperAdmin || hasPermission('dashboard.view') || hasPermission('reports.view');
   const canViewPos = isSuperAdmin || hasPermission('pos.access');
   const canViewSales = isSuperAdmin || hasPermission('sales.view');
   const canViewCustomers = isSuperAdmin || hasPermission('customers.view');
@@ -423,13 +423,13 @@ export const TopNavbar = ({ isCollapsed }) => {
                   <span className="font-bold text-xs text-slate-900 dark:text-white">
                     {lang === 'bn' ? 'নোটিফিকেশন' : 'Notifications'}
                   </span>
-                  {notificationData.counts?.pending_requests > 0 && (
+                  {canViewCustomers && notificationData.counts?.pending_requests > 0 && (
                     <span className="text-[10px] bg-amber-500 text-white font-bold px-1.5 py-0.5 rounded-full flex items-center gap-1">
                       <UserPlus className="w-2.5 h-2.5" />
                       {notificationData.counts.pending_requests} {lang === 'bn' ? 'আবেদন' : 'Requests'}
                     </span>
                   )}
-                  {notificationData.counts?.low_stock > 0 && (
+                  {canViewInventory && notificationData.counts?.low_stock > 0 && (
                     <span className="text-[10px] bg-rose-500 text-white font-bold px-1.5 py-0.5 rounded-full flex items-center gap-1">
                       <AlertTriangle className="w-2.5 h-2.5" />
                       {notificationData.counts.low_stock} {lang === 'bn' ? 'স্টক' : 'Stock'}
@@ -489,54 +489,60 @@ export const TopNavbar = ({ isCollapsed }) => {
                 >
                   {lang === 'bn' ? 'সব' : 'All'} ({notificationData.notifications?.length || 0})
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setNotificationFilter('requests')}
-                  className={`px-2 py-1 rounded-lg font-medium transition cursor-pointer flex items-center gap-1 whitespace-nowrap ${
-                    notificationFilter === 'requests'
-                      ? 'bg-white dark:bg-slate-700 text-amber-600 dark:text-amber-400 shadow-2xs font-semibold'
-                      : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
-                  }`}
-                >
-                  {lang === 'bn' ? 'আবেদন' : 'Requests'}
-                  {notificationData.counts?.pending_requests > 0 && (
-                    <span className="w-4 h-4 rounded-full bg-amber-500 text-white text-[9px] font-bold flex items-center justify-center">
-                      {notificationData.counts.pending_requests}
-                    </span>
-                  )}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setNotificationFilter('stock')}
-                  className={`px-2 py-1 rounded-lg font-medium transition cursor-pointer flex items-center gap-1 whitespace-nowrap ${
-                    notificationFilter === 'stock'
-                      ? 'bg-white dark:bg-slate-700 text-rose-600 dark:text-rose-400 shadow-2xs font-semibold'
-                      : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
-                  }`}
-                >
-                  {lang === 'bn' ? 'কম স্টক' : 'Stock'}
-                  {notificationData.counts?.low_stock > 0 && (
-                    <span className="w-4 h-4 rounded-full bg-rose-500 text-white text-[9px] font-bold flex items-center justify-center">
-                      {notificationData.counts.low_stock}
-                    </span>
-                  )}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setNotificationFilter('sales')}
-                  className={`px-2 py-1 rounded-lg font-medium transition cursor-pointer flex items-center gap-1 whitespace-nowrap ${
-                    notificationFilter === 'sales'
-                      ? 'bg-white dark:bg-slate-700 text-emerald-600 dark:text-emerald-400 shadow-2xs font-semibold'
-                      : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
-                  }`}
-                >
-                  {lang === 'bn' ? 'আজকের বিক্রয়' : 'Sales'}
-                  {notificationData.counts?.today_sales > 0 && (
-                    <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">
-                      ({notificationData.counts.today_sales})
-                    </span>
-                  )}
-                </button>
+                {canViewCustomers && (
+                  <button
+                    type="button"
+                    onClick={() => setNotificationFilter('requests')}
+                    className={`px-2 py-1 rounded-lg font-medium transition cursor-pointer flex items-center gap-1 whitespace-nowrap ${
+                      notificationFilter === 'requests'
+                        ? 'bg-white dark:bg-slate-700 text-amber-600 dark:text-amber-400 shadow-2xs font-semibold'
+                        : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                    }`}
+                  >
+                    {lang === 'bn' ? 'আবেদন' : 'Requests'}
+                    {notificationData.counts?.pending_requests > 0 && (
+                      <span className="w-4 h-4 rounded-full bg-amber-500 text-white text-[9px] font-bold flex items-center justify-center">
+                        {notificationData.counts.pending_requests}
+                      </span>
+                    )}
+                  </button>
+                )}
+                {canViewInventory && (
+                  <button
+                    type="button"
+                    onClick={() => setNotificationFilter('stock')}
+                    className={`px-2 py-1 rounded-lg font-medium transition cursor-pointer flex items-center gap-1 whitespace-nowrap ${
+                      notificationFilter === 'stock'
+                        ? 'bg-white dark:bg-slate-700 text-rose-600 dark:text-rose-400 shadow-2xs font-semibold'
+                        : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                    }`}
+                  >
+                    {lang === 'bn' ? 'কম স্টক' : 'Stock'}
+                    {notificationData.counts?.low_stock > 0 && (
+                      <span className="w-4 h-4 rounded-full bg-rose-500 text-white text-[9px] font-bold flex items-center justify-center">
+                        {notificationData.counts.low_stock}
+                      </span>
+                    )}
+                  </button>
+                )}
+                {canViewSales && (
+                  <button
+                    type="button"
+                    onClick={() => setNotificationFilter('sales')}
+                    className={`px-2 py-1 rounded-lg font-medium transition cursor-pointer flex items-center gap-1 whitespace-nowrap ${
+                      notificationFilter === 'sales'
+                        ? 'bg-white dark:bg-slate-700 text-emerald-600 dark:text-emerald-400 shadow-2xs font-semibold'
+                        : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                    }`}
+                  >
+                    {lang === 'bn' ? 'আজকের বিক্রয়' : 'Sales'}
+                    {notificationData.counts?.today_sales > 0 && (
+                      <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">
+                        ({notificationData.counts.today_sales})
+                      </span>
+                    )}
+                  </button>
+                )}
               </div>
 
               {/* System Crash Alerts for Super Admin (Direct alert banner if any) */}

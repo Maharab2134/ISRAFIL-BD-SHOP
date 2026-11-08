@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useToast } from '../../context/ToastContext';
 import {
@@ -16,8 +17,11 @@ import {
 import api from '../../services/api';
 
 export const SaleList = () => {
+  const { user, hasPermission } = useAuth();
   const { t, lang, formatCurrency, formatNumber } = useLanguage();
   const { error } = useToast();
+  const isSuperAdmin = user?.role?.slug === 'super-admin' || user?.email === 'admin@israfilbd.com';
+  const canCreateSale = isSuperAdmin || hasPermission('pos.access');
 
   const [sales, setSales] = useState(() => {
     try {
@@ -103,13 +107,15 @@ export const SaleList = () => {
           </p>
         </div>
 
-        <Link
-          to="/pos"
-          className="py-2.5 px-4 rounded-xl font-bold text-sm bg-emerald-600 hover:bg-emerald-700 text-white shadow-md flex items-center gap-2 self-start transition"
-        >
-          <ShoppingCart className="w-4 h-4" />
-          <span>{lang === 'bn' ? 'নতুন পিওএস বিক্রয়' : 'New POS Sale'}</span>
-        </Link>
+        {canCreateSale && (
+          <Link
+            to="/pos"
+            className="py-2.5 px-4 rounded-xl font-bold text-sm bg-emerald-600 hover:bg-emerald-700 text-white shadow-md flex items-center gap-2 self-start transition"
+          >
+            <ShoppingCart className="w-4 h-4" />
+            <span>{lang === 'bn' ? 'নতুন পিওএস বিক্রয়' : 'New POS Sale'}</span>
+          </Link>
+        )}
       </div>
 
       {/* Filter and Search Bar */}

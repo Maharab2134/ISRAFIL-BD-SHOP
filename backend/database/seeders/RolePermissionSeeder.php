@@ -327,13 +327,10 @@ class RolePermissionSeeder extends Seeder
                 'slug' => 'cashier',
                 'name' => 'Cashier',
                 'name_bn' => 'ক্যাশিয়ার',
-                'description' => 'কাউন্টারে দ্রুত বারকোড স্ক্যান, পিওএস বিক্রয় ও রসিদ প্রদান। (ক্রয়মূল্য ও ফেরত অনুমোদন নিষিদ্ধ)',
+                'description' => 'কাউন্টারে দ্রুত বারকোড স্ক্যান, পিওএস বিক্রয় ও রসিদ প্রদান। (অন্যান্য সকল মডিউল সম্পূর্ণরূপে লুকানো থাকবে)',
                 'is_system' => true,
                 'permissions' => $getIds([
                     'pos.access', 'pos.checkout', 'pos.discount_apply', 'pos.print',
-                    'products.view',
-                    'sales.view', 'sales.print', 'sales.returns_view', 'sales.returns_create',
-                    'customers.view', 'customers.create',
                 ]),
             ],
 
@@ -342,13 +339,11 @@ class RolePermissionSeeder extends Seeder
                 'slug' => 'sales-staff',
                 'name' => 'Sales Staff',
                 'name_bn' => 'বিক্রয় কর্মী',
-                'description' => 'আউটলেটে ক্রেতাদের সহায়তা, মূল্য ও ডিসকাউন্ট তথ্য যাচাই এবং অর্ডার গ্রহণ।',
+                'description' => 'আউটলেটে ক্রেতাদের সহায়তা, মূল্য ও ডিসকাউন্ট তথ্য যাচাই এবং কাউন্টার বিক্রয়।',
                 'is_system' => true,
                 'permissions' => $getIds([
                     'pos.access', 'pos.print',
                     'products.view',
-                    'sales.view', 'sales.print',
-                    'customers.view', 'customers.create',
                 ]),
             ],
 
@@ -357,13 +352,11 @@ class RolePermissionSeeder extends Seeder
                 'slug' => 'customer-service',
                 'name' => 'Customer Service Staff',
                 'name_bn' => 'গ্রাহক সেবা কর্মী',
-                'description' => 'গ্রাহক মেম্বারশিপ আবেদন অনুমোদন, লয়্যালটি কার্ড প্রদান, বকেয়া তথ্য ও পণ্য ফেরত গ্রহণ।',
+                'description' => 'গ্রাহক মেম্বারশিপ আবেদন অনুমোদন, লয়্যালটি কার্ড প্রদান ও গ্রাহক সেবা পরিচালনা।',
                 'is_system' => true,
                 'permissions' => $getIds([
                     'customers.view', 'customers.create', 'customers.edit', 'customers.manage', 'customers.loyalty_manage', 'customers.export',
-                    'customer_service.approvals', 'customer_service.inquiries',
-                    'sales.view', 'sales.returns_view', 'sales.returns_create',
-                    'products.view',
+                    'customer_service.approvals', 'customer_service.form_builder', 'customer_service.inquiries',
                 ]),
             ],
 
@@ -375,10 +368,9 @@ class RolePermissionSeeder extends Seeder
                 'description' => 'গুদামে পণ্য লোডিং-আনলোডিং, চালান মিলিয়ে গ্রহণ ও শাখার উদ্দেশ্যে মালামাল স্থানান্তর।',
                 'is_system' => true,
                 'permissions' => $getIds([
-                    'products.view', 'products.print_barcode',
                     'inventory.view',
+                    'products.print_barcode',
                     'warehouse.view', 'warehouse.receive', 'warehouse.dispatch',
-                    'purchases.view',
                 ]),
             ],
 
@@ -542,3 +534,4 @@ class RolePermissionSeeder extends Seeder
         }
     }
 }
+

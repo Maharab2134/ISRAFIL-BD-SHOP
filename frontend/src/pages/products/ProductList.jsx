@@ -32,7 +32,7 @@ export const ProductList = () => {
 
   const isSuperAdmin = user?.role?.slug === 'super-admin' || user?.email === 'admin@israfilbd.com';
   // Super shop cashier should NOT see wholesale cost prices or margin data
-  const canViewCostPrice = isSuperAdmin || hasPermission('purchases.view') || hasPermission('reports.view');
+  const canViewCostPrice = isSuperAdmin || hasPermission('products.view_cost');
   const canCreateProduct = isSuperAdmin || hasPermission('products.create');
   const canEditProduct = isSuperAdmin || hasPermission('products.edit');
   const canDeleteProduct = isSuperAdmin || hasPermission('products.delete');

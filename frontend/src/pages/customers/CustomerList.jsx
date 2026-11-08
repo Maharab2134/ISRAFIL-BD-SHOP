@@ -29,8 +29,14 @@ import { useAuth } from '../../context/AuthContext';
 export const CustomerList = () => {
   const { t, lang, formatCurrency, formatNumber } = useLanguage();
   const { success, error } = useToast();
-  const { user } = useAuth();
+  const { user, hasPermission } = useAuth();
   const isSuperAdmin = user?.role?.slug === 'super-admin' || user?.email === 'admin@israfilbd.com';
+  const canCreateCustomer = isSuperAdmin || hasPermission('customers.create');
+  const canEditCustomer = isSuperAdmin || hasPermission('customers.edit');
+  const canDeleteCustomer = isSuperAdmin || hasPermission('customers.delete');
+  const canViewLedger = isSuperAdmin || hasPermission('customers.manage') || hasPermission('accounting.customer_due');
+  const canViewApprovals = isSuperAdmin || hasPermission('customer_service.approvals');
+  const canViewFormBuilder = isSuperAdmin || hasPermission('customer_service.form_builder');
 
   const [customers, setCustomers] = useState(() => {
     try {
@@ -225,16 +231,18 @@ export const CustomerList = () => {
         </div>
 
         <div className="flex items-center gap-2 self-start flex-wrap">
-          <Link
-            to="/customers/approvals"
-            className="py-2.5 px-3.5 rounded-xl font-bold text-xs bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 transition flex items-center gap-1.5 shadow-2xs"
-            title="কাস্টমার রেজিস্ট্রেশন আবেদনসমূহ অনুমোদন করুন"
-          >
-            <UserCheck className="w-4 h-4 text-emerald-600" />
-            <span>{lang === 'bn' ? 'অনুমোদন প্যানেল' : 'Approvals Panel'}</span>
-          </Link>
+          {canViewApprovals && (
+            <Link
+              to="/customers/approvals"
+              className="py-2.5 px-3.5 rounded-xl font-bold text-xs bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 transition flex items-center gap-1.5 shadow-2xs"
+              title="কাস্টমার রেজিস্ট্রেশন আবেদনসমূহ অনুমোদন করুন"
+            >
+              <UserCheck className="w-4 h-4 text-emerald-600" />
+              <span>{lang === 'bn' ? 'অনুমোদন প্যানেল' : 'Approvals Panel'}</span>
+            </Link>
+          )}
 
-          {isSuperAdmin && (
+          {canViewFormBuilder && (
             <Link
               to="/customers/form-builder"
               className="py-2.5 px-3.5 rounded-xl font-bold text-xs bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-100 transition flex items-center gap-1.5 shadow-2xs"
@@ -245,13 +253,15 @@ export const CustomerList = () => {
             </Link>
           )}
 
-          <Link
-            to="/customers/new"
-            className="py-2.5 px-4 rounded-xl font-bold text-xs bg-indigo-600 hover:bg-indigo-700 text-white shadow-md flex items-center gap-1.5 transition"
-          >
-            <UserPlus className="w-4 h-4" />
-            <span>{t('addCustomer')}</span>
-          </Link>
+          {canCreateCustomer && (
+            <Link
+              to="/customers/new"
+              className="py-2.5 px-4 rounded-xl font-bold text-xs bg-indigo-600 hover:bg-indigo-700 text-white shadow-md flex items-center gap-1.5 transition"
+            >
+              <UserPlus className="w-4 h-4" />
+              <span>{t('addCustomer')}</span>
+            </Link>
+          )}
         </div>
       </div>
 
@@ -281,7 +291,7 @@ export const CustomerList = () => {
       </div>
 
       {/* Bulk Action Bar */}
-      {selectedIds.length > 0 && (
+      {canDeleteCustomer && selectedIds.length > 0 && (
         <div className="p-3 bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 rounded-2xl flex items-center justify-between gap-3 animate-in fade-in">
           <div className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-indigo-600 animate-pulse" />
@@ -315,33 +325,37 @@ export const CustomerList = () => {
           <table className="w-full text-left text-xs border-collapse">
             <thead>
               <tr className="bg-slate-50 dark:bg-slate-850/60 border-b border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 font-bold uppercase tracking-wider">
-                <th className="p-4 w-12 text-center">
-                  <input
-                    type="checkbox"
-                    checked={isAllSelected}
-                    onChange={toggleSelectAll}
-                    className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
-                  />
-                </th>
+                {canDeleteCustomer && (
+                  <th className="p-4 w-12 text-center">
+                    <input
+                      type="checkbox"
+                      checked={isAllSelected}
+                      onChange={toggleSelectAll}
+                      className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                    />
+                  </th>
+                )}
                 <th className="p-4">{lang === 'bn' ? 'গ্রাহকের নাম' : 'Customer Name'}</th>
                 <th className="p-4">{lang === 'bn' ? 'মোবাইল নম্বর' : 'Phone Number'}</th>
                 <th className="p-4 text-center">{lang === 'bn' ? 'মোট ক্রয়' : 'Total Orders'}</th>
                 <th className="p-4 text-center">{lang === 'bn' ? 'লয়ালটি পয়েন্ট' : 'Loyalty Points'}</th>
                 <th className="p-4 text-right">{lang === 'bn' ? 'বর্তমান বকেয়া (Due)' : 'Current Due'}</th>
                 <th className="p-4 text-right">{lang === 'bn' ? 'ক্রেডিট লিমিট' : 'Credit Limit'}</th>
-                <th className="p-4 text-right">{t('actions')}</th>
+                {(canViewLedger || canEditCustomer || canDeleteCustomer) && (
+                  <th className="p-4 text-right">{t('actions')}</th>
+                )}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {loading ? (
                 <tr>
-                  <td colSpan="8" className="p-8 text-center text-slate-400">
+                  <td colSpan={(canDeleteCustomer ? 1 : 0) + 6 + (canViewLedger || canEditCustomer || canDeleteCustomer ? 1 : 0)} className="p-8 text-center text-slate-400">
                     {t('loading')}
                   </td>
                 </tr>
               ) : customers.length === 0 ? (
                 <tr>
-                  <td colSpan="8" className="p-8 text-center text-slate-400">
+                  <td colSpan={(canDeleteCustomer ? 1 : 0) + 6 + (canViewLedger || canEditCustomer || canDeleteCustomer ? 1 : 0)} className="p-8 text-center text-slate-400">
                     {t('noData')}
                   </td>
                 </tr>
@@ -356,14 +370,16 @@ export const CustomerList = () => {
                         isSelected ? 'bg-indigo-50/40 dark:bg-indigo-950/20' : ''
                       }`}
                     >
-                      <td className="p-4 text-center">
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={() => toggleSelectOne(c.id)}
-                          className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
-                        />
-                      </td>
+                      {canDeleteCustomer && (
+                        <td className="p-4 text-center">
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => toggleSelectOne(c.id)}
+                            className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                          />
+                        </td>
+                      )}
                       <td className="p-4 font-bold text-slate-900 dark:text-white">
                         <div>{c.name}</div>
                         {c.address && <div className="text-[11px] text-slate-400 font-normal">{c.address}</div>}
@@ -394,49 +410,57 @@ export const CustomerList = () => {
                       <td className="p-4 text-right text-slate-500 font-medium">
                         {formatCurrency(c.credit_limit)}
                       </td>
-                      <td className="p-4 text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <Link
-                            to={`/customers/${c.id}`}
-                            className="py-1.5 px-2.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 font-bold hover:bg-indigo-100 transition inline-flex items-center gap-1 text-xs"
-                            title={lang === 'bn' ? 'লেজার দেখুন' : 'View Ledger'}
-                          >
-                            <Eye className="w-3.5 h-3.5" />
-                            <span>{lang === 'bn' ? 'লেজার' : 'Ledger'}</span>
-                          </Link>
-                          <button
-                            type="button"
-                            onClick={() => handleOpenEdit(c)}
-                            className="p-1.5 text-slate-400 hover:text-amber-600 dark:hover:text-amber-400 rounded-lg hover:bg-amber-50 dark:hover:bg-amber-950/40 transition cursor-pointer"
-                            title={lang === 'bn' ? 'সম্পাদন করুন' : 'Edit Customer'}
-                          >
-                            <Edit className="w-4 h-4" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const hasSalesOrDue = (c.sales_count || 0) > 0 || Number(c.current_balance || 0) > 0;
-                              if (!isSuperAdmin && hasSalesOrDue) {
-                                error(lang === 'bn' ? 'এই গ্রাহকের বিক্রয় রেকর্ড অথবা বকেয়া ব্যালেন্স রয়েছে। এটি মুছে ফেলার অনুমতি শুধুমাত্র সুপার অ্যাডমিনের রয়েছে।' : 'This customer has sales or due balance. Only Super Admin can delete.');
-                                return;
-                              }
-                              setDeleteModal({ isOpen: true, item: c, isBulk: false });
-                            }}
-                            className={`p-1.5 rounded-lg transition cursor-pointer ${
-                              !isSuperAdmin && ((c.sales_count || 0) > 0 || Number(c.current_balance || 0) > 0)
-                                ? 'text-slate-300 dark:text-slate-600 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-slate-800'
-                                : 'text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40'
-                            }`}
-                            title={
-                              !isSuperAdmin && ((c.sales_count || 0) > 0 || Number(c.current_balance || 0) > 0)
-                                ? (lang === 'bn' ? 'সক্রিয় বিক্রয়/বকেয়া থাকায় কেবল সুপার অ্যাডমিন মুছতে পারবেন' : 'Only Super Admin can delete')
-                                : (lang === 'bn' ? 'মুছে ফেলুন' : 'Delete')
-                            }
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </td>
+                      {(canViewLedger || canEditCustomer || canDeleteCustomer) && (
+                        <td className="p-4 text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            {canViewLedger && (
+                              <Link
+                                to={`/customers/${c.id}`}
+                                className="py-1.5 px-2.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 font-bold hover:bg-indigo-100 transition inline-flex items-center gap-1 text-xs"
+                                title={lang === 'bn' ? 'লেজার দেখুন' : 'View Ledger'}
+                              >
+                                <Eye className="w-3.5 h-3.5" />
+                                <span>{lang === 'bn' ? 'লেজার' : 'Ledger'}</span>
+                              </Link>
+                            )}
+                            {canEditCustomer && (
+                              <button
+                                type="button"
+                                onClick={() => handleOpenEdit(c)}
+                                className="p-1.5 text-slate-400 hover:text-amber-600 dark:hover:text-amber-400 rounded-lg hover:bg-amber-50 dark:hover:bg-amber-950/40 transition cursor-pointer"
+                                title={lang === 'bn' ? 'সম্পাদন করুন' : 'Edit Customer'}
+                              >
+                                <Edit className="w-4 h-4" />
+                              </button>
+                            )}
+                            {canDeleteCustomer && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const hasSalesOrDue = (c.sales_count || 0) > 0 || Number(c.current_balance || 0) > 0;
+                                  if (!isSuperAdmin && hasSalesOrDue) {
+                                    error(lang === 'bn' ? 'এই গ্রাহকের বিক্রয় রেকর্ড অথবা বকেয়া ব্যালেন্স রয়েছে। এটি মুছে ফেলার অনুমতি শুধুমাত্র সুপার অ্যাডমিনের রয়েছে।' : 'This customer has sales or due balance. Only Super Admin can delete.');
+                                    return;
+                                  }
+                                  setDeleteModal({ isOpen: true, item: c, isBulk: false });
+                                }}
+                                className={`p-1.5 rounded-lg transition cursor-pointer ${
+                                  !isSuperAdmin && ((c.sales_count || 0) > 0 || Number(c.current_balance || 0) > 0)
+                                    ? 'text-slate-300 dark:text-slate-600 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-slate-800'
+                                    : 'text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40'
+                                }`}
+                                title={
+                                  !isSuperAdmin && ((c.sales_count || 0) > 0 || Number(c.current_balance || 0) > 0)
+                                    ? (lang === 'bn' ? 'সক্রিয় বিক্রয়/বকেয়া থাকায় কেবল সুপার অ্যাডমিন মুছতে পারবেন' : 'Only Super Admin can delete')
+                                    : (lang === 'bn' ? 'মুছে ফেলুন' : 'Delete')
+                                }
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      )}
                     </tr>
                   );
                 })

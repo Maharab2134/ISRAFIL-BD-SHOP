@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useToast } from '../../context/ToastContext';
 import {
@@ -16,8 +17,13 @@ import api from '../../services/api';
 import { ConfirmDeleteModal } from '../../components/common/ConfirmDeleteModal';
 
 export const SupplierList = () => {
+  const { user, hasPermission } = useAuth();
   const { t, lang, formatCurrency, formatNumber } = useLanguage();
   const { success, error } = useToast();
+
+  const isSuperAdmin = user?.role?.slug === 'super-admin' || user?.email === 'admin@israfilbd.com';
+  const canCreateSupplier = isSuperAdmin || hasPermission('suppliers.manage');
+  const canDeleteSupplier = isSuperAdmin || hasPermission('suppliers.delete') || hasPermission('suppliers.manage');
 
   const [suppliers, setSuppliers] = useState(() => {
     try {
@@ -137,13 +143,15 @@ export const SupplierList = () => {
           </p>
         </div>
 
-        <Link
-          to="/suppliers/new"
-          className="py-2.5 px-4 rounded-xl font-bold text-sm bg-indigo-600 hover:bg-indigo-700 text-white shadow-md flex items-center gap-2 self-start transition"
-        >
-          <Plus className="w-4 h-4" />
-          <span>{t('addSupplier')}</span>
-        </Link>
+        {canCreateSupplier && (
+          <Link
+            to="/suppliers/new"
+            className="py-2.5 px-4 rounded-xl font-bold text-sm bg-indigo-600 hover:bg-indigo-700 text-white shadow-md flex items-center gap-2 self-start transition"
+          >
+            <Plus className="w-4 h-4" />
+            <span>{t('addSupplier')}</span>
+          </Link>
+        )}
       </div>
 
       {/* Search */}
@@ -161,7 +169,7 @@ export const SupplierList = () => {
       </div>
 
       {/* Bulk Action Bar */}
-      {selectedIds.length > 0 && (
+      {canDeleteSupplier && selectedIds.length > 0 && (
         <div className="p-3 bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 rounded-2xl flex items-center justify-between gap-3 animate-in fade-in">
           <div className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-indigo-600 animate-pulse" />
@@ -195,14 +203,16 @@ export const SupplierList = () => {
           <table className="w-full text-left text-xs border-collapse">
             <thead>
               <tr className="bg-slate-50 dark:bg-slate-850/60 border-b border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 font-bold uppercase tracking-wider">
-                <th className="p-4 w-12 text-center">
-                  <input
-                    type="checkbox"
-                    checked={isAllSelected}
-                    onChange={toggleSelectAll}
-                    className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
-                  />
-                </th>
+                {canDeleteSupplier && (
+                  <th className="p-4 w-12 text-center">
+                    <input
+                      type="checkbox"
+                      checked={isAllSelected}
+                      onChange={toggleSelectAll}
+                      className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                    />
+                  </th>
+                )}
                 <th className="p-4">{lang === 'bn' ? 'সরবরাহকারী ও প্রতিষ্ঠান' : 'Supplier & Company'}</th>
                 <th className="p-4">{lang === 'bn' ? 'মোবাইল' : 'Phone'}</th>
                 <th className="p-4">{lang === 'bn' ? 'ঠিকানা' : 'Address'}</th>
@@ -214,13 +224,13 @@ export const SupplierList = () => {
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {loading ? (
                 <tr>
-                  <td colSpan="7" className="p-8 text-center text-slate-400">
+                  <td colSpan={canDeleteSupplier ? 7 : 6} className="p-8 text-center text-slate-400">
                     {t('loading')}
                   </td>
                 </tr>
               ) : suppliers.length === 0 ? (
                 <tr>
-                  <td colSpan="7" className="p-8 text-center text-slate-400">
+                  <td colSpan={canDeleteSupplier ? 7 : 6} className="p-8 text-center text-slate-400">
                     {t('noData')}
                   </td>
                 </tr>
@@ -235,14 +245,16 @@ export const SupplierList = () => {
                         isSelected ? 'bg-indigo-50/40 dark:bg-indigo-950/20' : ''
                       }`}
                     >
-                      <td className="p-4 text-center">
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={() => toggleSelectOne(s.id)}
-                          className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
-                        />
-                      </td>
+                      {canDeleteSupplier && (
+                        <td className="p-4 text-center">
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => toggleSelectOne(s.id)}
+                            className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                          />
+                        </td>
+                      )}
                       <td className="p-4 font-bold text-slate-900 dark:text-white">
                         <div>{s.name}</div>
                         {s.company_name && <div className="text-[11px] text-slate-400 font-normal">{s.company_name}</div>}
@@ -276,13 +288,15 @@ export const SupplierList = () => {
                             <Eye className="w-3.5 h-3.5" />
                             <span>{lang === 'bn' ? 'বিবরণ' : 'Details'}</span>
                           </Link>
-                          <button
-                            onClick={() => setDeleteModal({ isOpen: true, item: s, isBulk: false })}
-                            className="p-1.5 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/40 transition"
-                            title={lang === 'bn' ? 'মুছে ফেলুন' : 'Delete'}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                          {canDeleteSupplier && (
+                            <button
+                              onClick={() => setDeleteModal({ isOpen: true, item: s, isBulk: false })}
+                              className="p-1.5 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/40 transition"
+                              title={lang === 'bn' ? 'মুছে ফেলুন' : 'Delete'}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>

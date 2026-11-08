@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useToast } from '../../context/ToastContext';
 import {
@@ -16,8 +17,14 @@ import api from '../../services/api';
 import { ConfirmDeleteModal } from '../../components/common/ConfirmDeleteModal';
 
 export const ExpenseList = () => {
+  const { user, hasPermission } = useAuth();
   const { t, lang, formatCurrency, formatNumber } = useLanguage();
   const { success, error } = useToast();
+
+  const isSuperAdmin = user?.role?.slug === 'super-admin' || user?.email === 'admin@israfilbd.com';
+  const canCreateExpense = isSuperAdmin || hasPermission('expenses.create');
+  const canManageCats = isSuperAdmin || hasPermission('expenses.categories_manage') || hasPermission('expenses.manage');
+  const canDeleteExpense = isSuperAdmin || hasPermission('expenses.delete') || hasPermission('expenses.manage');
 
   const [expenses, setExpenses] = useState(() => {
     try {
@@ -159,20 +166,24 @@ export const ExpenseList = () => {
         </div>
 
         <div className="flex items-center gap-3 self-start">
-          <Link
-            to="/expenses/categories"
-            className="py-2.5 px-4 rounded-xl font-bold text-xs bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 flex items-center gap-2 transition"
-          >
-            <FolderTree className="w-4 h-4" />
-            <span>{t('expenseCategories')}</span>
-          </Link>
-          <Link
-            to="/expenses/new"
-            className="py-2.5 px-4 rounded-xl font-bold text-sm bg-indigo-600 hover:bg-indigo-700 text-white shadow-md flex items-center gap-2 transition"
-          >
-            <Plus className="w-4 h-4" />
-            <span>{t('addExpense')}</span>
-          </Link>
+          {canManageCats && (
+            <Link
+              to="/expenses/categories"
+              className="py-2.5 px-4 rounded-xl font-bold text-xs bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 flex items-center gap-2 transition"
+            >
+              <FolderTree className="w-4 h-4" />
+              <span>{t('expenseCategories')}</span>
+            </Link>
+          )}
+          {canCreateExpense && (
+            <Link
+              to="/expenses/new"
+              className="py-2.5 px-4 rounded-xl font-bold text-sm bg-indigo-600 hover:bg-indigo-700 text-white shadow-md flex items-center gap-2 transition"
+            >
+              <Plus className="w-4 h-4" />
+              <span>{t('addExpense')}</span>
+            </Link>
+          )}
         </div>
       </div>
 
@@ -218,7 +229,7 @@ export const ExpenseList = () => {
       </div>
 
       {/* Bulk Action Bar */}
-      {selectedIds.length > 0 && (
+      {canDeleteExpense && selectedIds.length > 0 && (
         <div className="p-3 bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 rounded-2xl flex items-center justify-between gap-3 animate-in fade-in">
           <div className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-indigo-600 animate-pulse" />
@@ -252,33 +263,35 @@ export const ExpenseList = () => {
           <table className="w-full text-left text-xs border-collapse">
             <thead>
               <tr className="bg-slate-50 dark:bg-slate-850/60 border-b border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 font-bold uppercase tracking-wider">
-                <th className="p-4 w-12 text-center">
-                  <input
-                    type="checkbox"
-                    checked={isAllSelected}
-                    onChange={toggleSelectAll}
-                    className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
-                  />
-                </th>
+                {canDeleteExpense && (
+                  <th className="p-4 w-12 text-center">
+                    <input
+                      type="checkbox"
+                      checked={isAllSelected}
+                      onChange={toggleSelectAll}
+                      className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                    />
+                  </th>
+                )}
                 <th className="p-4">{lang === 'bn' ? 'তারিখ' : 'Date'}</th>
                 <th className="p-4">{lang === 'bn' ? 'খরচের খাত' : 'Category'}</th>
                 <th className="p-4">{lang === 'bn' ? 'শিরোনাম ও বিবরণ' : 'Title & Notes'}</th>
                 <th className="p-4 text-right">{lang === 'bn' ? 'পরিমাণ (টাকা)' : 'Amount (৳)'}</th>
                 <th className="p-4 text-center">{lang === 'bn' ? 'পেমেন্ট মাধ্যম' : 'Payment Method'}</th>
                 <th className="p-4">{lang === 'bn' ? 'দায়িত্বপ্রাপ্ত' : 'Recorded By'}</th>
-                <th className="p-4 text-right">{t('actions')}</th>
+                {canDeleteExpense && <th className="p-4 text-right">{t('actions')}</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {loading ? (
                 <tr>
-                  <td colSpan="8" className="p-8 text-center text-slate-400">
+                  <td colSpan={canDeleteExpense ? 8 : 6} className="p-8 text-center text-slate-400">
                     {t('loading')}
                   </td>
                 </tr>
               ) : expenses.length === 0 ? (
                 <tr>
-                  <td colSpan="8" className="p-8 text-center text-slate-400">
+                  <td colSpan={canDeleteExpense ? 8 : 6} className="p-8 text-center text-slate-400">
                     {t('noData')}
                   </td>
                 </tr>
@@ -292,14 +305,16 @@ export const ExpenseList = () => {
                         isSelected ? 'bg-indigo-50/40 dark:bg-indigo-950/20' : ''
                       }`}
                     >
-                      <td className="p-4 text-center">
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={() => toggleSelectOne(ex.id)}
-                          className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
-                        />
-                      </td>
+                      {canDeleteExpense && (
+                        <td className="p-4 text-center">
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => toggleSelectOne(ex.id)}
+                            className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                          />
+                        </td>
+                      )}
                       <td className="p-4 text-slate-500 font-mono">
                         {new Date(ex.expense_date).toLocaleDateString(lang === 'bn' ? 'bn-BD' : 'en-US')}
                       </td>
@@ -321,15 +336,17 @@ export const ExpenseList = () => {
                       <td className="p-4 text-slate-500">
                         {ex.user?.name || '—'}
                       </td>
-                      <td className="p-4 text-right">
-                        <button
-                          onClick={() => setDeleteModal({ isOpen: true, item: ex, isBulk: false })}
-                          className="p-1.5 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/40 transition"
-                          title={lang === 'bn' ? 'মুছে ফেলুন' : 'Delete'}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </td>
+                      {canDeleteExpense && (
+                        <td className="p-4 text-right">
+                          <button
+                            onClick={() => setDeleteModal({ isOpen: true, item: ex, isBulk: false })}
+                            className="p-1.5 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/40 transition"
+                            title={lang === 'bn' ? 'মুছে ফেলুন' : 'Delete'}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </td>
+                      )}
                     </tr>
                   );
                 })
