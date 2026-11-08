@@ -7,6 +7,9 @@ use App\Models\ActivityLog;
 use App\Models\CashTransaction;
 use App\Models\Customer;
 use App\Models\CustomerPayment;
+use App\Models\CustomerRegistrationRequest;
+use App\Models\Sale;
+use App\Models\ShopReturn;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -111,15 +114,12 @@ class CustomerController extends Controller
             ], 403);
         }
 
-        DB::transaction(function () use ($customer) {
-            CustomerPayment::where('customer_id', $customer->id)->delete();
-            $customer->delete();
-        });
+        $this->performCustomerFullCleanup($customer);
 
-        ActivityLog::log('delete', "গ্রাহক '{$customer->name}' মুছে ফেলা হয়েছে।", $customer);
+        ActivityLog::log('delete', "গ্রাহক '{$customer->name}' এবং সংশ্লিষ্ট সমস্ত রেজিস্ট্রেশন রেকর্ড সম্পূর্ণ অপসারণ করা হয়েছে।", $customer);
 
         return response()->json([
-            'message' => 'গ্রাহক সফলভাবে মুছে ফেলা হয়েছে।'
+            'message' => 'গ্রাহক এবং তার সমস্ত পূর্ববর্তী রেজিস্ট্রেশন রেকর্ড সফলভাবে সম্পূর্ণ অপসারণ করা হয়েছে।'
         ]);
     }
 
@@ -140,10 +140,7 @@ class CustomerController extends Controller
             if (!$customer) continue;
 
             if ($isSuperAdmin || ($customer->sales_count == 0 && (float) $customer->current_balance == 0)) {
-                DB::transaction(function () use ($customer) {
-                    CustomerPayment::where('customer_id', $customer->id)->delete();
-                    $customer->delete();
-                });
+                $this->performCustomerFullCleanup($customer);
                 $deleted++;
             } else {
                 $skipped++;
@@ -151,10 +148,10 @@ class CustomerController extends Controller
         }
 
         if ($deleted > 0) {
-            ActivityLog::log('delete', "{$deleted} জন গ্রাহক মুছে ফেলা হয়েছে।");
+            ActivityLog::log('delete', "{$deleted} জন গ্রাহক এবং তাদের পূর্ববর্তী রেজিস্ট্রেশন রেকর্ড সম্পূর্ণ মুছে ফেলা হয়েছে।");
         }
 
-        $msg = "{$deleted} জন গ্রাহক সফলভাবে মুছে ফেলা হয়েছে।";
+        $msg = "{$deleted} জন গ্রাহক সফলভাবে সম্পূর্ণ মুছে ফেলা হয়েছে।";
         if ($skipped > 0) {
             $msg .= " ({$skipped} জনের সক্রিয় বিক্রয়/বকেয়া রেকর্ড থাকায় বাদ দেওয়া হয়েছে, যা কেবল সুপার এডমিন মুছতে পারবেন)";
         }
@@ -164,6 +161,47 @@ class CustomerController extends Controller
             'deleted_count' => $deleted,
             'skipped_count' => $skipped,
         ]);
+    }
+
+    /**
+     * Completely remove all traces of a customer:
+     * - CustomerRegistrationRequest (by customer_id or phone variants)
+     * - CustomerPayment
+     * - Disassociate from Sales & Returns
+     * - Customer record
+     */
+    protected function performCustomerFullCleanup(Customer $customer)
+    {
+        $rawPhone = preg_replace('/[^0-9]/', '', (string) $customer->phone);
+        $trimmedPhone = ltrim($rawPhone, '0');
+        if (str_starts_with($trimmedPhone, '880')) {
+            $trimmedPhone = substr($trimmedPhone, 3);
+        }
+        $phoneVariants = array_unique(array_filter([
+            $customer->phone,
+            $rawPhone,
+            $trimmedPhone,
+            '0' . $trimmedPhone,
+            '880' . $trimmedPhone,
+            '+880' . $trimmedPhone,
+        ]));
+
+        DB::transaction(function () use ($customer, $phoneVariants) {
+            // 1. Remove all registration requests matching customer_id or phone variants
+            CustomerRegistrationRequest::where('customer_id', $customer->id)
+                ->orWhereIn('phone', $phoneVariants)
+                ->delete();
+
+            // 2. Remove all payments
+            CustomerPayment::where('customer_id', $customer->id)->delete();
+
+            // 3. Unlink past sales and returns so reports stay intact but customer identity is completely purged
+            Sale::where('customer_id', $customer->id)->update(['customer_id' => null]);
+            ShopReturn::where('return_type', 'sale')->where('party_id', $customer->id)->update(['party_id' => null]);
+
+            // 4. Delete the customer
+            $customer->delete();
+        });
     }
 
     public function receivePayment(Request $request, $id)

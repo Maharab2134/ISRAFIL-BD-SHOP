@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\EmployeeController;
 use App\Http\Controllers\Api\ExpenseController;
 use App\Http\Controllers\Api\InventoryController;
+use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\PosController;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\PurchaseController;
@@ -36,8 +37,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/profile', [AuthController::class, 'updateProfile']);
     Route::put('/change-password', [AuthController::class, 'changePassword']);
 
-    // Dashboard
+    // Dashboard & Notifications
     Route::get('/dashboard', [DashboardController::class, 'index']);
+    Route::get('/notifications', [NotificationController::class, 'index']);
 
     // POS
     Route::get('/pos/data', [PosController::class, 'getPosData']);

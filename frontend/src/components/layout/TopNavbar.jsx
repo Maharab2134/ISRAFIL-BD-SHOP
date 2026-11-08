@@ -20,6 +20,10 @@ import {
   AlertTriangle,
   Wrench,
   ShieldAlert,
+  UserPlus,
+  ShoppingBag,
+  ChevronRight,
+  Package,
 } from 'lucide-react';
 import api from '../../services/api';
 import { playNotificationChime } from '../../utils/sound';
@@ -56,7 +60,17 @@ export const TopNavbar = ({ isCollapsed }) => {
     : '/profile';
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [notifications, setNotifications] = useState([]);
+  const [notificationData, setNotificationData] = useState({
+    action_count: 0,
+    counts: {
+      pending_requests: 0,
+      low_stock: 0,
+      today_sales: 0,
+      system_errors: 0,
+    },
+    notifications: [],
+  });
+  const [notificationFilter, setNotificationFilter] = useState('all'); // 'all' | 'requests' | 'stock' | 'sales'
   const [activeDropdown, setActiveDropdown] = useState(null); // 'notifications' | 'user' | null
   const [currentTime, setCurrentTime] = useState(new Date());
 
@@ -122,50 +136,64 @@ export const TopNavbar = ({ isCollapsed }) => {
     return () => clearInterval(timer);
   }, []);
 
-  // Fetch low stock alerts & trigger notification sound
+  // Unified Notification System: Polls pending requests, low stock, sales & errors
   useEffect(() => {
-    if (!canViewInventory) return;
     let isMounted = true;
 
-    const fetchAlerts = async () => {
+    const fetchNotifications = async () => {
       try {
-        const res = await api.get('/dashboard');
+        const res = await api.get('/notifications');
         if (!isMounted) return;
 
-        if (res.data?.low_stock_alerts) {
-          const alerts = res.data.low_stock_alerts;
-          setNotifications(alerts);
+        const data = res.data || {};
+        const count = data.action_count || 0;
+        setNotificationData({
+          action_count: count,
+          counts: data.counts || { pending_requests: 0, low_stock: 0, today_sales: 0, system_errors: 0 },
+          notifications: data.notifications || [],
+        });
 
-          // Trigger audible notification chime when alerts exist or increase
-          if (alerts.length > 0) {
-            if (prevCountRef.current === null) {
-              prevCountRef.current = alerts.length;
-              if (soundEnabled) {
-                // Play notification chime on initial load if alerts present
-                setTimeout(() => playNotificationChime(0.3), 800);
-              }
-            } else if (alerts.length > prevCountRef.current) {
-              prevCountRef.current = alerts.length;
-              if (soundEnabled) {
-                playNotificationChime(0.35);
-              }
-            }
-          } else {
-            prevCountRef.current = 0;
+        // Trigger audible chime when action items arrive or increase
+        if (prevCountRef.current === null) {
+          prevCountRef.current = count;
+          if (count > 0 && soundEnabled) {
+            setTimeout(() => playNotificationChime(0.3), 800);
           }
+        } else if (count > prevCountRef.current) {
+          prevCountRef.current = count;
+          if (soundEnabled) {
+            playNotificationChime(0.38);
+          }
+        } else {
+          prevCountRef.current = count;
         }
       } catch (e) {
         // quiet error
       }
     };
 
-    fetchAlerts();
+    fetchNotifications();
 
-    // Check every 30 seconds for new alerts/stock changes
-    const interval = setInterval(fetchAlerts, 30000);
+    // Check every 15 seconds for store events
+    const interval = setInterval(fetchNotifications, 15000);
+
+    // Cross-tab / cross-window instant notification sync via BroadcastChannel
+    let bc = null;
+    try {
+      bc = new BroadcastChannel('israfil_store_events');
+      bc.onmessage = () => {
+        fetchNotifications();
+      };
+    } catch (e) {}
+
+    const handleCustomRefresh = () => fetchNotifications();
+    window.addEventListener('israfil:notification-refresh', handleCustomRefresh);
+
     return () => {
       isMounted = false;
       clearInterval(interval);
+      window.removeEventListener('israfil:notification-refresh', handleCustomRefresh);
+      if (bc) bc.close();
     };
   }, [soundEnabled]);
 
@@ -364,154 +392,310 @@ export const TopNavbar = ({ isCollapsed }) => {
           </button>
         )}
 
-        {/* Notification Center */}
-        {canViewInventory && (
-          <div className="relative" ref={notificationsRef}>
-            <button
-              onClick={() =>
-                setActiveDropdown(activeDropdown === 'notifications' ? null : 'notifications')
-              }
-              className={`p-2 rounded-xl transition relative ${
-                activeDropdown === 'notifications'
-                  ? 'bg-indigo-50 text-indigo-600 dark:bg-indigo-950/60 dark:text-indigo-400 ring-2 ring-indigo-500/30'
-                  : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700'
-              }`}
-              title={t('notifications')}
-            >
-              <Bell className="w-4 h-4" />
-              {(notifications.length > 0 || (isSuperAdmin && unreadErrorCount > 0)) && (
-                <span className="absolute -top-1 -right-1 w-4 h-4 bg-rose-500 text-white rounded-full text-[10px] font-bold flex items-center justify-center animate-pulse">
-                  {notifications.length + (isSuperAdmin ? unreadErrorCount : 0)}
-                </span>
-              )}
-            </button>
+        {/* Unified Realtime Notification Center */}
+        <div className="relative" ref={notificationsRef}>
+          <button
+            onClick={() =>
+              setActiveDropdown(activeDropdown === 'notifications' ? null : 'notifications')
+            }
+            className={`p-2 rounded-xl transition relative cursor-pointer ${
+              activeDropdown === 'notifications'
+                ? 'bg-indigo-50 text-indigo-600 dark:bg-indigo-950/60 dark:text-indigo-400 ring-2 ring-indigo-500/30'
+                : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700'
+            }`}
+            title={t('notifications')}
+          >
+            <Bell className="w-4 h-4" />
+            {(notificationData.action_count > 0 || (isSuperAdmin && unreadErrorCount > 0)) && (
+              <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 bg-rose-500 text-white rounded-full text-[10px] font-bold flex items-center justify-center animate-pulse shadow-xs">
+                {notificationData.action_count + (isSuperAdmin ? unreadErrorCount : 0) > 99
+                  ? '99+'
+                  : notificationData.action_count + (isSuperAdmin ? unreadErrorCount : 0)}
+              </span>
+            )}
+          </button>
 
-            {activeDropdown === 'notifications' && (
-              <div className="absolute right-0 mt-2 w-80 sm:w-92 rounded-2xl bg-white dark:bg-slate-800 shadow-2xl border border-slate-200 dark:border-slate-700 py-3 z-50 animate-in fade-in zoom-in-95 duration-150">
-                {/* Header */}
-                <div className="px-4 pb-2.5 border-b border-slate-100 dark:border-slate-700/80 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold text-xs text-slate-900 dark:text-white">
-                      {t('notifications')}
+          {activeDropdown === 'notifications' && (
+            <div className="absolute right-0 mt-2 w-84 sm:w-96 rounded-2xl bg-white dark:bg-slate-800 shadow-2xl border border-slate-200 dark:border-slate-700 py-3 z-50 animate-in fade-in zoom-in-95 duration-150">
+              {/* Header */}
+              <div className="px-4 pb-2.5 border-b border-slate-100 dark:border-slate-700/80 flex items-center justify-between">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="font-bold text-xs text-slate-900 dark:text-white">
+                    {lang === 'bn' ? 'নোটিফিকেশন' : 'Notifications'}
+                  </span>
+                  {notificationData.counts?.pending_requests > 0 && (
+                    <span className="text-[10px] bg-amber-500 text-white font-bold px-1.5 py-0.5 rounded-full flex items-center gap-1">
+                      <UserPlus className="w-2.5 h-2.5" />
+                      {notificationData.counts.pending_requests} {lang === 'bn' ? 'আবেদন' : 'Requests'}
                     </span>
-                    {isSuperAdmin && unreadErrorCount > 0 && (
-                      <span className="text-[10px] bg-rose-500 text-white font-bold px-1.5 py-0.5 rounded-full flex items-center gap-1">
-                        <AlertTriangle className="w-2.5 h-2.5" />
-                        {unreadErrorCount}
-                      </span>
-                    )}
-                    <span className="text-[10px] bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300 font-bold px-1.5 py-0.5 rounded-full">
-                      {notifications.length} {t('lowStock')}
+                  )}
+                  {notificationData.counts?.low_stock > 0 && (
+                    <span className="text-[10px] bg-rose-500 text-white font-bold px-1.5 py-0.5 rounded-full flex items-center gap-1">
+                      <AlertTriangle className="w-2.5 h-2.5" />
+                      {notificationData.counts.low_stock} {lang === 'bn' ? 'স্টক' : 'Stock'}
                     </span>
-                  </div>
-
-                  <div className="flex items-center gap-1">
-                    {/* Sound Toggle / Test Ring Button */}
-                    <button
-                      type="button"
-                      onClick={toggleSound}
-                      className={`p-1 rounded-lg transition ${
-                        soundEnabled
-                          ? 'text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/50'
-                          : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
-                      }`}
-                      title={
-                        soundEnabled
-                          ? lang === 'bn'
-                            ? 'নোটিফিকেশন শব্দ চালু (বাজিয়ে টেস্ট করুন / মিউট করতে ক্লিক করুন)'
-                            : 'Notification sound ON (Click to test / mute)'
-                          : lang === 'bn'
-                          ? 'নোটিফিকেশন শব্দ বন্ধ (চালু করতে ক্লিক করুন)'
-                          : 'Notification sound muted (Click to enable)'
-                      }
-                    >
-                      {soundEnabled ? (
-                        <Volume2 className="w-3.5 h-3.5" />
-                      ) : (
-                        <VolumeX className="w-3.5 h-3.5 text-slate-400" />
-                      )}
-                    </button>
-
-                    {/* Close Button */}
-                    <button
-                      type="button"
-                      onClick={() => setActiveDropdown(null)}
-                      className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition"
-                      title="Close"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
+                  )}
                 </div>
 
-                {/* Notification Items List */}
-                <div className="max-h-80 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-700/50">
-                  {/* System Crash Alerts for Super Admin */}
-                  {isSuperAdmin && recentErrors.length > 0 && (
-                    <div className="p-2.5 bg-rose-50/70 dark:bg-rose-950/40 border-b border-rose-100 dark:border-rose-900/60">
-                      <div className="flex items-center justify-between px-1.5 py-1 mb-1">
-                        <span className="text-[11px] font-bold text-rose-700 dark:text-rose-400 flex items-center gap-1">
-                          <AlertTriangle className="w-3.5 h-3.5" />
-                          <span>সিস্টেম ক্র্যাশ সতর্কতা (Crash Alerts)</span>
-                        </span>
-                        <Link
-                          to="/settings?tab=maintenance"
-                          onClick={() => setActiveDropdown(null)}
-                          className="text-[10px] text-indigo-600 dark:text-indigo-400 font-semibold hover:underline"
-                        >
-                          ম্যানেজ করুন
-                        </Link>
-                      </div>
-                      <div className="space-y-1.5">
-                        {recentErrors.slice(0, 3).map((err) => (
-                          <div
-                            key={err.id}
-                            className="p-2 rounded-xl bg-white dark:bg-slate-800 border border-rose-200 dark:border-rose-800/60 text-xs shadow-2xs"
-                          >
-                            <div className="flex items-center justify-between text-[10px] font-semibold text-rose-600 dark:text-rose-400 mb-0.5">
-                              <span>সেকশন: {err.new_values?.section || 'System'}</span>
-                              <span className="text-slate-400">{new Date(err.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                            </div>
-                            <p className="text-[11px] text-slate-700 dark:text-slate-200 line-clamp-2">
-                              {err.new_values?.error_message || err.description}
-                            </p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+                <div className="flex items-center gap-1">
+                  {/* Sound Toggle */}
+                  <button
+                    type="button"
+                    onClick={toggleSound}
+                    className={`p-1 rounded-lg transition cursor-pointer ${
+                      soundEnabled
+                        ? 'text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/50'
+                        : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
+                    }`}
+                    title={
+                      soundEnabled
+                        ? lang === 'bn'
+                          ? 'নোটিফিকেশন শব্দ চালু (বাজিয়ে টেস্ট করুন / মিউট করতে ক্লিক করুন)'
+                          : 'Notification sound ON (Click to test / mute)'
+                        : lang === 'bn'
+                        ? 'নোটিফিকেশন শব্দ বন্ধ (চালু করতে ক্লিক করুন)'
+                        : 'Notification sound muted (Click to enable)'
+                    }
+                  >
+                    {soundEnabled ? (
+                      <Volume2 className="w-3.5 h-3.5" />
+                    ) : (
+                      <VolumeX className="w-3.5 h-3.5 text-slate-400" />
+                    )}
+                  </button>
 
-                  {notifications.length === 0 && (!isSuperAdmin || recentErrors.length === 0) ? (
-                    <div className="p-4 text-xs text-center text-slate-400">
-                      {lang === 'bn' ? 'কোনো নতুন নোটিফিকেশন নেই' : 'No new notifications'}
-                    </div>
-                  ) : (
-                    notifications.map((item) => (
+                  {/* Close Button */}
+                  <button
+                    type="button"
+                    onClick={() => setActiveDropdown(null)}
+                    className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition cursor-pointer"
+                    title="Close"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Category Filter Tabs */}
+              <div className="flex items-center gap-1 px-3 py-2 border-b border-slate-100 dark:border-slate-700/60 bg-slate-50/60 dark:bg-slate-800/60 text-[11px] overflow-x-auto scrollbar-none">
+                <button
+                  type="button"
+                  onClick={() => setNotificationFilter('all')}
+                  className={`px-2 py-1 rounded-lg font-medium transition cursor-pointer whitespace-nowrap ${
+                    notificationFilter === 'all'
+                      ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-2xs font-semibold'
+                      : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                  }`}
+                >
+                  {lang === 'bn' ? 'সব' : 'All'} ({notificationData.notifications?.length || 0})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setNotificationFilter('requests')}
+                  className={`px-2 py-1 rounded-lg font-medium transition cursor-pointer flex items-center gap-1 whitespace-nowrap ${
+                    notificationFilter === 'requests'
+                      ? 'bg-white dark:bg-slate-700 text-amber-600 dark:text-amber-400 shadow-2xs font-semibold'
+                      : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                  }`}
+                >
+                  {lang === 'bn' ? 'আবেদন' : 'Requests'}
+                  {notificationData.counts?.pending_requests > 0 && (
+                    <span className="w-4 h-4 rounded-full bg-amber-500 text-white text-[9px] font-bold flex items-center justify-center">
+                      {notificationData.counts.pending_requests}
+                    </span>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setNotificationFilter('stock')}
+                  className={`px-2 py-1 rounded-lg font-medium transition cursor-pointer flex items-center gap-1 whitespace-nowrap ${
+                    notificationFilter === 'stock'
+                      ? 'bg-white dark:bg-slate-700 text-rose-600 dark:text-rose-400 shadow-2xs font-semibold'
+                      : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                  }`}
+                >
+                  {lang === 'bn' ? 'কম স্টক' : 'Stock'}
+                  {notificationData.counts?.low_stock > 0 && (
+                    <span className="w-4 h-4 rounded-full bg-rose-500 text-white text-[9px] font-bold flex items-center justify-center">
+                      {notificationData.counts.low_stock}
+                    </span>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setNotificationFilter('sales')}
+                  className={`px-2 py-1 rounded-lg font-medium transition cursor-pointer flex items-center gap-1 whitespace-nowrap ${
+                    notificationFilter === 'sales'
+                      ? 'bg-white dark:bg-slate-700 text-emerald-600 dark:text-emerald-400 shadow-2xs font-semibold'
+                      : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                  }`}
+                >
+                  {lang === 'bn' ? 'আজকের বিক্রয়' : 'Sales'}
+                  {notificationData.counts?.today_sales > 0 && (
+                    <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">
+                      ({notificationData.counts.today_sales})
+                    </span>
+                  )}
+                </button>
+              </div>
+
+              {/* System Crash Alerts for Super Admin (Direct alert banner if any) */}
+              {isSuperAdmin && recentErrors.length > 0 && notificationFilter === 'all' && (
+                <div className="p-2.5 bg-rose-50/80 dark:bg-rose-950/50 border-b border-rose-100 dark:border-rose-900/60">
+                  <div className="flex items-center justify-between px-1.5 py-1 mb-1">
+                    <span className="text-[11px] font-bold text-rose-700 dark:text-rose-400 flex items-center gap-1">
+                      <ShieldAlert className="w-3.5 h-3.5" />
+                      <span>{lang === 'bn' ? 'সিস্টেম ক্র্যাশ সতর্কতা' : 'Crash Alerts'}</span>
+                    </span>
+                    <Link
+                      to="/settings?tab=maintenance"
+                      onClick={() => setActiveDropdown(null)}
+                      className="text-[10px] text-indigo-600 dark:text-indigo-400 font-semibold hover:underline"
+                    >
+                      {lang === 'bn' ? 'ম্যানেজ করুন' : 'Manage'}
+                    </Link>
+                  </div>
+                  <div className="space-y-1">
+                    {recentErrors.slice(0, 2).map((err) => (
+                      <div
+                        key={err.id}
+                        className="p-1.5 rounded-lg bg-white dark:bg-slate-800 border border-rose-200 dark:border-rose-800/60 text-xs"
+                      >
+                        <p className="text-[11px] text-rose-600 dark:text-rose-300 line-clamp-1">
+                          {err.new_values?.error_message || err.description}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Notifications List */}
+              <div className="max-h-80 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-700/50">
+                {(() => {
+                  const filtered = (notificationData.notifications || []).filter((item) => {
+                    if (notificationFilter === 'requests') return item.type === 'customer_request';
+                    if (notificationFilter === 'stock') return item.type === 'low_stock';
+                    if (notificationFilter === 'sales') return item.type === 'sale';
+                    return true;
+                  });
+
+                  if (filtered.length === 0) {
+                    return (
+                      <div className="p-6 text-center text-xs text-slate-400">
+                        <Bell className="w-8 h-8 mx-auto mb-2 text-slate-300 dark:text-slate-600 opacity-60" />
+                        {lang === 'bn'
+                          ? 'এই ক্যাটাগরিতে কোনো নতুন নোটিফিকেশন নেই'
+                          : 'No notifications in this category'}
+                      </div>
+                    );
+                  }
+
+                  return filtered.map((item) => {
+                    const isRequest = item.type === 'customer_request';
+                    const isStock = item.type === 'low_stock';
+                    const isSale = item.type === 'sale';
+                    const isError = item.type === 'system_error';
+
+                    return (
                       <Link
                         key={item.id}
-                        to={`/products/${item.id}`}
+                        to={item.link || '#'}
                         onClick={() => setActiveDropdown(null)}
-                        className="p-3 flex items-start gap-2.5 hover:bg-slate-50 dark:hover:bg-slate-700/60 transition text-xs block group"
+                        className="p-3 flex items-start gap-3 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition text-xs block group"
                       >
-                        <div className="w-2 h-2 rounded-full bg-rose-500 mt-1.5 shrink-0 group-hover:scale-125 transition-transform" />
+                        {/* Icon Container */}
+                        <div
+                          className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 mt-0.5 ${
+                            isRequest
+                              ? 'bg-amber-100 text-amber-600 dark:bg-amber-950/60 dark:text-amber-400'
+                              : isStock
+                              ? 'bg-rose-100 text-rose-600 dark:bg-rose-950/60 dark:text-rose-400'
+                              : isSale
+                              ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400'
+                              : 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300'
+                          }`}
+                        >
+                          {isRequest && <UserPlus className="w-4 h-4" />}
+                          {isStock && <AlertTriangle className="w-4 h-4" />}
+                          {isSale && <ShoppingBag className="w-4 h-4" />}
+                          {isError && <ShieldAlert className="w-4 h-4" />}
+                        </div>
+
+                        {/* Content */}
                         <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-slate-800 dark:text-slate-200 truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition">
-                            {lang === 'bn' ? item.name_bn || item.name : item.name}
+                          <div className="flex items-center justify-between gap-1 mb-0.5">
+                            <span className="font-semibold text-slate-800 dark:text-slate-200 truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition">
+                              {lang === 'bn' ? item.title : item.title_en || item.title}
+                            </span>
+                            <span className="text-[10px] text-slate-400 shrink-0 tabular-nums">
+                              {new Date(item.timestamp).toLocaleTimeString([], {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })}
+                            </span>
                           </div>
-                          <div className="text-[11px] text-rose-500 font-medium">
-                            {lang === 'bn'
-                              ? `বর্তমান স্টক: ${item.current_stock} (সতর্কতা: ${item.alert_stock})`
-                              : `Current Stock: ${item.current_stock} (Alert: ${item.alert_stock})`}
+
+                          <p className="text-[11px] text-slate-600 dark:text-slate-300 line-clamp-1 mb-1">
+                            {lang === 'bn' ? item.message : item.message_en || item.message}
+                          </p>
+
+                          <div className="flex items-center justify-between">
+                            <span
+                              className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md ${
+                                isRequest
+                                  ? 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300'
+                                  : isStock
+                                  ? 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300'
+                                  : isSale
+                                  ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'
+                                  : 'bg-rose-200 text-rose-800'
+                              }`}
+                            >
+                              {lang === 'bn' ? item.badge : item.badge_en || item.badge}
+                            </span>
+                            <span className="text-[10px] text-indigo-600 dark:text-indigo-400 font-medium flex items-center gap-0.5 group-hover:translate-x-0.5 transition-transform">
+                              {lang === 'bn' ? 'দেখুন' : 'View'} <ChevronRight className="w-3 h-3" />
+                            </span>
                           </div>
                         </div>
                       </Link>
-                    ))
-                  )}
-                </div>
+                    );
+                  })
+                })()}
               </div>
-            )}
-          </div>
-        )}
+
+              {/* Action Footer */}
+              <div className="px-4 pt-2.5 border-t border-slate-100 dark:border-slate-700/80 flex items-center justify-between text-xs">
+                {notificationData.counts?.pending_requests > 0 ? (
+                  <Link
+                    to="/customers/approvals"
+                    onClick={() => setActiveDropdown(null)}
+                    className="text-amber-600 dark:text-amber-400 font-semibold hover:underline flex items-center gap-1"
+                  >
+                    <span>
+                      {lang === 'bn' ? 'আবেদন অনুমোদন তালিকা' : 'Customer Approvals'} (
+                      {notificationData.counts.pending_requests})
+                    </span>
+                    <ChevronRight className="w-3 h-3" />
+                  </Link>
+                ) : (
+                  <span className="text-slate-400 text-[11px]">
+                    {lang === 'bn' ? 'সব কাজের নোটিফিকেশন সচল' : 'All-work notifications active'}
+                  </span>
+                )}
+
+                <Link
+                  to="/inventory"
+                  onClick={() => setActiveDropdown(null)}
+                  className="text-indigo-600 dark:text-indigo-400 font-semibold hover:underline text-[11px]"
+                >
+                  {lang === 'bn' ? 'ইনভেন্টরি' : 'Inventory'}
+                </Link>
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* User Profile Pill */}
         <div className="relative" ref={userMenuRef}>

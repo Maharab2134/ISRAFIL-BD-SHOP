@@ -82,6 +82,13 @@ export const PublicCustomerRegister = () => {
 
       if (res.data?.status === 'success' || res.data?.status === 'already_registered' || res.data?.status === 'already_pending') {
         setSuccessData(res.data);
+        if (res.data?.status === 'success') {
+          try {
+            const bc = new BroadcastChannel('israfil_store_events');
+            bc.postMessage({ type: 'customer_registered' });
+            bc.close();
+          } catch (e) {}
+        }
       } else {
         setErrorMsg(res.data?.message || 'আবেদন প্রক্রিয়া করতে সমস্যা হয়েছে');
       }

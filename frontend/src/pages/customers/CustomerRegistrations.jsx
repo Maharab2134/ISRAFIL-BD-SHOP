@@ -94,6 +94,7 @@ export const CustomerRegistrations = () => {
           setActiveRequest(res.data.request);
         }
         fetchRequests();
+        window.dispatchEvent(new CustomEvent('israfil:notification-refresh'));
       }
     } catch (err) {
       console.error(err);
@@ -118,6 +119,7 @@ export const CustomerRegistrations = () => {
           setActiveRequest(res.data.request);
         }
         fetchRequests();
+        window.dispatchEvent(new CustomEvent('israfil:notification-refresh'));
       }
     } catch (err) {
       console.error(err);
@@ -138,6 +140,7 @@ export const CustomerRegistrations = () => {
         success(res.data.message || (lang === 'bn' ? 'নির্বাচিতগুলো অনুমোদিত হয়েছে' : 'Selected requests approved'));
         setSelectedIds([]);
         fetchRequests();
+        window.dispatchEvent(new CustomEvent('israfil:notification-refresh'));
       }
     } catch (err) {
       console.error(err);
