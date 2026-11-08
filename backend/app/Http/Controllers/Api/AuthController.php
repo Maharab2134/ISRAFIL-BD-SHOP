@@ -33,7 +33,7 @@ class AuthController extends Controller
         }
 
         // 2. Lookup user by normalized email
-        $user = User::with(['role.permissions'])->where('email', $cleanEmail)->first();
+        $user = User::with(['role.permissions', 'branch'])->where('email', $cleanEmail)->first();
 
         // 3. Strict cryptographic bcrypt hash verification (no hardcoded plaintext bypasses)
         $isPasswordValid = $user && Hash::check($request->password, $user->password);
@@ -108,6 +108,16 @@ class AuthController extends Controller
                 'email' => $user->email,
                 'phone' => $user->phone,
                 'avatar' => $user->avatar,
+                'employee_id' => $user->employee_id,
+                'department' => $user->department,
+                'designation' => $user->designation,
+                'joining_date' => $user->joining_date?->format('Y-m-d'),
+                'branch' => $user->branch ? [
+                    'id' => $user->branch->id,
+                    'name' => $user->branch->name,
+                    'name_bn' => $user->branch->name_bn,
+                    'code' => $user->branch->code,
+                ] : null,
                 'role' => $user->role ? [
                     'id' => $user->role->id,
                     'name' => $user->role->name,
@@ -142,7 +152,7 @@ class AuthController extends Controller
 
     public function me(Request $request)
     {
-        $user = $request->user()->load(['role.permissions']);
+        $user = $request->user()->load(['role.permissions', 'branch']);
         return response()->json([
             'user' => [
                 'id' => $user->id,
@@ -150,6 +160,16 @@ class AuthController extends Controller
                 'email' => $user->email,
                 'phone' => $user->phone,
                 'avatar' => $user->avatar,
+                'employee_id' => $user->employee_id,
+                'department' => $user->department,
+                'designation' => $user->designation,
+                'joining_date' => $user->joining_date?->format('Y-m-d'),
+                'branch' => $user->branch ? [
+                    'id' => $user->branch->id,
+                    'name' => $user->branch->name,
+                    'name_bn' => $user->branch->name_bn,
+                    'code' => $user->branch->code,
+                ] : null,
                 'role' => $user->role ? [
                     'id' => $user->role->id,
                     'name' => $user->role->name,

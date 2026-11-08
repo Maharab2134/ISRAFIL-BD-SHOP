@@ -27,12 +27,15 @@ import {
   FileSpreadsheet,
   Activity,
   Settings,
-  HelpCircle,
-  Save,
-  RotateCcw,
+  Copy,
+  Store,
+  Headphones,
+  FileCheck,
+  Building2,
+  RefreshCw,
+  Info,
 } from 'lucide-react';
 import api from '../../services/api';
-import { ConfirmDeleteModal } from '../../components/common/ConfirmDeleteModal';
 
 export const RolePermissions = () => {
   const { lang, formatNumber } = useLanguage();
@@ -43,18 +46,29 @@ export const RolePermissions = () => {
   const [roles, setRoles] = useState([]);
   const [permissionsGrouped, setPermissionsGrouped] = useState({});
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [roleFilter, setRoleFilter] = useState('all'); // all, system, custom
 
-  // Create / Edit Role Modal
-  const [roleModal, setRoleModal] = useState({ isOpen: false, role: null });
+  // Strict NO-MODAL: Inline Role Editor Panel
+  const [isEditorOpen, setIsEditorOpen] = useState(false);
+  const [editingRole, setEditingRole] = useState(null);
   const [roleForm, setRoleForm] = useState({ name: '', name_bn: '', description: '' });
   const [isSavingRole, setIsSavingRole] = useState(false);
 
-  // Delete Role Modal
-  const [deleteModal, setDeleteModal] = useState({ isOpen: false, role: null });
+  // Strict NO-MODAL: Inline Delete Confirmation State
+  const [deletingRoleId, setDeletingRoleId] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // Group metadata for nice icons and labels in Bengali
+  // Duplicating state
+  const [duplicatingId, setDuplicatingId] = useState(null);
+
+  // Comprehensive 16 Categories Meta
   const groupMeta = {
+    dashboard: {
+      name: lang === 'bn' ? 'ড্যাশবোর্ড' : 'Dashboard',
+      icon: Activity,
+      color: 'text-blue-600 bg-blue-50 dark:bg-blue-950/60 border-blue-200 dark:border-blue-800',
+    },
     pos: {
       name: lang === 'bn' ? 'বিক্রয় টার্মিনাল (POS)' : 'POS Terminal',
       icon: ShoppingCart,
@@ -70,50 +84,65 @@ export const RolePermissions = () => {
       icon: Layers,
       color: 'text-amber-600 bg-amber-50 dark:bg-amber-950/60 border-amber-200 dark:border-amber-800',
     },
-    customers: {
-      name: lang === 'bn' ? 'গ্রাহক ও বাকি খাতা' : 'Customers & Dues',
-      icon: Users,
-      color: 'text-blue-600 bg-blue-50 dark:bg-blue-950/60 border-blue-200 dark:border-blue-800',
-    },
-    suppliers: {
-      name: lang === 'bn' ? 'সরবরাহকারী' : 'Suppliers',
-      icon: Truck,
-      color: 'text-purple-600 bg-purple-50 dark:bg-purple-950/60 border-purple-200 dark:border-purple-800',
-    },
     purchases: {
-      name: lang === 'bn' ? 'পাইকারি ক্রয়' : 'Purchases',
+      name: lang === 'bn' ? 'পাইকারি ক্রয় ও সাপ্লায়ার' : 'Purchase & Suppliers',
       icon: ShoppingBag,
       color: 'text-teal-600 bg-teal-50 dark:bg-teal-950/60 border-teal-200 dark:border-teal-800',
     },
     sales: {
-      name: lang === 'bn' ? 'বিক্রয় চালান ও অর্ডার' : 'Sales & Invoices',
+      name: lang === 'bn' ? 'বিক্রয় ও ফেরত' : 'Sales & Returns',
       icon: ShoppingCart,
       color: 'text-cyan-600 bg-cyan-50 dark:bg-cyan-950/60 border-cyan-200 dark:border-cyan-800',
+    },
+    customers: {
+      name: lang === 'bn' ? 'গ্রাহক ও লয়্যালটি' : 'Customers & Loyalty',
+      icon: Users,
+      color: 'text-sky-600 bg-sky-50 dark:bg-sky-950/60 border-sky-200 dark:border-sky-800',
+    },
+    employees: {
+      name: lang === 'bn' ? 'কর্মী ও উপস্থিতি' : 'Employees & Staff',
+      icon: Users,
+      color: 'text-violet-600 bg-violet-50 dark:bg-violet-950/60 border-violet-200 dark:border-violet-800',
+    },
+    accounting: {
+      name: lang === 'bn' ? 'হিসাবরক্ষণ ও নগদ প্রবাহ' : 'Accounting & Finance',
+      icon: FileSpreadsheet,
+      color: 'text-emerald-700 bg-emerald-50 dark:bg-emerald-950/60 border-emerald-200 dark:border-emerald-800',
     },
     expenses: {
       name: lang === 'bn' ? 'দোকানের খরচ' : 'Store Expenses',
       icon: WalletCards,
       color: 'text-rose-600 bg-rose-50 dark:bg-rose-950/60 border-rose-200 dark:border-rose-800',
     },
-    accounting: {
-      name: lang === 'bn' ? 'হিসাবরক্ষণ ও ক্যাশ ফ্লো' : 'Accounting & Cash Flow',
-      icon: FileSpreadsheet,
-      color: 'text-emerald-700 bg-emerald-50 dark:bg-emerald-950/60 border-emerald-200 dark:border-emerald-800',
-    },
     reports: {
       name: lang === 'bn' ? 'রিপোর্ট ও বিশ্লেষণ' : 'Reports & Analytics',
       icon: Activity,
       color: 'text-indigo-700 bg-indigo-50 dark:bg-indigo-950/60 border-indigo-200 dark:border-indigo-800',
     },
-    employees: {
-      name: lang === 'bn' ? 'কর্মী ও ভূমিকা' : 'Employees & Staff',
-      icon: Users,
-      color: 'text-violet-600 bg-violet-50 dark:bg-violet-950/60 border-violet-200 dark:border-violet-800',
+    warehouse: {
+      name: lang === 'bn' ? 'ওয়্যারহাউস' : 'Warehouse',
+      icon: Store,
+      color: 'text-orange-600 bg-orange-50 dark:bg-orange-950/60 border-orange-200 dark:border-orange-800',
+    },
+    customer_service: {
+      name: lang === 'bn' ? 'গ্রাহক সেবা' : 'Customer Service',
+      icon: Headphones,
+      color: 'text-pink-600 bg-pink-50 dark:bg-pink-950/60 border-pink-200 dark:border-pink-800',
+    },
+    audit: {
+      name: lang === 'bn' ? 'অডিট ও কার্যকলাপ লগ' : 'Audit & Activity Logs',
+      icon: FileCheck,
+      color: 'text-slate-600 bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700',
+    },
+    branch: {
+      name: lang === 'bn' ? 'শাখা ব্যবস্থাপনা' : 'Branch Management',
+      icon: Building2,
+      color: 'text-blue-700 bg-blue-50 dark:bg-blue-950/60 border-blue-200 dark:border-blue-800',
     },
     settings: {
       name: lang === 'bn' ? 'সিস্টেম সেটিংস' : 'System Settings',
       icon: Settings,
-      color: 'text-slate-600 bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800',
+      color: 'text-slate-700 bg-slate-100 dark:bg-slate-800 border-slate-300 dark:border-slate-700',
     },
   };
 
@@ -137,11 +166,9 @@ export const RolePermissions = () => {
     }
   };
 
-
-
-  // Open Create / Edit Role Modal
-  const handleOpenRoleModal = (role = null) => {
-    setRoleModal({ isOpen: true, role });
+  // Open Inline Role Editor
+  const handleOpenEditor = (role = null) => {
+    setEditingRole(role);
     if (role) {
       setRoleForm({
         name: role.name || '',
@@ -151,6 +178,14 @@ export const RolePermissions = () => {
     } else {
       setRoleForm({ name: '', name_bn: '', description: '' });
     }
+    setIsEditorOpen(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleCloseEditor = () => {
+    setIsEditorOpen(false);
+    setEditingRole(null);
+    setRoleForm({ name: '', name_bn: '', description: '' });
   };
 
   const handleSaveRole = async (e) => {
@@ -162,10 +197,10 @@ export const RolePermissions = () => {
 
     setIsSavingRole(true);
     try {
-      if (roleModal.role) {
-        const res = await api.put(`/roles/${roleModal.role.id}`, roleForm);
+      if (editingRole) {
+        const res = await api.put(`/roles/${editingRole.id}`, roleForm);
         setRoles((prev) =>
-          prev.map((r) => (r.id === roleModal.role.id ? { ...r, ...res.data.role } : r))
+          prev.map((r) => (r.id === editingRole.id ? { ...r, ...res.data.role } : r))
         );
         success(lang === 'bn' ? 'ভূমিকা সফলভাবে আপডেট হয়েছে!' : 'Role updated successfully!');
       } else {
@@ -173,7 +208,7 @@ export const RolePermissions = () => {
         setRoles((prev) => [...prev, res.data.role]);
         success(lang === 'bn' ? 'নতুন ভূমিকা সফলভাবে তৈরি হয়েছে!' : 'New role created successfully!');
       }
-      setRoleModal({ isOpen: false, role: null });
+      handleCloseEditor();
     } catch (err) {
       const msg =
         err.response?.data?.message ||
@@ -184,15 +219,33 @@ export const RolePermissions = () => {
     }
   };
 
-  const handleDeleteRole = async () => {
-    if (!deleteModal.role) return;
-    setIsDeleting(true);
-
+  const handleDuplicateRole = async (role) => {
+    setDuplicatingId(role.id);
     try {
-      await api.delete(`/roles/${deleteModal.role.id}`);
-      setRoles((prev) => prev.filter((r) => r.id !== deleteModal.role.id));
+      const res = await api.post(`/roles/${role.id}/duplicate`);
+      setRoles((prev) => [...prev, res.data.role]);
+      success(
+        lang === 'bn'
+          ? `'${role.name_bn || role.name}' সফলভাবে ডুপ্লিকেট করা হয়েছে!`
+          : `'${role.name}' duplicated successfully!`
+      );
+    } catch (err) {
+      const msg =
+        err.response?.data?.message ||
+        (lang === 'bn' ? 'রোল ডুপ্লিকেট করতে ব্যর্থ হয়েছে।' : 'Failed to duplicate role.');
+      error(msg);
+    } finally {
+      setDuplicatingId(null);
+    }
+  };
+
+  const handleDeleteRole = async (role) => {
+    setIsDeleting(true);
+    try {
+      await api.delete(`/roles/${role.id}`);
+      setRoles((prev) => prev.filter((r) => r.id !== role.id));
+      setDeletingRoleId(null);
       success(lang === 'bn' ? 'ভূমিকা সফলভাবে মুছে ফেলা হয়েছে!' : 'Role deleted successfully!');
-      setDeleteModal({ isOpen: false, role: null });
     } catch (err) {
       const msg =
         err.response?.data?.message ||
@@ -208,6 +261,19 @@ export const RolePermissions = () => {
     0
   );
 
+  // Filter roles based on search and system/custom tabs
+  const filteredRoles = roles.filter((role) => {
+    const matchesSearch =
+      (role.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (role.name_bn || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (role.description || '').toLowerCase().includes(searchQuery.toLowerCase());
+
+    if (!matchesSearch) return false;
+    if (roleFilter === 'system') return role.is_system;
+    if (roleFilter === 'custom') return !role.is_system;
+    return true;
+  });
+
   return (
     <div className="space-y-6">
       {/* Top Header */}
@@ -219,18 +285,18 @@ export const RolePermissions = () => {
             </div>
             <div>
               <h1 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white">
-                {lang === 'bn' ? 'ভূমিকা ও পারমিশন কন্ট্রোল' : 'Role & Permission Control'}
+                {lang === 'bn' ? 'সুপার শপ রোল ও পারমিশন কন্ট্রোল' : 'Enterprise RBAC Role Management'}
               </h1>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                 {lang === 'bn'
-                  ? 'সুপার অ্যাডমিন হিসেবে বাকি ব্যবহারকারীরা সিস্টেমে কে কী কী কাজ করতে পারবে তা নির্ধারণ করুন'
-                  : 'Configure exactly what actions each staff role is permitted to perform'}
+                  ? '১২টি ডিফল্ট এন্টারপ্রাইজ ভূমিকা এবং কাস্টম রোলসমূহ পরিচালনা করুন'
+                  : 'Manage 12 predefined retail roles and custom permissions across branches'}
               </p>
             </div>
           </div>
         </div>
 
-        {/* Tab Navigation & Action */}
+        {/* Tab Navigation & Inline Action */}
         <div className="flex items-center gap-2 flex-wrap">
           <Link
             to="/employees"
@@ -242,34 +308,190 @@ export const RolePermissions = () => {
             to="/activity-logs"
             className="px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
           >
-            {lang === 'bn' ? '📋 অ্যাক্টিভিটি লগ' : 'Activity Logs'}
+            {lang === 'bn' ? '📋 অডিট ও কার্যকলাপ লগ' : 'Activity Logs'}
           </Link>
 
           {isSuperAdmin && (
             <button
               type="button"
-              onClick={() => handleOpenRoleModal(null)}
+              onClick={() => (isEditorOpen ? handleCloseEditor() : handleOpenEditor(null))}
               className="px-4 py-2 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-600/20 flex items-center gap-1.5 transition cursor-pointer"
             >
-              <Plus className="w-4 h-4" />
-              <span>{lang === 'bn' ? 'নতুন ভূমিকা তৈরি' : 'Create Role'}</span>
+              {isEditorOpen ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+              <span>
+                {isEditorOpen
+                  ? (lang === 'bn' ? 'ফর্ম বন্ধ করুন' : 'Close Form')
+                  : (lang === 'bn' ? 'নতুন কাস্টম রোল তৈরি' : 'Create Custom Role')}
+              </span>
             </button>
           )}
         </div>
       </div>
 
-      {/* Security Advisory Pill */}
+      {/* ======================================================== */}
+      {/* STRICT NO-MODAL: INLINE ROLE CREATION / EDIT PANEL */}
+      {/* ======================================================== */}
+      {isEditorOpen && (
+        <div className="p-6 rounded-3xl bg-white dark:bg-[#1E293B] border-2 border-indigo-500/40 shadow-lg animate-in fade-in slide-in-from-top-4 duration-200">
+          <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800 mb-5">
+            <div className="flex items-center gap-2.5">
+              <div className="p-2 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600">
+                <Shield className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-black text-slate-900 dark:text-white">
+                  {editingRole
+                    ? (lang === 'bn' ? `রোল সম্পাদনা: ${editingRole.name}` : `Edit Role: ${editingRole.name}`)
+                    : (lang === 'bn' ? 'নতুন কাস্টম রোল তৈরি করুন' : 'Create New Custom Role')}
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  {lang === 'bn'
+                    ? 'ভূমিকার নাম ও বিবরণ দিন। তৈরির পর পারমিশন কাস্টমাইজ করতে পারবেন।'
+                    : 'Provide role title and description. You can configure granular permissions next.'}
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={handleCloseEditor}
+              className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          <form onSubmit={handleSaveRole} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                {lang === 'bn' ? 'ভূমিকার নাম (English) *' : 'Role Name (English) *'}
+              </label>
+              <input
+                type="text"
+                required
+                value={roleForm.name}
+                onChange={(e) => setRoleForm({ ...roleForm, name: e.target.value })}
+                placeholder="e.g. Senior Shift Supervisor, Assistant Accountant"
+                className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                {lang === 'bn' ? 'ভূমিকার বাংলা নাম' : 'Role Name (Bengali)'}
+              </label>
+              <input
+                type="text"
+                value={roleForm.name_bn}
+                onChange={(e) => setRoleForm({ ...roleForm, name_bn: e.target.value })}
+                placeholder="যেমন: সিনিয়র শিফট সুপারভাইজার, সহকারী হিসাবরক্ষক"
+                className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                {lang === 'bn' ? 'বিবরণ ও কাজের পরিধি' : 'Role Description & Scope'}
+              </label>
+              <textarea
+                rows="2"
+                value={roleForm.description}
+                onChange={(e) => setRoleForm({ ...roleForm, description: e.target.value })}
+                placeholder={lang === 'bn' ? 'এই ভূমিকার দায়িত্বসমূহ এবং সুপার শপে কাজের আওতা...' : 'Scope and responsibility of this position in super shop...'}
+                className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+            </div>
+
+            <div className="md:col-span-2 pt-2 flex items-center justify-end gap-2.5">
+              <button
+                type="button"
+                onClick={handleCloseEditor}
+                className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+              >
+                {lang === 'bn' ? 'বাতিল' : 'Cancel'}
+              </button>
+              <button
+                type="submit"
+                disabled={isSavingRole}
+                className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-md shadow-indigo-600/30 flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+              >
+                {isSavingRole && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
+                <span>
+                  {editingRole
+                    ? (lang === 'bn' ? 'আপডেট সংরক্ষণ' : 'Update Role')
+                    : (lang === 'bn' ? 'রোল তৈরি করুন' : 'Create Role')}
+                </span>
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* Enterprise Security Advisory Pill */}
       <div className="p-4 rounded-2xl bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/60 flex items-start gap-3">
         <Sparkles className="w-5 h-5 text-indigo-600 dark:text-indigo-400 shrink-0 mt-0.5" />
         <div className="text-xs text-slate-700 dark:text-slate-300 space-y-1">
           <div className="font-bold text-indigo-900 dark:text-indigo-200">
-            {lang === 'bn' ? 'পারমিশন কার্যপদ্ধতি ও নিরাপত্তা নোট:' : 'RBAC Security Information:'}
+            {lang === 'bn' ? 'সুপার শপ রোল ব্যবস্থাপনা ও সুরক্ষা নীতি:' : 'Super Shop RBAC Security Architecture:'}
           </div>
-          <p className="text-slate-600 dark:text-slate-400">
+          <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
             {lang === 'bn'
-              ? 'সুপার অ্যাডমিন সর্বদা পূর্ণ সিস্টেম এক্সেস পেয়ে থাকেন। ম্যানেজার ও ক্যাশিয়ারের মতো অন্যান্য রোলের জন্য নির্দিষ্ট পারমিশন টিক দিয়ে সংরক্ষণ করলেই ব্যবহারকারীরা কেবল তাদের জন্য অনুমোদিত মেনু ও কার্যক্রমে এক্সেস পাবেন।'
-              : 'Super Admin always possesses full unrestricted access. When you toggle permissions for roles like Store Manager or Cashier, staff under those roles will immediately be restricted to only allowed actions.'}
+              ? 'ক্যাশিয়ারগণ পণ্যের ক্রয়মূল্য ও লাভ দেখতে পারবেন না এবং বিক্রয় ফেরত অনুমোদনের ক্ষমতা শুধুমাত্র ব্যবস্থাপকদের জন্য সংরক্ষিত। যেকোনো রোল ডুপ্লিকেট করে সহজেই বিশেষ শাখা বা দায়িত্বের জন্য নতুন রোল তৈরি করতে পারেন।'
+              : 'Cashiers are strictly forbidden from viewing product cost prices/profit margins, and refunds require manager authorization. You can one-click duplicate any role to quickly provision branch-specific privileges.'}
           </p>
+        </div>
+      </div>
+
+      {/* Filter and Search Bar */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-3 rounded-2xl bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800">
+        <div className="relative flex-1">
+          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder={lang === 'bn' ? 'রোল বা দায়িত্ব অনুসন্ধান করুন...' : 'Search roles by name or responsibility...'}
+            className="w-full pl-9 pr-4 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          />
+        </div>
+
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <button
+            type="button"
+            onClick={() => setRoleFilter('all')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition ${
+              roleFilter === 'all'
+                ? 'bg-indigo-600 text-white shadow-xs'
+                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+            }`}
+          >
+            {lang === 'bn' ? `সকল রোল (${formatNumber(roles.length)})` : `All (${roles.length})`}
+          </button>
+          <button
+            type="button"
+            onClick={() => setRoleFilter('system')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition ${
+              roleFilter === 'system'
+                ? 'bg-indigo-600 text-white shadow-xs'
+                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+            }`}
+          >
+            {lang === 'bn'
+              ? `ডিফল্ট সিস্টেম রোল (${formatNumber(roles.filter((r) => r.is_system).length)})`
+              : `Default Roles (${roles.filter((r) => r.is_system).length})`}
+          </button>
+          <button
+            type="button"
+            onClick={() => setRoleFilter('custom')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition ${
+              roleFilter === 'custom'
+                ? 'bg-indigo-600 text-white shadow-xs'
+                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+            }`}
+          >
+            {lang === 'bn'
+              ? `কাস্টম রোল (${formatNumber(roles.filter((r) => !r.is_system).length)})`
+              : `Custom Roles (${roles.filter((r) => !r.is_system).length})`}
+          </button>
         </div>
       </div>
 
@@ -279,17 +501,28 @@ export const RolePermissions = () => {
           <div className="w-8 h-8 border-3 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto" />
           <p className="text-sm font-semibold">{lang === 'bn' ? 'রোল ও পারমিশন লোড হচ্ছে...' : 'Loading roles and permissions...'}</p>
         </div>
+      ) : filteredRoles.length === 0 ? (
+        <div className="p-12 text-center text-slate-400 space-y-2 bg-white dark:bg-[#1E293B] rounded-3xl border border-slate-200 dark:border-slate-800">
+          <Info className="w-8 h-8 text-slate-400 mx-auto" />
+          <p className="text-sm font-bold text-slate-600 dark:text-slate-300">
+            {lang === 'bn' ? 'কোনো ভূমিকা খুঁজে পাওয়া যায়নি' : 'No roles found'}
+          </p>
+          <p className="text-xs text-slate-400">
+            {lang === 'bn' ? 'অনুসন্ধানের কীওয়ার্ড পরিবর্তন করুন অথবা নতুন ভূমিকা তৈরি করুন।' : 'Try another search query or create a new custom role.'}
+          </p>
+        </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {roles.map((role) => {
+          {filteredRoles.map((role) => {
             const isSuper = role.slug === 'super-admin';
             const permCount = isSuper ? totalPossiblePermissions : (role.permissions || []).length;
             const percent = totalPossiblePermissions > 0 ? Math.round((permCount / totalPossiblePermissions) * 100) : 0;
+            const isDeletingThis = deletingRoleId === role.id;
 
             return (
               <div
                 key={role.id}
-                className="p-5 rounded-3xl bg-white dark:bg-[#1E293B] border border-slate-200/90 dark:border-slate-800 shadow-xs hover:shadow-md transition-all flex flex-col justify-between group"
+                className="p-5 rounded-3xl bg-white dark:bg-[#1E293B] border border-slate-200/90 dark:border-slate-800 shadow-xs hover:shadow-md transition-all flex flex-col justify-between group relative overflow-hidden"
               >
                 <div className="space-y-4">
                   {/* Top Badges */}
@@ -297,22 +530,22 @@ export const RolePermissions = () => {
                     <span
                       className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
                         isSuper
-                          ? 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300'
+                          ? 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300 border border-rose-200 dark:border-rose-900'
                           : role.is_system
-                          ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300'
-                          : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'
+                          ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-900'
+                          : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-900'
                       }`}
                     >
                       {isSuper
                         ? (lang === 'bn' ? 'সিস্টেম ওনার' : 'System Owner')
                         : role.is_system
-                        ? (lang === 'bn' ? 'সিস্টেম ভূমিকা' : 'System Role')
+                        ? (lang === 'bn' ? 'ডিফল্ট ভূমিকা' : 'Default Role')
                         : (lang === 'bn' ? 'কাস্টম ভূমিকা' : 'Custom Role')}
                     </span>
 
                     <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 flex items-center gap-1">
                       <Users className="w-3.5 h-3.5 text-slate-400" />
-                      <span>{formatNumber(role.users_count || 0)} জন কর্মী</span>
+                      <span>{formatNumber(role.users_count || 0)} {lang === 'bn' ? 'কর্মী' : 'Staff'}</span>
                     </span>
                   </div>
 
@@ -322,8 +555,8 @@ export const RolePermissions = () => {
                       <span>{lang === 'bn' ? (role.name_bn || role.name) : role.name}</span>
                       {isSuper && <Shield className="w-4 h-4 text-rose-500 fill-rose-500/20" />}
                     </h3>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">
-                      {role.description || (lang === 'bn' ? 'নির্দিষ্ট কাজের অনুমতিপ্রাপ্ত কর্মী ভূমিকা' : 'Staff role with configured permissions')}
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 line-clamp-2 leading-relaxed">
+                      {role.description || (lang === 'bn' ? 'সুপার শপে নির্দিষ্ট কাজের অনুমতিপ্রাপ্ত কর্মী ভূমিকা' : 'Staff role with configured permissions')}
                     </p>
                   </div>
 
@@ -332,9 +565,9 @@ export const RolePermissions = () => {
                     <div className="flex items-center justify-between text-xs font-bold">
                       <span className="text-slate-600 dark:text-slate-400 flex items-center gap-1.5">
                         <Sliders className="w-3.5 h-3.5 text-indigo-600" />
-                        <span>{lang === 'bn' ? 'কাজের পারমিশন' : 'Permissions'}</span>
+                        <span>{lang === 'bn' ? 'পারমিশন আওতা' : 'Permission Coverage'}</span>
                       </span>
-                      <span className="text-indigo-600 dark:text-indigo-400">
+                      <span className="text-indigo-600 dark:text-indigo-400 font-mono">
                         {isSuper ? '১০০%' : `${formatNumber(permCount)} / ${formatNumber(totalPossiblePermissions)}`}
                       </span>
                     </div>
@@ -348,31 +581,84 @@ export const RolePermissions = () => {
                       />
                     </div>
                   </div>
+
+                  {/* STRICT NO-MODAL: INLINE DELETE CONFIRMATION BOX */}
+                  {isDeletingThis && (
+                    <div className="p-3 rounded-2xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-900 space-y-2.5 animate-in fade-in duration-150">
+                      <div className="flex items-start gap-2">
+                        <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                        <div className="text-xs text-rose-900 dark:text-rose-200 leading-snug">
+                          <p className="font-bold">
+                            {lang === 'bn' ? 'আপনি কি নিশ্চিত?' : 'Are you sure?'}
+                          </p>
+                          <p className="text-[11px] text-rose-700 dark:text-rose-300">
+                            {lang === 'bn'
+                              ? `'${role.name}' রোলটি মুছে ফেলা হবে।`
+                              : `Role '${role.name}' will be permanently deleted.`}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-end gap-2 pt-1">
+                        <button
+                          type="button"
+                          onClick={() => setDeletingRoleId(null)}
+                          className="px-2.5 py-1 text-xs rounded-lg border border-slate-300 dark:border-slate-700 font-semibold text-slate-700 dark:text-slate-300 hover:bg-white"
+                        >
+                          {lang === 'bn' ? 'বাতিল' : 'Cancel'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteRole(role)}
+                          disabled={isDeleting}
+                          className="px-3 py-1 text-xs rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-bold shadow-xs flex items-center gap-1"
+                        >
+                          {isDeleting && <RefreshCw className="w-3 h-3 animate-spin" />}
+                          <span>{lang === 'bn' ? 'মুছে ফেলুন' : 'Delete'}</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Card Actions */}
-                <div className="pt-5 mt-5 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between gap-2">
+                <div className="pt-4 mt-5 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between gap-2">
                   {isSuper ? (
                     <div className="w-full py-2 px-3 rounded-xl bg-slate-100 dark:bg-slate-800/80 text-center text-xs font-bold text-slate-500 dark:text-slate-400 flex items-center justify-center gap-1.5 select-none">
                       <Lock className="w-3.5 h-3.5 text-slate-400" />
-                      <span>{lang === 'bn' ? 'পূর্ণ নিয়ন্ত্রণ (সর্বদা সক্রিয়)' : 'Full Root Access'}</span>
+                      <span>{lang === 'bn' ? 'পূর্ণ প্ল্যাটফর্ম নিয়ন্ত্রণ (সংরক্ষিত)' : 'Full Root Access (Reserved)'}</span>
                     </div>
                   ) : (
                     <>
                       <Link
                         to={`/roles/${role.id}/permissions`}
                         className="flex-1 py-2 px-3 rounded-xl bg-indigo-50 dark:bg-indigo-950/70 hover:bg-indigo-600 hover:text-white dark:hover:bg-indigo-600 text-indigo-700 dark:text-indigo-300 text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs active:scale-95"
-                        title={lang === 'bn' ? 'কাজের অনুমতি পরিবর্তন করুন' : 'Configure Permissions'}
+                        title={lang === 'bn' ? 'কাজের অনুমতি কনফিগার করুন' : 'Configure Permissions'}
                       >
                         <Sliders className="w-3.5 h-3.5" />
-                        <span>{lang === 'bn' ? 'পারমিশন কনফিগারেশন' : 'Configure Permissions'}</span>
+                        <span>{lang === 'bn' ? 'পারমিশন কনফিগার' : 'Configure'}</span>
                       </Link>
 
+                      {/* Duplicate Role Button (Available for all roles!) */}
+                      <button
+                        type="button"
+                        onClick={() => handleDuplicateRole(role)}
+                        disabled={duplicatingId === role.id}
+                        className="p-2 rounded-xl text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-slate-800 transition cursor-pointer"
+                        title={lang === 'bn' ? 'রোল ডুপ্লিকেট করুন' : 'Duplicate Role'}
+                      >
+                        {duplicatingId === role.id ? (
+                          <RefreshCw className="w-4 h-4 animate-spin text-indigo-600" />
+                        ) : (
+                          <Copy className="w-4 h-4" />
+                        )}
+                      </button>
+
+                      {/* Edit & Delete (Custom Roles only) */}
                       {!role.is_system && (
-                        <div className="flex items-center gap-1">
+                        <>
                           <button
                             type="button"
-                            onClick={() => handleOpenRoleModal(role)}
+                            onClick={() => handleOpenEditor(role)}
                             className="p-2 rounded-xl text-slate-400 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-slate-800 transition cursor-pointer"
                             title={lang === 'bn' ? 'ভূমিকা সম্পাদন' : 'Edit Role'}
                           >
@@ -380,13 +666,13 @@ export const RolePermissions = () => {
                           </button>
                           <button
                             type="button"
-                            onClick={() => setDeleteModal({ isOpen: true, role })}
+                            onClick={() => setDeletingRoleId(role.id)}
                             className="p-2 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-slate-800 transition cursor-pointer"
                             title={lang === 'bn' ? 'ভূমিকা মুছুন' : 'Delete Role'}
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
-                        </div>
+                        </>
                       )}
                     </>
                   )}
@@ -396,108 +682,8 @@ export const RolePermissions = () => {
           })}
         </div>
       )}
-
-      {/* ======================================================== */}
-      {/* CREATE / EDIT ROLE MODAL */}
-      {/* ======================================================== */}
-      {roleModal.isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
-          <div className="w-full max-w-md bg-white dark:bg-[#1E293B] rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl p-6 space-y-5 animate-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between gap-3">
-              <h3 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
-                <Shield className="w-5 h-5 text-indigo-600" />
-                <span>
-                  {roleModal.role
-                    ? (lang === 'bn' ? 'ভূমিকা সম্পাদন করুন' : 'Edit Role')
-                    : (lang === 'bn' ? 'নতুন ভূমিকা তৈরি করুন' : 'Create New Role')}
-                </span>
-              </h3>
-              <button
-                type="button"
-                onClick={() => setRoleModal({ isOpen: false, role: null })}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <form onSubmit={handleSaveRole} className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  {lang === 'bn' ? 'ভূমিকার নাম (English) *' : 'Role Name (English) *'}
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={roleForm.name}
-                  onChange={(e) => setRoleForm({ ...roleForm, name: e.target.value })}
-                  placeholder="e.g. Sales Associate, Accountant"
-                  className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  {lang === 'bn' ? 'ভূমিকার বাংলা নাম' : 'Role Name (Bengali)'}
-                </label>
-                <input
-                  type="text"
-                  value={roleForm.name_bn}
-                  onChange={(e) => setRoleForm({ ...roleForm, name_bn: e.target.value })}
-                  placeholder="যেমন: সেলস এক্সিকিউটিভ, হিসাবরক্ষক"
-                  className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  {lang === 'bn' ? 'বিবরণ / কাজের দায়িত্ব' : 'Description'}
-                </label>
-                <textarea
-                  rows="3"
-                  value={roleForm.description}
-                  onChange={(e) => setRoleForm({ ...roleForm, description: e.target.value })}
-                  placeholder={lang === 'bn' ? 'এই ভূমিকার দায়িত্বসমূহ...' : 'Job responsibilities for this role...'}
-                  className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                />
-              </div>
-
-              <div className="pt-2 flex items-center justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setRoleModal({ isOpen: false, role: null })}
-                  className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold"
-                >
-                  {lang === 'bn' ? 'বাতিল' : 'Cancel'}
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSavingRole}
-                  className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-md shadow-indigo-600/30 flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-                >
-                  {isSavingRole && <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />}
-                  <span>{lang === 'bn' ? 'সংরক্ষণ করুন' : 'Save Role'}</span>
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* ======================================================== */}
-      {/* 3. DELETE ROLE CONFIRMATION MODAL */}
-      {/* ======================================================== */}
-      <ConfirmDeleteModal
-        isOpen={deleteModal.isOpen}
-        onClose={() => setDeleteModal({ isOpen: false, role: null })}
-        onConfirm={handleDeleteRole}
-        itemName={deleteModal.role ? (deleteModal.role.name_bn || deleteModal.role.name) : ''}
-        count={1}
-        loading={isDeleting}
-      />
     </div>
   );
 };
 
 export default RolePermissions;
-

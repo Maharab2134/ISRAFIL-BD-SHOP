@@ -15,21 +15,37 @@ class EmployeeController extends Controller
 {
     public function index(Request $request)
     {
-        $employees = User::with('role')
+        $employees = User::with(['role', 'branch'])
             ->when($request->filled('search'), function ($q) use ($request) {
-                $q->where('name', 'like', "%{$request->search}%")
-                  ->orWhere('email', 'like', "%{$request->search}%")
-                  ->orWhere('phone', 'like', "%{$request->search}%");
+                $q->where(function ($sub) use ($request) {
+                    $sub->where('name', 'like', "%{$request->search}%")
+                        ->orWhere('email', 'like', "%{$request->search}%")
+                        ->orWhere('phone', 'like', "%{$request->search}%")
+                        ->orWhere('employee_id', 'like', "%{$request->search}%")
+                        ->orWhere('designation', 'like', "%{$request->search}%");
+                });
+            })
+            ->when($request->filled('role_id'), function ($q) use ($request) {
+                $q->where('role_id', $request->role_id);
+            })
+            ->when($request->filled('branch_id'), function ($q) use ($request) {
+                $q->where('branch_id', $request->branch_id);
+            })
+            ->when($request->filled('department'), function ($q) use ($request) {
+                $q->where('department', $request->department);
+            })
+            ->when($request->filled('status'), function ($q) use ($request) {
+                $q->where('status', $request->status);
             })
             ->latest('id')
-            ->paginate(20);
+            ->paginate($request->integer('per_page', 20));
 
         return response()->json($employees);
     }
 
     public function show($id)
     {
-        $employee = User::with(['role.permissions', 'activityLogs' => function ($q) {
+        $employee = User::with(['role.permissions', 'branch', 'activityLogs' => function ($q) {
             $q->latest('id')->limit(20);
         }])->findOrFail($id);
 
@@ -59,6 +75,11 @@ class EmployeeController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
             'phone' => 'nullable|string|size:11',
+            'employee_id' => 'nullable|string|max:50|unique:users,employee_id',
+            'department' => 'nullable|string|max:100',
+            'designation' => 'nullable|string|max:100',
+            'branch_id' => 'nullable|exists:branches,id',
+            'joining_date' => 'nullable|date',
             'role_id' => 'required|exists:roles,id',
             'password' => 'required|string|min:6',
             'status' => 'required|in:active,inactive',
@@ -71,7 +92,7 @@ class EmployeeController extends Controller
 
         return response()->json([
             'message' => 'কর্মী সফলভাবে যুক্ত করা হয়েছে।',
-            'employee' => $employee->load('role'),
+            'employee' => $employee->load(['role', 'branch']),
         ], 201);
     }
 
@@ -100,6 +121,11 @@ class EmployeeController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email,' . $employee->id,
             'phone' => 'nullable|string|size:11',
+            'employee_id' => 'nullable|string|max:50|unique:users,employee_id,' . $employee->id,
+            'department' => 'nullable|string|max:100',
+            'designation' => 'nullable|string|max:100',
+            'branch_id' => 'nullable|exists:branches,id',
+            'joining_date' => 'nullable|date',
             'role_id' => 'required|exists:roles,id',
             'password' => 'nullable|string|min:6',
             'status' => 'required|in:active,inactive',
@@ -116,7 +142,7 @@ class EmployeeController extends Controller
 
         return response()->json([
             'message' => 'কর্মীর তথ্য সফলভাবে আপডেট হয়েছে।',
-            'employee' => $employee->load('role'),
+            'employee' => $employee->load(['role', 'branch']),
         ]);
     }
 
@@ -268,20 +294,66 @@ class EmployeeController extends Controller
         ]);
     }
 
+    public function duplicateRole(Request $request, $id)
+    {
+        $this->ensureSuperAdmin($request);
+        $sourceRole = Role::with('permissions')->findOrFail($id);
+
+        $baseName = $sourceRole->name . ' (Copy)';
+        $baseSlug = Str::slug($baseName);
+        $slug = $baseSlug ?: 'role-copy-' . time();
+        $counter = 1;
+        while (Role::where('slug', $slug)->exists()) {
+            $slug = "{$baseSlug}-{$counter}";
+            $counter++;
+        }
+
+        $newRole = Role::create([
+            'name' => $baseName,
+            'name_bn' => ($sourceRole->name_bn ?: $sourceRole->name) . ' (অনুলিপি)',
+            'slug' => $slug,
+            'description' => "কপি করা হয়েছে: {$sourceRole->name} - " . ($sourceRole->description ?: ''),
+            'is_system' => false,
+        ]);
+
+        $permissionIds = $sourceRole->permissions->pluck('id')->toArray();
+        $newRole->permissions()->sync($permissionIds);
+
+        ActivityLog::create([
+            'user_id' => $request->user()->id,
+            'action' => 'duplicate_role',
+            'description' => "সুপার অ্যাডমিন '{$sourceRole->name}' ভূমিকা ডুপ্লিকেট করে '{$newRole->name}' তৈরি করেছেন।",
+            'ip_address' => $request->ip(),
+            'user_agent' => substr((string) $request->userAgent(), 0, 255),
+        ]);
+
+        return response()->json([
+            'message' => "ভূমিকা '{$sourceRole->name}' সফলভাবে ডুপ্লিকেট করা হয়েছে।",
+            'role' => $newRole->fresh(['permissions'])->loadCount('users'),
+        ], 201);
+    }
+
     public function destroyRole(Request $request, $id)
     {
         $this->ensureSuperAdmin($request);
         $role = Role::findOrFail($id);
 
-        if ($role->is_system || in_array($role->slug, ['super-admin', 'manager', 'cashier'])) {
+        $systemRoleSlugs = [
+            'super-admin', 'admin', 'manager', 'cashier', 'branch-manager',
+            'inventory-manager', 'purchase-manager', 'accountant', 'sales-staff',
+            'customer-service', 'warehouse-staff', 'auditor'
+        ];
+
+        if ($role->is_system || in_array($role->slug, $systemRoleSlugs)) {
             return response()->json([
-                'message' => 'সিস্টেমের ডিফল্ট ভূমিকা (Role) মুছে ফেলা সম্ভব নয়।'
+                'message' => 'সুপার শপের সংরক্ষিত ও সিস্টেমের ডিফল্ট ভূমিকা (System Role) মুছে ফেলা সম্ভব নয়।'
             ], 422);
         }
 
-        if ($role->users()->count() > 0) {
+        $usersCount = $role->users()->count();
+        if ($usersCount > 0) {
             return response()->json([
-                'message' => 'এই ভূমিকায় সক্রিয় কর্মী বিদ্যমান রয়েছে। মুছে ফেলার আগে কর্মীদের অন্য ভূমিকায় স্থানান্তর করুন।'
+                'message' => "এই ভূমিকায় বর্তমানে {$usersCount} জন সক্রিয় কর্মী নিযুক্ত রয়েছেন। নির্ভরতা সুরক্ষার (Dependency Protection) কারণে ভূমিকা মুছে ফেলা সম্ভব নয়। অনুগ্রহ করে কর্মীদের অন্য ভূমিকায় স্থানান্তর করুন।"
             ], 422);
         }
 

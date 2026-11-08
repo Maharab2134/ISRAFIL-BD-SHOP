@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AccountingController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\BranchController;
 use App\Http\Controllers\Api\BrandController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\CustomerController;
@@ -123,10 +124,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/roles', [EmployeeController::class, 'storeRole']);
     Route::get('/roles/{id}', [EmployeeController::class, 'showRole'])->whereNumber('id');
     Route::put('/roles/{id}', [EmployeeController::class, 'updateRole'])->whereNumber('id');
+    Route::post('/roles/{id}/duplicate', [EmployeeController::class, 'duplicateRole'])->whereNumber('id');
     Route::put('/roles/{id}/permissions', [EmployeeController::class, 'updateRolePermissions'])->whereNumber('id');
     Route::delete('/roles/{id}', [EmployeeController::class, 'destroyRole'])->whereNumber('id');
     Route::get('/permissions', [EmployeeController::class, 'permissions']);
     Route::get('/activity-logs', [EmployeeController::class, 'activityLogs']);
+
+    // Multi-Branch Management
+    Route::apiResource('branches', BranchController::class);
 
     // Settings
     Route::get('/settings', [SettingController::class, 'index']);

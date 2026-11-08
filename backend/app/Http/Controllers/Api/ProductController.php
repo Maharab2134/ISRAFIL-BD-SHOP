@@ -53,8 +53,14 @@ class ProductController extends Controller
             $query->where('status', $request->status);
         }
 
+        $user = $request->user();
+        $canViewCost = $user && ($user->role?->slug === 'super-admin' || $user->hasPermission('products.view_cost'));
+
         if ($request->boolean('all') || $request->per_page === 'all') {
             $products = $query->orderBy('name', 'asc')->get();
+            if (!$canViewCost) {
+                $products->makeHidden(['purchase_price']);
+            }
             return response()->json([
                 'data' => $products,
                 'total' => $products->count(),
@@ -67,30 +73,50 @@ class ProductController extends Controller
         $perPage = min(1000, max(5, $request->integer('per_page', 50)));
         $products = $query->orderBy('name', 'asc')->paginate($perPage);
 
+        if (!$canViewCost) {
+            $products->getCollection()->transform(function ($item) {
+                $item->makeHidden(['purchase_price']);
+                return $item;
+            });
+        }
+
         return response()->json($products);
     }
 
-    public function show($id)
+    public function show(Request $request, $id)
     {
         $product = Product::with(['category', 'brand', 'unit', 'images', 'stockMovements' => function ($q) {
             $q->latest('id')->limit(20);
         }])->findOrFail($id);
 
+        $user = $request->user();
+        $canViewCost = $user && ($user->role?->slug === 'super-admin' || $user->hasPermission('products.view_cost'));
+        if (!$canViewCost) {
+            $product->makeHidden(['purchase_price']);
+        }
+
         return response()->json($product);
     }
 
-    public function findByBarcode($barcode)
+    public function findByBarcode(Request $request, $barcode)
     {
         $product = Product::with(['unit', 'category', 'brand'])
-            ->where('barcode', $barcode)
-            ->where('barcode', $barcode)
-            ->orWhere('sku', $barcode)
+            ->where(function ($q) use ($barcode) {
+                $q->where('barcode', $barcode)
+                  ->orWhere('sku', $barcode);
+            })
             ->first();
 
         if (!$product) {
             return response()->json([
                 'message' => "বারকোড '{$barcode}' যুক্ত কোনো পণ্য খুঁজে পাওয়া যায়নি।"
             ], 404);
+        }
+
+        $user = $request->user();
+        $canViewCost = $user && ($user->role?->slug === 'super-admin' || $user->hasPermission('products.view_cost'));
+        if (!$canViewCost) {
+            $product->makeHidden(['purchase_price']);
         }
 
         return response()->json($product);
@@ -237,8 +263,15 @@ class ProductController extends Controller
         ]);
     }
 
-    public function destroy($id)
+    public function destroy(Request $request, $id)
     {
+        $user = $request->user();
+        if ($user && $user->role?->slug !== 'super-admin' && !$user->hasPermission('products.delete')) {
+            return response()->json([
+                'message' => 'পণ্য মুছে ফেলার অনুমতি আপনার নেই। সুপার অ্যাডমিন বা প্রশাসকের সাথে যোগাযোগ করুন।'
+            ], 403);
+        }
+
         $product = Product::findOrFail($id);
         $name = $product->name;
 
@@ -262,6 +295,13 @@ class ProductController extends Controller
 
     public function bulkDelete(Request $request)
     {
+        $user = $request->user();
+        if ($user && $user->role?->slug !== 'super-admin' && !$user->hasPermission('products.delete')) {
+            return response()->json([
+                'message' => 'পণ্য মুছে ফেলার অনুমতি আপনার নেই। সুপার অ্যাডমিন বা প্রশাসকের সাথে যোগাযোগ করুন।'
+            ], 403);
+        }
+
         $ids = $request->validate([
             'ids' => 'required|array|min:1',
             'ids.*' => 'required|integer',

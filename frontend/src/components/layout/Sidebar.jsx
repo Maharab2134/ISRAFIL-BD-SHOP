@@ -49,7 +49,7 @@ export const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
   const roleSlug = user?.role?.slug;
   const isSuperAdmin = roleSlug === 'super-admin' || user?.email === 'admin@israfilbd.com';
 
-  const canViewDashboard = isSuperAdmin || hasPermission('reports.view');
+  const canViewDashboard = isSuperAdmin || hasPermission('dashboard.view') || hasPermission('reports.view');
   const canViewPos = isSuperAdmin || hasPermission('pos.access');
   const canViewProducts = isSuperAdmin || hasPermission('products.view');
   const canCreateProducts = isSuperAdmin || hasPermission('products.create');
@@ -62,14 +62,15 @@ export const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
   const canManageCustomers = isSuperAdmin || hasPermission('customers.manage');
   const canViewSuppliers = isSuperAdmin || hasPermission('suppliers.view');
   const canViewExpenses = isSuperAdmin || hasPermission('expenses.view');
-  const canManageExpenses = isSuperAdmin || hasPermission('expenses.manage');
+  const canManageExpenses = isSuperAdmin || hasPermission('expenses.manage') || hasPermission('expenses.create');
   const canViewAccounting = isSuperAdmin || hasPermission('accounting.view');
   const canViewReports = isSuperAdmin || hasPermission('reports.view');
   const canViewFinance = isSuperAdmin || canViewExpenses || canViewAccounting || canViewReports;
   const canViewSalesPurchases = isSuperAdmin || canViewSales || canViewPurchases;
   const canViewPeople = isSuperAdmin || canViewCustomers || canViewSuppliers;
-  const canManageEmployees = isSuperAdmin || hasPermission('employees.manage');
-  const canManageSettings = isSuperAdmin || hasPermission('settings.manage');
+  const canManageEmployees = isSuperAdmin || hasPermission('employees.view') || hasPermission('employees.manage') || hasPermission('employees.roles_manage');
+  const canManageSettings = isSuperAdmin || hasPermission('settings.view') || hasPermission('settings.manage');
+  const canViewAuditLogs = isSuperAdmin || hasPermission('audit.view');
 
   const rawName = user?.name || '';
   const englishParenMatch = rawName.match(/\((.*?)\)/);
@@ -603,18 +604,18 @@ export const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
                   </NavLink>
                 )}
 
-                {isSuperAdmin && (
-                  <>
-                    <NavLink to="/roles" className={navLinkClass} title={lang === 'bn' ? 'ভূমিকা ও পারমিশন' : 'Roles & Permissions'}>
-                      <ShieldCheck className="w-5 h-5 shrink-0" />
-                      {!isCollapsed && <span>{lang === 'bn' ? 'ভূমিকা ও পারমিশন' : 'Roles & Permissions'}</span>}
-                    </NavLink>
+                {(isSuperAdmin || hasPermission('employees.roles_manage')) && (
+                  <NavLink to="/roles" className={navLinkClass} title={lang === 'bn' ? 'ভূমিকা ও পারমিশন' : 'Roles & Permissions'}>
+                    <ShieldCheck className="w-5 h-5 shrink-0" />
+                    {!isCollapsed && <span>{lang === 'bn' ? 'ভূমিকা ও পারমিশন' : 'Roles & Permissions'}</span>}
+                  </NavLink>
+                )}
 
-                    <NavLink to="/activity-logs" className={navLinkClass} title={t('activityLogs')}>
-                      <Activity className="w-5 h-5 shrink-0" />
-                      {!isCollapsed && <span>{t('activityLogs')}</span>}
-                    </NavLink>
-                  </>
+                {canViewAuditLogs && (
+                  <NavLink to="/activity-logs" className={navLinkClass} title={t('activityLogs')}>
+                    <Activity className="w-5 h-5 shrink-0" />
+                    {!isCollapsed && <span>{t('activityLogs')}</span>}
+                  </NavLink>
                 )}
 
                 {canManageSettings && (

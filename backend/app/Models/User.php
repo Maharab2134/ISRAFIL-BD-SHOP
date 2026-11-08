@@ -20,6 +20,11 @@ class User extends Authenticatable
         'status',
         'avatar',
         'last_login_at',
+        'employee_id',
+        'department',
+        'designation',
+        'branch_id',
+        'joining_date',
     ];
 
     protected $hidden = [
@@ -32,6 +37,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'last_login_at' => 'datetime',
+            'joining_date' => 'date',
             'password' => 'hashed',
         ];
     }
@@ -39,6 +45,11 @@ class User extends Authenticatable
     public function role()
     {
         return $this->belongsTo(Role::class);
+    }
+
+    public function branch()
+    {
+        return $this->belongsTo(Branch::class);
     }
 
     public function sales()

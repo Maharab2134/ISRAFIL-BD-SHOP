@@ -60,6 +60,13 @@ class SaleController extends Controller
 
     public function returnSale(Request $request, $id)
     {
+        $user = $request->user();
+        if ($user && $user->role?->slug !== 'super-admin' && !$user->hasPermission('sales.returns_approve')) {
+            return response()->json([
+                'message' => 'বিক্রয় ফেরত ও রিফান্ড অনুমোদনের জন্য ম্যানেজার বা অ্যাডমিনের অনুমতি প্রয়োজন।'
+            ], 403);
+        }
+
         $sale = Sale::with('items.product')->findOrFail($id);
 
         $validated = $request->validate([
