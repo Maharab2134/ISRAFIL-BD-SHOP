@@ -223,9 +223,27 @@ class AttendanceController extends Controller
 
     public function monthlyReport(Request $request)
     {
-        $month = $request->input('month', Carbon::now()->format('Y-m'));
-        $startOfMonth = Carbon::parse($month . '-01')->startOfMonth()->toDateString();
-        $endOfMonth = Carbon::parse($month . '-01')->endOfMonth()->toDateString();
+        $yearInput = $request->input('year');
+        $monthInput = $request->input('month');
+
+        if ($yearInput && $monthInput && !str_contains((string)$monthInput, '-')) {
+            $formattedMonth = str_pad(intval($monthInput), 2, '0', STR_PAD_LEFT);
+            $monthStr = "{$yearInput}-{$formattedMonth}";
+        } elseif ($monthInput && str_contains((string)$monthInput, '-')) {
+            $monthStr = (string)$monthInput;
+        } else {
+            $monthStr = Carbon::now()->format('Y-m');
+        }
+
+        try {
+            $date = Carbon::createFromFormat('Y-m-d', $monthStr . '-01');
+        } catch (\Throwable $e) {
+            $date = Carbon::now();
+            $monthStr = $date->format('Y-m');
+        }
+
+        $startOfMonth = $date->copy()->startOfMonth()->toDateString();
+        $endOfMonth = $date->copy()->endOfMonth()->toDateString();
 
         $employees = User::with(['role', 'branch', 'departmentRelation', 'designationRelation'])
             ->where('status', 'active')
@@ -251,6 +269,13 @@ class AttendanceController extends Controller
             $totalHours = $records->sum('working_hours');
 
             $report[] = [
+                'user_id' => $emp->id,
+                'employee_id' => $emp->employee_id ?: "EMP-{$emp->id}",
+                'name' => $emp->name,
+                'email' => $emp->email,
+                'department' => $emp->departmentRelation?->name ?: ($emp->department ?: 'General'),
+                'designation' => $emp->designationRelation?->name ?: ($emp->designation ?: 'Staff'),
+                'branch' => $emp->branch?->name ?: 'All Branches',
                 'employee' => $emp,
                 'present_days' => $present,
                 'late_days' => $late,
@@ -261,7 +286,9 @@ class AttendanceController extends Controller
         }
 
         return response()->json([
-            'month' => $month,
+            'month' => $monthStr,
+            'start_date' => $startOfMonth,
+            'end_date' => $endOfMonth,
             'report' => $report,
         ]);
     }

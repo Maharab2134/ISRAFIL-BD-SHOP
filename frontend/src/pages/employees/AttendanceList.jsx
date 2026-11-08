@@ -137,9 +137,8 @@ export const AttendanceList = () => {
   const fetchMonthlyReport = async () => {
     setMonthlyLoading(true);
     try {
-      const [year, month] = selectedMonth.split('-');
       const res = await api.get('/attendances/monthly-report', {
-        params: { year, month },
+        params: { month: selectedMonth },
       });
       setMonthlyReport(res.data?.report || []);
     } catch (err) {
@@ -631,7 +630,7 @@ export const AttendanceList = () => {
                           {att.check_out ? att.check_out.slice(0, 5) : '-'}
                         </td>
                         <td className="p-4 text-center font-mono font-bold text-slate-700 dark:text-slate-200">
-                          {att.total_hours ? `${att.total_hours}h` : '-'}
+                          {att.working_hours ? `${att.working_hours}h` : (att.total_hours ? `${att.total_hours}h` : '-')}
                         </td>
                         <td className="p-4 text-center">
                           <span

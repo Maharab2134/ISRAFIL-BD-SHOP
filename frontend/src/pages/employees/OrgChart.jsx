@@ -74,13 +74,12 @@ export const OrgChart = () => {
       <div key={node.id} className="flex flex-col items-center">
         {/* Node Card */}
         <div
-          className={`relative p-3.5 sm:p-4 rounded-2xl bg-white dark:bg-slate-800 border transition-all duration-200 shadow-md hover:shadow-xl w-64 sm:w-72 ${
-            isHighlighted
-              ? 'ring-4 ring-amber-400 border-amber-500 bg-amber-50/50 dark:bg-amber-950/30'
-              : depth === 0
+          className={`relative p-3.5 sm:p-4 rounded-2xl bg-white dark:bg-slate-800 border transition-all duration-200 shadow-md hover:shadow-xl w-64 sm:w-72 ${isHighlighted
+            ? 'ring-4 ring-amber-400 border-amber-500 bg-amber-50/50 dark:bg-amber-950/30'
+            : depth === 0
               ? 'border-indigo-500/80 ring-2 ring-indigo-500/20'
               : 'border-slate-200/80 dark:border-slate-700/80'
-          }`}
+            }`}
         >
           {depth === 0 && (
             <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-indigo-600 text-white shadow-xs">

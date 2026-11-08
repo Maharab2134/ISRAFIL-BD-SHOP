@@ -368,8 +368,8 @@ export const DepartmentList = () => {
                     ? `বিভাগ সম্পাদনা: ${editingDept.name}`
                     : `Edit Department: ${editingDept.name}`
                   : lang === 'bn'
-                  ? 'নতুন বিভাগ তৈরি করুন'
-                  : 'Create New Department'}
+                    ? 'নতুন বিভাগ তৈরি করুন'
+                    : 'Create New Department'}
               </h2>
             </div>
             <button
@@ -647,11 +647,10 @@ export const DepartmentList = () => {
                       </td>
                       <td className="p-4 text-center">
                         <span
-                          className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
-                            isDeptActive
-                              ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300'
-                              : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
-                          }`}
+                          className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${isDeptActive
+                            ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300'
+                            : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
+                            }`}
                         >
                           {isDeptActive ? (
                             <>
