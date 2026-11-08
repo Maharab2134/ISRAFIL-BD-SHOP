@@ -56,6 +56,8 @@ export const bn = {
   customers: 'গ্রাহকবৃন্দ',
   customerList: 'গ্রাহক তালিকা',
   addCustomer: 'নতুন গ্রাহক যোগ',
+  customerApprovals: 'কাস্টমার অনুমোদন',
+  customerFormBuilder: 'রেজিস্ট্রেশন ফর্ম ও QR কোড',
   suppliers: 'সরবরাহকারী',
   supplierList: 'সরবরাহকারী তালিকা',
   addSupplier: 'নতুন সরবরাহকারী',

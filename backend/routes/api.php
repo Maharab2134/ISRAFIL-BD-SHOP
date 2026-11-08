@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BrandController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\CustomerController;
+use App\Http\Controllers\Api\CustomerRegistrationController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\EmployeeController;
 use App\Http\Controllers\Api\ExpenseController;
@@ -22,6 +23,10 @@ use Illuminate\Support\Facades\Route;
 
 // Public Authentication
 Route::post('/login', [AuthController::class, 'login']);
+
+// Public Customer Registration & Form Config (for QR Code scanning)
+Route::get('/customer-registration/form', [CustomerRegistrationController::class, 'getFormConfig']);
+Route::post('/customer-registration/submit', [CustomerRegistrationController::class, 'submitRegistration']);
 
 // Protected API Routes
 Route::middleware('auth:sanctum')->group(function () {
@@ -129,6 +134,16 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/settings/backup/download', [SettingController::class, 'downloadBackup']);
     Route::get('/settings/database/stats', [SettingController::class, 'getDatabaseStats']);
     Route::post('/settings/database/clear', [SettingController::class, 'clearDatabase']);
+
+    // Customer Dynamic Form Builder & Registration Approval (Super Admin / Manager)
+    Route::get('/customer-registration/admin/form', [CustomerRegistrationController::class, 'getFormConfig']);
+    Route::put('/customer-registration/admin/form', [CustomerRegistrationController::class, 'saveFormConfig']);
+    Route::get('/customer-registration/admin/requests', [CustomerRegistrationController::class, 'getRequests']);
+    Route::get('/customer-registration/admin/requests/{id}', [CustomerRegistrationController::class, 'getRequestDetails'])->whereNumber('id');
+    Route::post('/customer-registration/admin/requests/{id}/approve', [CustomerRegistrationController::class, 'approveRequest'])->whereNumber('id');
+    Route::post('/customer-registration/admin/requests/{id}/reject', [CustomerRegistrationController::class, 'rejectRequest'])->whereNumber('id');
+    Route::post('/customer-registration/admin/requests/bulk-approve', [CustomerRegistrationController::class, 'bulkApprove']);
+    Route::post('/customer-registration/admin/requests/bulk-reject', [CustomerRegistrationController::class, 'bulkReject']);
 
     // System Modules Maintenance & Crash Error Reporting
     Route::get('/system/modules', [SystemModuleController::class, 'getModules']);

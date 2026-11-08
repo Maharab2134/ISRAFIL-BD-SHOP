@@ -26,6 +26,7 @@ import {
   TrendingUp,
   FileSpreadsheet,
   UserCheck,
+  QrCode,
   ShieldCheck,
   Activity,
   Settings,
@@ -416,6 +417,20 @@ export const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
                   <NavLink to="/customers/new" className={navLinkClass} title={t('addCustomer')}>
                     <UserPlus className="w-5 h-5 shrink-0" />
                     {!isCollapsed && <span>{t('addCustomer')}</span>}
+                  </NavLink>
+                )}
+
+                {canManageCustomers && (
+                  <NavLink to="/customers/approvals" className={navLinkClass} title={t('customerApprovals')}>
+                    <UserCheck className="w-5 h-5 shrink-0" />
+                    {!isCollapsed && <span>{t('customerApprovals')}</span>}
+                  </NavLink>
+                )}
+
+                {isSuperAdmin && (
+                  <NavLink to="/customers/form-builder" className={navLinkClass} title={t('customerFormBuilder')}>
+                    <QrCode className="w-5 h-5 shrink-0" />
+                    {!isCollapsed && <span>{t('customerFormBuilder')}</span>}
                   </NavLink>
                 )}
               </div>

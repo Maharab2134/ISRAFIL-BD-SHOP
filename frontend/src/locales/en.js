@@ -56,6 +56,8 @@ export const en = {
   customers: 'Customers',
   customerList: 'Customer List',
   addCustomer: 'Add Customer',
+  customerApprovals: 'Customer Approvals',
+  customerFormBuilder: 'Form Builder & QR Code',
   suppliers: 'Suppliers',
   supplierList: 'Supplier List',
   addSupplier: 'Add Supplier',

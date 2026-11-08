@@ -20,6 +20,7 @@ import {
   UserCheck,
   MapPin,
   Mail,
+  QrCode,
 } from 'lucide-react';
 import api from '../../services/api';
 import { ConfirmDeleteModal } from '../../components/common/ConfirmDeleteModal';
@@ -222,13 +223,35 @@ export const CustomerList = () => {
           </p>
         </div>
 
-        <Link
-          to="/customers/new"
-          className="py-2.5 px-4 rounded-xl font-bold text-sm bg-indigo-600 hover:bg-indigo-700 text-white shadow-md flex items-center gap-2 self-start transition"
-        >
-          <UserPlus className="w-4 h-4" />
-          <span>{t('addCustomer')}</span>
-        </Link>
+        <div className="flex items-center gap-2 self-start flex-wrap">
+          <Link
+            to="/customers/approvals"
+            className="py-2.5 px-3.5 rounded-xl font-bold text-xs bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 transition flex items-center gap-1.5 shadow-2xs"
+            title="কাস্টমার রেজিস্ট্রেশন আবেদনসমূহ অনুমোদন করুন"
+          >
+            <UserCheck className="w-4 h-4 text-emerald-600" />
+            <span>{lang === 'bn' ? 'অনুমোদন প্যানেল' : 'Approvals Panel'}</span>
+          </Link>
+
+          {isSuperAdmin && (
+            <Link
+              to="/customers/form-builder"
+              className="py-2.5 px-3.5 rounded-xl font-bold text-xs bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-100 transition flex items-center gap-1.5 shadow-2xs"
+              title="রেজিস্ট্রেশন ফর্ম তৈরি ও QR কোড প্রিন্ট করুন"
+            >
+              <QrCode className="w-4 h-4 text-indigo-600" />
+              <span>{lang === 'bn' ? 'ফর্ম ও QR কোড' : 'Form & QR'}</span>
+            </Link>
+          )}
+
+          <Link
+            to="/customers/new"
+            className="py-2.5 px-4 rounded-xl font-bold text-xs bg-indigo-600 hover:bg-indigo-700 text-white shadow-md flex items-center gap-1.5 transition"
+          >
+            <UserPlus className="w-4 h-4" />
+            <span>{t('addCustomer')}</span>
+          </Link>
+        </div>
       </div>
 
       {/* Filter and Search */}

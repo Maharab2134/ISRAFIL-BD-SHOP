@@ -43,6 +43,9 @@ import { CustomerList } from './pages/customers/CustomerList';
 import { AddCustomer } from './pages/customers/AddCustomer';
 import { EditCustomer } from './pages/customers/EditCustomer';
 import { CustomerDetails } from './pages/customers/CustomerDetails';
+import { CustomerRegistrations } from './pages/customers/CustomerRegistrations';
+import { CustomerFormBuilder } from './pages/customers/CustomerFormBuilder';
+import { PublicCustomerRegister } from './pages/customers/PublicCustomerRegister';
 import { SupplierList } from './pages/suppliers/SupplierList';
 import { AddSupplier } from './pages/suppliers/AddSupplier';
 import { SupplierDetails } from './pages/suppliers/SupplierDetails';
@@ -75,6 +78,8 @@ export default function App() {
       <Routes>
       {/* Public Routes */}
       <Route path="/login" element={<Login />} />
+      <Route path="/join-customer" element={<PublicCustomerRegister />} />
+      <Route path="/register-customer" element={<PublicCustomerRegister />} />
 
       {/* Protected App Routes inside Layout */}
       <Route path="/" element={<AppLayout />}>
@@ -121,6 +126,9 @@ export default function App() {
         <Route path="customers/new" element={<AddCustomer />} />
         <Route path="customers/:id/edit" element={<EditCustomer />} />
         <Route path="customers/:id" element={<CustomerDetails />} />
+        <Route path="customers/approvals" element={<CustomerRegistrations />} />
+        <Route path="customers/registrations" element={<CustomerRegistrations />} />
+        <Route path="customers/form-builder" element={<CustomerFormBuilder />} />
         <Route path="suppliers" element={<SupplierList />} />
         <Route path="suppliers/new" element={<AddSupplier />} />
         <Route path="suppliers/:id" element={<SupplierDetails />} />
