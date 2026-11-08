@@ -51,10 +51,15 @@ export const PublicCustomerRegister = () => {
   };
 
   const handleInputChange = (fieldId, value, isCustom = false) => {
+    let processed = value;
+    if (fieldId === 'phone') {
+      // Strictly max 11 digits, numbers only
+      processed = value.replace(/[^0-9]/g, '').slice(0, 11);
+    }
     if (isCustom) {
-      setCustomData((prev) => ({ ...prev, [fieldId]: value }));
+      setCustomData((prev) => ({ ...prev, [fieldId]: processed }));
     } else {
-      setFormData((prev) => ({ ...prev, [fieldId]: value }));
+      setFormData((prev) => ({ ...prev, [fieldId]: processed }));
     }
   };
 
@@ -62,11 +67,11 @@ export const PublicCustomerRegister = () => {
     e.preventDefault();
     setErrorMsg(null);
 
-    // Validate phone number
+    // Validate phone number - strictly 11 digits
     const phone = (formData.phone || '').trim();
     const cleanPhone = phone.replace(/[^0-9]/g, '');
-    if (cleanPhone.length < 10) {
-      setErrorMsg('অনুগ্রহ করে সঠিক ১১ ডিজিটের মোবাইল নম্বর দিন (যেমন: 017XXXXXXXX)');
+    if (cleanPhone.length !== 11 || !/^01[3-9]\d{8}$/.test(cleanPhone)) {
+      setErrorMsg('মোবাইল নম্বর অবশ্যই সঠিক ১১ ডিজিটের হতে হবে (যেমন: 017XXXXXXXX)। ১১ ডিজিটের বেশি বা কম কোনোভাবেই সমর্থন করবে না।');
       return;
     }
 
@@ -269,6 +274,8 @@ export const PublicCustomerRegister = () => {
                         required={field.required}
                         placeholder={field.placeholder || ''}
                         value={val}
+                        maxLength={field.id === 'phone' ? 11 : undefined}
+                        inputMode={field.id === 'phone' ? 'numeric' : undefined}
                         onChange={(e) => handleInputChange(field.id, e.target.value, isCustom)}
                         className={`w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 text-xs text-slate-800 transition outline-hidden ${
                           field.id === 'phone' ? 'font-mono' : ''

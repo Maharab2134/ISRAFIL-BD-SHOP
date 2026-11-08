@@ -63,10 +63,24 @@ class PosController extends Controller
      */
     public function checkout(Request $request)
     {
+        // Rule 2: Ensure customer_phone does not exceed 11 digits
+        if ($request->filled('customer_phone')) {
+            $rawPhone = preg_replace('/[^0-9]/', '', (string) $request->input('customer_phone'));
+            if (str_starts_with($rawPhone, '8801') && strlen($rawPhone) === 13) {
+                $cleanPhone = substr($rawPhone, 2);
+            } else {
+                $cleanPhone = $rawPhone;
+            }
+            if (strlen($cleanPhone) > 11) {
+                $cleanPhone = substr($cleanPhone, 0, 11);
+            }
+            $request->merge(['customer_phone' => $cleanPhone]);
+        }
+
         $validated = $request->validate([
             'customer_id' => 'nullable|exists:customers,id',
             'customer_name' => 'nullable|string|max:255',
-            'customer_phone' => 'nullable|string|max:20',
+            'customer_phone' => 'nullable|string|max:11',
             'items' => 'required|array|min:1',
             'items.*.product_id' => 'required|exists:products,id',
             'items.*.quantity' => 'required|numeric|min:0.01',

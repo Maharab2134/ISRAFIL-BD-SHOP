@@ -54,10 +54,26 @@ class CustomerController extends Controller
 
     public function store(Request $request)
     {
+        // Rule 2: Normalize and strictly enforce 11-digit mobile number
+        $rawPhone = preg_replace('/[^0-9]/', '', (string) $request->input('phone'));
+        if (str_starts_with($rawPhone, '8801') && strlen($rawPhone) === 13) {
+            $cleanPhone = substr($rawPhone, 2);
+        } else {
+            $cleanPhone = $rawPhone;
+        }
+
+        if (strlen($cleanPhone) !== 11 || !preg_match('/^01[3-9]\d{8}$/', $cleanPhone)) {
+            return response()->json([
+                'message' => 'মোবাইল নম্বর অবশ্যই সঠিক ১১ ডিজিটের হতে হবে (যেমন: 017XXXXXXXX)। ১১ ডিজিটের বেশি বা কম নম্বর কোনোভাবেই সমর্থন করবে না।',
+                'errors' => ['phone' => ['মোবাইল নম্বর অবশ্যই ১১ ডিজিটের হতে হবে (যেমন: 01XXXXXXXXX)।']]
+            ], 422);
+        }
+        $request->merge(['phone' => $cleanPhone]);
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'name_bn' => 'nullable|string|max:255',
-            'phone' => 'required|string|max:20|unique:customers,phone',
+            'phone' => 'required|string|size:11|unique:customers,phone',
             'email' => 'nullable|email|max:255',
             'address' => 'nullable|string',
             'opening_balance' => 'nullable|numeric',
@@ -78,10 +94,27 @@ class CustomerController extends Controller
     public function update(Request $request, $id)
     {
         $customer = Customer::findOrFail($id);
+
+        // Rule 2: Normalize and strictly enforce 11-digit mobile number
+        $rawPhone = preg_replace('/[^0-9]/', '', (string) $request->input('phone'));
+        if (str_starts_with($rawPhone, '8801') && strlen($rawPhone) === 13) {
+            $cleanPhone = substr($rawPhone, 2);
+        } else {
+            $cleanPhone = $rawPhone;
+        }
+
+        if (strlen($cleanPhone) !== 11 || !preg_match('/^01[3-9]\d{8}$/', $cleanPhone)) {
+            return response()->json([
+                'message' => 'মোবাইল নম্বর অবশ্যই সঠিক ১১ ডিজিটের হতে হবে (যেমন: 017XXXXXXXX)। ১১ ডিজিটের বেশি বা কম নম্বর কোনোভাবেই সমর্থন করবে না।',
+                'errors' => ['phone' => ['মোবাইল নম্বর অবশ্যই ১১ ডিজিটের হতে হবে (যেমন: 01XXXXXXXXX)।']]
+            ], 422);
+        }
+        $request->merge(['phone' => $cleanPhone]);
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'name_bn' => 'nullable|string|max:255',
-            'phone' => 'required|string|max:20|unique:customers,phone,' . $customer->id,
+            'phone' => 'required|string|size:11|unique:customers,phone,' . $customer->id,
             'email' => 'nullable|email|max:255',
             'address' => 'nullable|string',
             'credit_limit' => 'nullable|numeric|min:0',

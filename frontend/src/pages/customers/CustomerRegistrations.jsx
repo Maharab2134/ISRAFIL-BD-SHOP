@@ -24,6 +24,7 @@ import {
   AlertTriangle,
   ChevronRight,
   ExternalLink,
+  Trash2,
 } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import { useToast } from '../../context/ToastContext';
@@ -45,6 +46,7 @@ export const CustomerRegistrations = () => {
   const [activeRequest, setActiveRequest] = useState(null);
   const [rejectModalItem, setRejectModalItem] = useState(null);
   const [rejectReason, setRejectReason] = useState('');
+  const [deleteModalItem, setDeleteModalItem] = useState(null);
 
   // Pagination
   const [page, setPage] = useState(1);
@@ -150,12 +152,52 @@ export const CustomerRegistrations = () => {
     }
   };
 
+  const handleDelete = async (id) => {
+    try {
+      setActionLoading(true);
+      const res = await api.delete(`/customer-registration/admin/requests/${id}`);
+      if (res.data?.status === 'success') {
+        success(res.data.message || (lang === 'bn' ? 'আবেদনটি সফলভাবে মুছে ফেলা হয়েছে' : 'Request deleted successfully'));
+        if (activeRequest?.id === id) {
+          setActiveRequest(null);
+        }
+        setDeleteModalItem(null);
+        fetchRequests();
+        window.dispatchEvent(new CustomEvent('israfil:notification-refresh'));
+      }
+    } catch (err) {
+      error(err.response?.data?.message || (lang === 'bn' ? 'মুছে ফেলতে ব্যর্থ হয়েছে' : 'Failed to delete'));
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.length === 0) return;
+    try {
+      setActionLoading(true);
+      const res = await api.post('/customer-registration/admin/requests/bulk-delete', {
+        ids: selectedIds,
+      });
+      if (res.data?.status === 'success') {
+        success(res.data.message || (lang === 'bn' ? 'নির্বাচিত আবেদনগুলো মুছে ফেলা হয়েছে' : 'Selected requests deleted'));
+        setSelectedIds([]);
+        fetchRequests();
+        window.dispatchEvent(new CustomEvent('israfil:notification-refresh'));
+      }
+    } catch (err) {
+      error(err.response?.data?.message || (lang === 'bn' ? 'বাল্ক ডিলিট ব্যর্থ হয়েছে' : 'Failed to delete'));
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const toggleSelectAll = () => {
-    const pendingIds = requests.filter((r) => r.status === 'pending').map((r) => r.id);
-    if (selectedIds.length === pendingIds.length && pendingIds.length > 0) {
+    const allVisibleIds = requests.map((r) => r.id);
+    if (selectedIds.length === allVisibleIds.length && allVisibleIds.length > 0) {
       setSelectedIds([]);
     } else {
-      setSelectedIds(pendingIds);
+      setSelectedIds(allVisibleIds);
     }
   };
 
@@ -335,7 +377,7 @@ export const CustomerRegistrations = () => {
         </div>
       </div>
 
-      {/* Bulk Action Bar (When Pending items are selected) */}
+      {/* Bulk Action Bar (When items are selected) */}
       {selectedIds.length > 0 && (
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3.5 px-5 rounded-2xl bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800 shadow-sm animate-in fade-in">
           <div className="flex items-center gap-2.5">
@@ -344,8 +386,8 @@ export const CustomerRegistrations = () => {
             </span>
             <span className="text-xs font-bold text-amber-950 dark:text-amber-200">
               {lang === 'bn'
-                ? `মোট ${formatNumber(selectedIds.length)} টি অপেক্ষমান আবেদন নির্বাচিত`
-                : `${selectedIds.length} pending requests selected`}
+                ? `মোট ${formatNumber(selectedIds.length)} টি আবেদন নির্বাচিত`
+                : `${selectedIds.length} requests selected`}
             </span>
           </div>
 
@@ -358,14 +400,26 @@ export const CustomerRegistrations = () => {
               {lang === 'bn' ? 'বাতিল' : 'Deselect'}
             </button>
 
+            {requests.some((r) => selectedIds.includes(r.id) && r.status === 'pending') && (
+              <button
+                type="button"
+                onClick={handleBulkApprove}
+                disabled={actionLoading}
+                className="px-3.5 py-1.5 text-xs font-bold rounded-xl text-white bg-emerald-600 hover:bg-emerald-700 transition flex items-center gap-1.5 shadow-sm shadow-emerald-600/20 cursor-pointer disabled:opacity-50"
+              >
+                <UserCheck className="w-3.5 h-3.5" />
+                <span>{lang === 'bn' ? 'অনুমোদন করুন' : 'Approve'}</span>
+              </button>
+            )}
+
             <button
               type="button"
-              onClick={handleBulkApprove}
+              onClick={handleBulkDelete}
               disabled={actionLoading}
-              className="px-4 py-1.5 text-xs font-bold rounded-xl text-white bg-emerald-600 hover:bg-emerald-700 transition flex items-center gap-1.5 shadow-sm shadow-emerald-600/20 cursor-pointer disabled:opacity-50"
+              className="px-3.5 py-1.5 text-xs font-bold rounded-xl text-white bg-rose-600 hover:bg-rose-700 transition flex items-center gap-1.5 shadow-sm shadow-rose-600/20 cursor-pointer disabled:opacity-50"
             >
-              <UserCheck className="w-3.5 h-3.5" />
-              <span>{lang === 'bn' ? 'এক ক্লিকে সব অনুমোদন করুন' : 'Bulk Approve All'}</span>
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>{lang === 'bn' ? 'মুছে ফেলুন' : 'Delete'}</span>
             </button>
           </div>
         </div>
@@ -380,10 +434,7 @@ export const CustomerRegistrations = () => {
                 <th className="p-4 w-12 text-center">
                   <input
                     type="checkbox"
-                    checked={
-                      requests.filter((r) => r.status === 'pending').length > 0 &&
-                      selectedIds.length === requests.filter((r) => r.status === 'pending').length
-                    }
+                    checked={requests.length > 0 && selectedIds.length === requests.length}
                     onChange={toggleSelectAll}
                     className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer"
                   />
@@ -432,16 +483,12 @@ export const CustomerRegistrations = () => {
                       }`}
                     >
                       <td className="p-4 text-center">
-                        {r.status === 'pending' ? (
-                          <input
-                            type="checkbox"
-                            checked={isSelected}
-                            onChange={() => toggleSelectOne(r.id)}
-                            className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer"
-                          />
-                        ) : (
-                          <span className="text-slate-300 dark:text-slate-600 text-xs">—</span>
-                        )}
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => toggleSelectOne(r.id)}
+                          className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                        />
                       </td>
 
                       <td className="p-4 font-mono font-bold text-indigo-600 dark:text-indigo-400">
@@ -538,6 +585,17 @@ export const CustomerRegistrations = () => {
                               </button>
                             </>
                           )}
+
+                          {/* Delete button */}
+                          <button
+                            type="button"
+                            disabled={actionLoading}
+                            onClick={() => setDeleteModalItem(r)}
+                            className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-slate-800 rounded-lg transition cursor-pointer"
+                            title={lang === 'bn' ? 'আবেদনটি মুছে ফেলুন' : 'Delete Application'}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -744,6 +802,58 @@ export const CustomerRegistrations = () => {
                   <span>গ্রাহক প্রোফাইল ও লেজার দেখুন</span>
                 </Link>
               )}
+
+              <button
+                type="button"
+                disabled={actionLoading}
+                onClick={() => {
+                  setDeleteModalItem(activeRequest);
+                  setActiveRequest(null);
+                }}
+                className="w-full py-2 px-4 rounded-xl text-xs font-bold text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/60 transition flex items-center justify-center gap-1.5 cursor-pointer mt-1"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span>{lang === 'bn' ? 'আবেদন রেকর্ড মুছে ফেলুন' : 'Delete Application Record'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteModalItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-[#1E293B] rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 max-w-sm w-full p-6 space-y-4 text-center">
+            <div className="w-12 h-12 rounded-full bg-rose-100 dark:bg-rose-950/80 text-rose-600 dark:text-rose-400 flex items-center justify-center mx-auto">
+              <Trash2 className="w-6 h-6" />
+            </div>
+
+            <div>
+              <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                {lang === 'bn' ? 'আবেদনটি মুছে ফেলতে চান?' : 'Delete Registration Request?'}
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                {deleteModalItem.name} ({deleteModalItem.phone}) এর আবেদন ({deleteModalItem.request_number}) স্থায়ীভাবে মুছে ফেলা হবে।
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setDeleteModalItem(null)}
+                className="py-2.5 px-4 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 transition cursor-pointer"
+              >
+                {lang === 'bn' ? 'বাতিল' : 'Cancel'}
+              </button>
+              <button
+                type="button"
+                disabled={actionLoading}
+                onClick={() => handleDelete(deleteModalItem.id)}
+                className="py-2.5 px-4 rounded-xl text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 shadow-sm transition flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>{lang === 'bn' ? 'মুছে ফেলুন' : 'Delete'}</span>
+              </button>
             </div>
           </div>
         </div>

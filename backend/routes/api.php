@@ -146,6 +146,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/customer-registration/admin/requests/{id}/reject', [CustomerRegistrationController::class, 'rejectRequest'])->whereNumber('id');
     Route::post('/customer-registration/admin/requests/bulk-approve', [CustomerRegistrationController::class, 'bulkApprove']);
     Route::post('/customer-registration/admin/requests/bulk-reject', [CustomerRegistrationController::class, 'bulkReject']);
+    Route::delete('/customer-registration/admin/requests/{id}', [CustomerRegistrationController::class, 'destroyRequest'])->whereNumber('id');
+    Route::post('/customer-registration/admin/requests/bulk-delete', [CustomerRegistrationController::class, 'bulkDeleteRequests']);
 
     // System Modules Maintenance & Crash Error Reporting
     Route::get('/system/modules', [SystemModuleController::class, 'getModules']);

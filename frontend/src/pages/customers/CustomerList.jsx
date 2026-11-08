@@ -102,8 +102,9 @@ export const CustomerList = () => {
       error(lang === 'bn' ? 'গ্রাহকের নাম আবশ্যক।' : 'Customer name is required.');
       return;
     }
-    if (!editFormData.phone.trim()) {
-      error(lang === 'bn' ? 'মোবাইল নম্বর আবশ্যক।' : 'Phone number is required.');
+    const cleanPhone = editFormData.phone.replace(/[^0-9]/g, '');
+    if (cleanPhone.length !== 11 || !/^01[3-9]\d{8}$/.test(cleanPhone)) {
+      error(lang === 'bn' ? 'মোবাইল নম্বর অবশ্যই সঠিক ১১ ডিজিটের হতে হবে (যেমন: 017XXXXXXXX)। ১১ ডিজিটের বেশি গ্রহণযোগ্য নয়।' : 'Phone number must be exactly 11 digits (e.g. 017XXXXXXXX).');
       return;
     }
 
@@ -112,7 +113,7 @@ export const CustomerList = () => {
       const res = await api.put(`/customers/${editingCustomer.id}`, {
         name: editFormData.name.trim(),
         name_bn: editFormData.name_bn.trim() || null,
-        phone: editFormData.phone.trim(),
+        phone: cleanPhone,
         email: editFormData.email.trim() || null,
         address: editFormData.address.trim() || null,
         credit_limit: editFormData.credit_limit ? Number(editFormData.credit_limit) : 0,
@@ -550,8 +551,10 @@ export const CustomerList = () => {
                   <input
                     type="tel"
                     required
+                    maxLength={11}
                     value={editFormData.phone}
-                    onChange={(e) => setEditFormData({ ...editFormData, phone: e.target.value })}
+                    onChange={(e) => setEditFormData({ ...editFormData, phone: e.target.value.replace(/[^0-9]/g, '').slice(0, 11) })}
+                    placeholder="01XXXXXXXXX"
                     className="w-full py-2 px-3 text-xs font-mono font-bold rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-indigo-500"
                   />
                 </div>

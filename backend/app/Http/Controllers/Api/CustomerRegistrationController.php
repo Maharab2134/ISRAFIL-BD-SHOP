@@ -187,9 +187,22 @@ class CustomerRegistrationController extends Controller
         }
 
         // Normalize phone number (standardize 11-digit BD number)
-        $cleanPhone = preg_replace('/[^0-9]/', '', $request->input('phone'));
-        if (str_starts_with($cleanPhone, '880')) {
-            $cleanPhone = substr($cleanPhone, 2);
+        $rawPhone = preg_replace('/[^0-9]/', '', (string) $request->input('phone'));
+        if (str_starts_with($rawPhone, '8801') && strlen($rawPhone) === 13) {
+            $cleanPhone = substr($rawPhone, 2);
+        } else {
+            $cleanPhone = $rawPhone;
+        }
+
+        // Rule 2: Mobile number MUST NOT exceed or be less than 11 digits anywhere
+        if (strlen($cleanPhone) !== 11 || !preg_match('/^01[3-9]\d{8}$/', $cleanPhone)) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'মোবাইল নম্বর অবশ্যই সঠিক ১১ ডিজিটের হতে হবে (যেমন: 017XXXXXXXX)। ১১ ডিজিটের বেশি বা কম নম্বর কোনোভাবেই সমর্থন করবে না।',
+                'errors' => [
+                    'phone' => ['মোবাইল নম্বর অবশ্যই ১১ ডিজিটের হতে হবে (যেমন: 01XXXXXXXXX)।']
+                ]
+            ], 422);
         }
 
         // 1. Check if phone already belongs to an active customer
@@ -296,6 +309,19 @@ class CustomerRegistrationController extends Controller
      */
     public function getRequests(Request $request)
     {
+        // Rule 1: Auto-purge any approved request whose customer was deleted from the system
+        $existingCustomerPhones = Customer::pluck('phone')->filter()->toArray();
+        CustomerRegistrationRequest::where('status', 'approved')
+            ->where(function ($q) use ($existingCustomerPhones) {
+                $q->whereNull('customer_id')
+                  ->orWhereDoesntHave('customer')
+                  ->orWhereNotIn('phone', $existingCustomerPhones);
+            })
+            ->delete();
+
+        // Rule 2: Auto-purge any legacy requests where mobile number exceeds 11 digits
+        CustomerRegistrationRequest::whereRaw('CHAR_LENGTH(phone) > 11')->delete();
+
         $query = CustomerRegistrationRequest::with(['customer', 'reviewer']);
 
         // Status Filter
@@ -562,6 +588,46 @@ class CustomerRegistrationController extends Controller
             'status' => 'success',
             'message' => "{$updated} টি আবেদন প্রত্যাখ্যান করা হয়েছে",
             'count' => $updated,
+        ]);
+    }
+
+    /**
+     * Delete a customer registration request.
+     */
+    public function destroyRequest($id)
+    {
+        $regRequest = CustomerRegistrationRequest::findOrFail($id);
+        $name = $regRequest->name;
+        $requestNumber = $regRequest->request_number;
+
+        $regRequest->delete();
+
+        ActivityLog::log('delete', "গ্রাহক আবেদন '{$requestNumber}' ({$name}) মুছে ফেলা হয়েছে।");
+
+        return response()->json([
+            'status' => 'success',
+            'message' => "আবেদন '{$requestNumber}' সফলভাবে মুছে ফেলা হয়েছে।",
+        ]);
+    }
+
+    /**
+     * Bulk delete customer registration requests.
+     */
+    public function bulkDeleteRequests(Request $request)
+    {
+        $ids = $request->validate([
+            'ids' => 'required|array|min:1',
+            'ids.*' => 'required|integer',
+        ])['ids'];
+
+        $deleted = CustomerRegistrationRequest::whereIn('id', $ids)->delete();
+
+        ActivityLog::log('delete', "{$deleted} টি গ্রাহক আবেদন মুছে ফেলা হয়েছে।");
+
+        return response()->json([
+            'status' => 'success',
+            'message' => "{$deleted} টি আবেদন সফলভাবে মুছে ফেলা হয়েছে।",
+            'deleted_count' => $deleted,
         ]);
     }
 }

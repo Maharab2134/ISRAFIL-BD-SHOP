@@ -22,13 +22,19 @@ export const AddCustomer = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const cleanPhone = phone.replace(/[^0-9]/g, '');
+    if (cleanPhone.length !== 11 || !/^01[3-9]\d{8}$/.test(cleanPhone)) {
+      error('মোবাইল নম্বর অবশ্যই সঠিক ১১ ডিজিটের হতে হবে (যেমন: 017XXXXXXXX)। ১১ ডিজিটের বেশি বা কম নম্বর কোনোভাবেই সমর্থন করবে না।');
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
       await api.post('/customers', {
         name,
         name_bn: nameBn,
-        phone,
+        phone: cleanPhone,
         email,
         address,
         opening_balance: openingBalance,
@@ -75,8 +81,9 @@ export const AddCustomer = () => {
             <input
               type="tel"
               required
+              maxLength={11}
               value={phone}
-              onChange={(e) => setPhone(e.target.value)}
+              onChange={(e) => setPhone(e.target.value.replace(/[^0-9]/g, '').slice(0, 11))}
               placeholder="যেমন: 01819123456"
               className="w-full py-2.5 px-3.5 text-sm font-mono rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white"
             />

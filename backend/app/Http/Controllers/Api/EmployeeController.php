@@ -38,10 +38,27 @@ class EmployeeController extends Controller
 
     public function store(Request $request)
     {
+        // Rule 2: Enforce max 11 digits on phone if provided
+        if ($request->filled('phone')) {
+            $rawPhone = preg_replace('/[^0-9]/', '', (string) $request->input('phone'));
+            if (str_starts_with($rawPhone, '8801') && strlen($rawPhone) === 13) {
+                $cleanPhone = substr($rawPhone, 2);
+            } else {
+                $cleanPhone = $rawPhone;
+            }
+            if (strlen($cleanPhone) !== 11 || !preg_match('/^01[3-9]\d{8}$/', $cleanPhone)) {
+                return response()->json([
+                    'message' => 'মোবাইল নম্বর অবশ্যই সঠিক ১১ ডিজিটের হতে হবে (যেমন: 017XXXXXXXX)। ১১ ডিজিটের বেশি বা কম নম্বর কোনোভাবেই সমর্থন করবে না।',
+                    'errors' => ['phone' => ['মোবাইল নম্বর অবশ্যই ১১ ডিজিটের হতে হবে (যেমন: 01XXXXXXXXX)।']]
+                ], 422);
+            }
+            $request->merge(['phone' => $cleanPhone]);
+        }
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
-            'phone' => 'nullable|string|max:20',
+            'phone' => 'nullable|string|size:11',
             'role_id' => 'required|exists:roles,id',
             'password' => 'required|string|min:6',
             'status' => 'required|in:active,inactive',
@@ -62,10 +79,27 @@ class EmployeeController extends Controller
     {
         $employee = User::findOrFail($id);
 
+        // Rule 2: Enforce max 11 digits on phone if provided
+        if ($request->filled('phone')) {
+            $rawPhone = preg_replace('/[^0-9]/', '', (string) $request->input('phone'));
+            if (str_starts_with($rawPhone, '8801') && strlen($rawPhone) === 13) {
+                $cleanPhone = substr($rawPhone, 2);
+            } else {
+                $cleanPhone = $rawPhone;
+            }
+            if (strlen($cleanPhone) !== 11 || !preg_match('/^01[3-9]\d{8}$/', $cleanPhone)) {
+                return response()->json([
+                    'message' => 'মোবাইল নম্বর অবশ্যই সঠিক ১১ ডিজিটের হতে হবে (যেমন: 017XXXXXXXX)। ১১ ডিজিটের বেশি বা কম নম্বর কোনোভাবেই সমর্থন করবে না।',
+                    'errors' => ['phone' => ['মোবাইল নম্বর অবশ্যই ১১ ডিজিটের হতে হবে (যেমন: 01XXXXXXXXX)।']]
+                ], 422);
+            }
+            $request->merge(['phone' => $cleanPhone]);
+        }
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email,' . $employee->id,
-            'phone' => 'nullable|string|max:20',
+            'phone' => 'nullable|string|size:11',
             'role_id' => 'required|exists:roles,id',
             'password' => 'nullable|string|min:6',
             'status' => 'required|in:active,inactive',

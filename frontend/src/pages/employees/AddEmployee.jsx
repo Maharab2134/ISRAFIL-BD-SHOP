@@ -101,16 +101,29 @@ export default function AddEmployee() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (form.phone && form.phone.trim()) {
+      const cleanPhone = form.phone.replace(/[^0-9]/g, '');
+      if (cleanPhone.length !== 11 || !/^01[3-9]\d{8}$/.test(cleanPhone)) {
+        error(lang === 'bn' ? 'মোবাইল নম্বর অবশ্যই সঠিক ১১ ডিজিটের হতে হবে (যেমন: 017XXXXXXXX)। ১১ ডিজিটের বেশি বা কম গ্রহণযোগ্য নয়।' : 'Phone number must be exactly 11 digits (e.g. 017XXXXXXXX).');
+        return;
+      }
+    }
+
     setLoading(true);
 
     try {
+      const cleanPayload = {
+        ...form,
+        phone: form.phone ? form.phone.replace(/[^0-9]/g, '').slice(0, 11) : null,
+      };
+
       if (isEdit) {
-        const payload = { ...form };
-        if (!payload.password) delete payload.password;
-        const res = await api.put(`/employees/${id}`, payload);
+        if (!cleanPayload.password) delete cleanPayload.password;
+        const res = await api.put(`/employees/${id}`, cleanPayload);
         success(res.data.message || (lang === 'bn' ? 'কর্মীর তথ্য আপডেট হয়েছে।' : 'Employee updated.'));
       } else {
-        const res = await api.post('/employees', form);
+        const res = await api.post('/employees', cleanPayload);
         success(res.data.message || (lang === 'bn' ? 'নতুন কর্মী যুক্ত করা হয়েছে।' : 'Employee added.'));
       }
       navigate('/employees');
@@ -201,10 +214,11 @@ export default function AddEmployee() {
               <Phone className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
                 type="text"
+                maxLength={11}
                 value={form.phone}
-                onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                onChange={(e) => setForm({ ...form, phone: e.target.value.replace(/[^0-9]/g, '').slice(0, 11) })}
                 placeholder="017XXXXXXXX"
-                className="w-full pl-10 pr-4 py-2.5 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full pl-10 pr-4 py-2.5 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono"
               />
             </div>
           </div>

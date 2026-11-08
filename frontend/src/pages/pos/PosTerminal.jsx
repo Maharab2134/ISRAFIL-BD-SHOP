@@ -1860,9 +1860,10 @@ export const PosTerminal = () => {
                   <Phone className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0" />
                   <input
                     type="tel"
+                    maxLength={11}
                     placeholder={lang === 'bn' ? 'কাস্টমার ফোন নম্বর (যেমন: 017xxxxxxxx)...' : 'Customer phone (e.g. 017xxxxxxxx)...'}
                     value={customerPhone}
-                    onChange={(e) => setCustomerPhone(e.target.value)}
+                    onChange={(e) => setCustomerPhone(e.target.value.replace(/[^0-9]/g, '').slice(0, 11))}
                     className="flex-1 text-xs sm:text-sm bg-transparent text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none font-mono"
                   />
                   {matchedCustomer ? (
