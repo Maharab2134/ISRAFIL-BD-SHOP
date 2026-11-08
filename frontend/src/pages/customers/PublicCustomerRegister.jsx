@@ -325,3 +325,4 @@ export const PublicCustomerRegister = () => {
 };
 
 export default PublicCustomerRegister;
+

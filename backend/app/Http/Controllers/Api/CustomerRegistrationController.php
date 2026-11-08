@@ -78,43 +78,52 @@ class CustomerRegistrationController extends Controller
      */
     public function saveFormConfig(Request $request)
     {
-        $validated = $request->validate([
-            'title' => 'required|string|max:255',
+        $rules = [
+            'title' => 'nullable|string|max:255',
             'title_en' => 'nullable|string|max:255',
             'description' => 'nullable|string',
             'description_en' => 'nullable|string',
-            'welcome_points' => 'required|integer|min:0|max:10000',
-            'auto_approve' => 'boolean',
-            'is_active' => 'boolean',
+            'welcome_points' => 'nullable|integer|min:0|max:10000',
+            'auto_approve' => 'nullable|boolean',
+            'is_active' => 'nullable|boolean',
             'theme_color' => 'nullable|string|max:30',
             'slug' => 'nullable|string|max:50',
-            'fields' => 'required|array',
-            'fields.*.id' => 'required|string',
-            'fields.*.label' => 'required|string',
-            'fields.*.label_bn' => 'nullable|string',
-            'fields.*.type' => 'required|string|in:text,tel,email,textarea,select,date,number',
-            'fields.*.required' => 'boolean',
-            'fields.*.enabled' => 'boolean',
-            'fields.*.placeholder' => 'nullable|string',
-            'fields.*.options' => 'nullable|array',
-            'fields.*.is_system' => 'nullable|boolean',
-        ]);
+            'fields' => 'nullable|array',
+        ];
+
+        $validator = Validator::make($request->all(), $rules);
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $validator->errors()->first(),
+                'errors' => $validator->errors(),
+            ], 422);
+        }
 
         $form = CustomerRegistrationForm::first();
         if (!$form) {
             $form = new CustomerRegistrationForm();
         }
 
-        $form->title = $validated['title'];
-        $form->title_en = $validated['title_en'] ?? $validated['title'];
-        $form->description = $validated['description'] ?? null;
-        $form->description_en = $validated['description_en'] ?? null;
-        $form->welcome_points = $validated['welcome_points'] ?? 50;
-        $form->auto_approve = $validated['auto_approve'] ?? false;
-        $form->is_active = $validated['is_active'] ?? true;
-        $form->theme_color = $validated['theme_color'] ?? '#4F46E5';
-        $form->slug = $validated['slug'] ?? 'join-customer';
-        $form->fields = $validated['fields'];
+        $defaultFields = [
+            ['id' => 'name', 'label' => 'Full Name', 'label_bn' => 'পূর্ণ নাম', 'type' => 'text', 'placeholder' => 'আপনার নাম লিখুন', 'required' => true, 'enabled' => true, 'is_system' => true],
+            ['id' => 'phone', 'label' => 'Mobile Number', 'label_bn' => 'মোবাইল নম্বর', 'type' => 'tel', 'placeholder' => '০১৭XXXXXXXX', 'required' => true, 'enabled' => true, 'is_system' => true],
+            ['id' => 'email', 'label' => 'Email Address', 'label_bn' => 'ইমেইল ঠিকানা (ঐচ্ছিক)', 'type' => 'email', 'placeholder' => 'example@mail.com', 'required' => false, 'enabled' => true, 'is_system' => false],
+            ['id' => 'address', 'label' => 'Address / Area', 'label_bn' => 'ঠিকানা / এলাকা', 'type' => 'textarea', 'placeholder' => 'বাসা/রোড, এলাকা ও থানা লিখুন', 'required' => false, 'enabled' => true, 'is_system' => false],
+            ['id' => 'dob', 'label' => 'Date of Birth', 'label_bn' => 'জন্ম তারিখ', 'type' => 'date', 'placeholder' => '', 'required' => false, 'enabled' => true, 'is_system' => false],
+            ['id' => 'gender', 'label' => 'Gender', 'label_bn' => 'লিঙ্গ (Gender)', 'type' => 'select', 'placeholder' => 'লিঙ্গ নির্বাচন করুন', 'options' => ['পুরুষ (Male)', 'নারী (Female)', 'অন্যান্য (Other)'], 'required' => false, 'enabled' => true, 'is_system' => false],
+        ];
+
+        $form->title = $request->input('title') ?: ($form->title ?: 'গ্রাহক মেম্বারশিপ ও কাস্টমার রেজিস্ট্রেশন');
+        $form->title_en = $request->input('title_en') ?: ($form->title_en ?: 'Customer Membership & Registration');
+        $form->description = $request->input('description', $form->description);
+        $form->description_en = $request->input('description_en', $form->description_en);
+        $form->welcome_points = $request->has('welcome_points') ? (int) $request->input('welcome_points') : ($form->welcome_points ?? 50);
+        $form->auto_approve = $request->has('auto_approve') ? (bool) $request->input('auto_approve') : ($form->auto_approve ?? false);
+        $form->is_active = $request->has('is_active') ? (bool) $request->input('is_active') : ($form->is_active ?? true);
+        $form->theme_color = $request->input('theme_color') ?: ($form->theme_color ?: '#4F46E5');
+        $form->slug = $request->input('slug') ?: ($form->slug ?: 'join-customer');
+        $form->fields = (!empty($request->input('fields')) && is_array($request->input('fields'))) ? $request->input('fields') : ($form->fields ?: $defaultFields);
         $form->save();
 
         ActivityLog::create([
@@ -570,3 +579,4 @@ class CustomerRegistrationController extends Controller
         ]);
     }
 }
+

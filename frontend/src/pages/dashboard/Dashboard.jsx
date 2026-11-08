@@ -340,8 +340,8 @@ export const Dashboard = () => {
               </p>
             </div>
           ) : (
-            <div className="relative h-52 my-auto w-full min-h-[200px]">
-              <ResponsiveContainer width="100%" height="100%">
+            <div className="relative h-52 my-auto w-full min-h-[200px] flex items-center justify-center">
+              <ResponsiveContainer width="100%" height={210} minHeight={200}>
                 <PieChart>
                   <Pie
                     data={paymentBreakdownData}
@@ -352,7 +352,7 @@ export const Dashboard = () => {
                     innerRadius={55}
                     outerRadius={80}
                     paddingAngle={paymentBreakdownData.length > 1 ? 4 : 0}
-                    isAnimationActive={true}
+                    isAnimationActive={false}
                   >
                     {paymentBreakdownData.map((_, index) => (
                       <Cell key={`cell-${index}`} fill={PAYMENT_COLORS[index % PAYMENT_COLORS.length]} />

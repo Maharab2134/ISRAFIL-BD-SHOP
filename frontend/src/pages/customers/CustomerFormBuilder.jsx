@@ -48,14 +48,19 @@ export const CustomerFormBuilder = () => {
   const [copied, setCopied] = useState(false);
 
   // Form Configuration State
-  const [title, setTitle] = useState('');
-  const [titleEn, setTitleEn] = useState('');
-  const [description, setDescription] = useState('');
+  const [title, setTitle] = useState('গ্রাহক মেম্বারশিপ ও কাস্টমার রেজিস্ট্রেশন');
+  const [titleEn, setTitleEn] = useState('Customer Membership & Registration');
+  const [description, setDescription] = useState('ইসরাফিল বিডি শপের মেম্বারশিপ প্রোগ্রামে যুক্ত হোন এবং প্রতিটি কেনাকাটায় বিশেষ ছাড় ও লয়্যালটি পয়েন্ট উপভোগ করুন!');
   const [welcomePoints, setWelcomePoints] = useState(50);
   const [autoApprove, setAutoApprove] = useState(false);
   const [isActive, setIsActive] = useState(true);
   const [themeColor, setThemeColor] = useState('#4F46E5');
-  const [fields, setFields] = useState([]);
+  const [fields, setFields] = useState([
+    { id: 'name', label: 'Full Name', label_bn: 'পূর্ণ নাম', type: 'text', placeholder: 'আপনার নাম লিখুন', required: true, enabled: true, is_system: true },
+    { id: 'phone', label: 'Mobile Number', label_bn: 'মোবাইল নম্বর', type: 'tel', placeholder: '০১৭XXXXXXXX', required: true, enabled: true, is_system: true },
+    { id: 'email', label: 'Email Address', label_bn: 'ইমেইল ঠিকানা (ঐচ্ছিক)', type: 'email', placeholder: 'example@mail.com', required: false, enabled: true, is_system: false },
+    { id: 'address', label: 'Address / Area', label_bn: 'ঠিকানা / এলাকা', type: 'textarea', placeholder: 'বাসা/রোড, এলাকা ও থানা লিখুন', required: false, enabled: true, is_system: false },
+  ]);
   const [shopInfo, setShopInfo] = useState(null);
 
   // New Custom Field State
@@ -105,14 +110,19 @@ export const CustomerFormBuilder = () => {
     try {
       setSaving(true);
       const payload = {
-        title,
-        title_en: titleEn,
+        title: title?.trim() || 'গ্রাহক মেম্বারশিপ ও কাস্টমার রেজিস্ট্রেশন',
+        title_en: titleEn?.trim() || 'Customer Membership & Registration',
         description,
         welcome_points: Number(welcomePoints) || 0,
         auto_approve: autoApprove,
         is_active: isActive,
         theme_color: themeColor,
-        fields,
+        fields: Array.isArray(fields) && fields.length > 0 ? fields : [
+          { id: 'name', label: 'Full Name', label_bn: 'পূর্ণ নাম', type: 'text', placeholder: 'আপনার নাম লিখুন', required: true, enabled: true, is_system: true },
+          { id: 'phone', label: 'Mobile Number', label_bn: 'মোবাইল নম্বর', type: 'tel', placeholder: '০১৭XXXXXXXX', required: true, enabled: true, is_system: true },
+          { id: 'email', label: 'Email Address', label_bn: 'ইমেইল ঠিকানা (ঐচ্ছিক)', type: 'email', placeholder: 'example@mail.com', required: false, enabled: true, is_system: false },
+          { id: 'address', label: 'Address / Area', label_bn: 'ঠিকানা / এলাকা', type: 'textarea', placeholder: 'বাসা/রোড, এলাকা ও থানা লিখুন', required: false, enabled: true, is_system: false },
+        ],
       };
 
       const res = await api.put('/customer-registration/admin/form', payload);
@@ -993,3 +1003,4 @@ export const CustomerFormBuilder = () => {
 };
 
 export default CustomerFormBuilder;
+

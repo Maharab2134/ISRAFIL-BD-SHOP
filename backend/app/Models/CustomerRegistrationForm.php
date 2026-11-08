@@ -29,3 +29,4 @@ class CustomerRegistrationForm extends Model
         'is_active' => 'boolean',
     ];
 }
+

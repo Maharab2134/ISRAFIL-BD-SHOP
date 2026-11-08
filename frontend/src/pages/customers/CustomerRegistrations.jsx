@@ -807,3 +807,4 @@ export const CustomerRegistrations = () => {
 };
 
 export default CustomerRegistrations;
+
