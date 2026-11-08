@@ -94,7 +94,34 @@ class RolePermissionSeeder extends Seeder
             ['name' => 'Create Employee Profile', 'name_bn' => 'নতুন কর্মী যুক্ত করুন', 'slug' => 'employees.create', 'group' => 'employees'],
             ['name' => 'Edit Employee Profile', 'name_bn' => 'কর্মী তথ্য সম্পাদনা', 'slug' => 'employees.edit', 'group' => 'employees'],
             ['name' => 'Delete Employee Records', 'name_bn' => 'কর্মী অপসারণ', 'slug' => 'employees.delete', 'group' => 'employees'],
+            ['name' => 'Activate Employee Account', 'name_bn' => 'কর্মী একাউন্ট সক্রিয়করণ', 'slug' => 'employees.activate', 'group' => 'employees'],
+            ['name' => 'Deactivate / Suspend Employee', 'name_bn' => 'কর্মী একাউন্ট নিষ্ক্রিয় বা বরখাস্তকরণ', 'slug' => 'employees.deactivate', 'group' => 'employees'],
+            ['name' => 'Transfer Employee Between Branches', 'name_bn' => 'কর্মী শাখা স্থানান্তর', 'slug' => 'employees.transfer', 'group' => 'employees'],
+            ['name' => 'Assign Role to Employee', 'name_bn' => 'কর্মীকে ভূমিকা অর্পণ', 'slug' => 'employees.assign_role', 'group' => 'employees'],
+            ['name' => 'View Sensitive Salary Information', 'name_bn' => 'বেতন সংক্রান্ত তথ্য দেখুন', 'slug' => 'employees.view_salary', 'group' => 'employees'],
+            ['name' => 'View & Manage Employee Documents', 'name_bn' => 'কর্মী নথি ও ডকুমেন্ট দেখুন', 'slug' => 'employees.view_documents', 'group' => 'employees'],
+            ['name' => 'Export Employee Directory', 'name_bn' => 'কর্মী তালিকা এক্সপোর্ট', 'slug' => 'employees.export', 'group' => 'employees'],
             ['name' => 'Manage Roles & Permissions', 'name_bn' => 'ভূমিকা ও পারমিশন পরিচালনা', 'slug' => 'employees.roles_manage', 'group' => 'employees'],
+
+            // Department Management
+            ['name' => 'View Departments List', 'name_bn' => 'বিভাগ তালিকা দেখুন', 'slug' => 'departments.view', 'group' => 'employees'],
+            ['name' => 'Create New Department', 'name_bn' => 'নতুন বিভাগ তৈরি', 'slug' => 'departments.create', 'group' => 'employees'],
+            ['name' => 'Edit Department Details', 'name_bn' => 'বিভাগ তথ্য পরিবর্তন', 'slug' => 'departments.edit', 'group' => 'employees'],
+            ['name' => 'Delete Department', 'name_bn' => 'বিভাগ অপসারণ', 'slug' => 'departments.delete', 'group' => 'employees'],
+            ['name' => 'Assign Department Head', 'name_bn' => 'বিভাগীয় প্রধান নির্ধারণ', 'slug' => 'departments.assign_head', 'group' => 'employees'],
+
+            // Designation Management
+            ['name' => 'View Designations List', 'name_bn' => 'পদবী তালিকা দেখুন', 'slug' => 'designations.view', 'group' => 'employees'],
+            ['name' => 'Create New Designation', 'name_bn' => 'নতুন পদবী তৈরি', 'slug' => 'designations.create', 'group' => 'employees'],
+            ['name' => 'Edit Designation Details', 'name_bn' => 'পদবী তথ্য পরিবর্তন', 'slug' => 'designations.edit', 'group' => 'employees'],
+            ['name' => 'Delete Designation', 'name_bn' => 'পদবী অপসারণ', 'slug' => 'designations.delete', 'group' => 'employees'],
+
+            // Attendance & Shift Management
+            ['name' => 'View Attendance Register', 'name_bn' => 'হাজিরা খাতা দেখুন', 'slug' => 'attendance.view', 'group' => 'employees'],
+            ['name' => 'Record Daily Attendance', 'name_bn' => 'দৈনিক হাজিরা এন্ট্রি', 'slug' => 'attendance.create', 'group' => 'employees'],
+            ['name' => 'Edit Attendance Records', 'name_bn' => 'হাজিরা তথ্য পরিবর্তন', 'slug' => 'attendance.edit', 'group' => 'employees'],
+            ['name' => 'Approve Attendance & Leaves', 'name_bn' => 'হাজিরা ও ছুটি অনুমোদন', 'slug' => 'attendance.approve', 'group' => 'employees'],
+            ['name' => 'Export Attendance Reports', 'name_bn' => 'হাজিরা রিপোর্ট এক্সপোর্ট', 'slug' => 'attendance.export', 'group' => 'employees'],
 
             // Category 9: Accounting & Finance
             ['name' => 'View Financial Accounting & Cash Flow', 'name_bn' => 'হিসাবরক্ষণ ও নগদ প্রবাহ দেখুন', 'slug' => 'accounting.view', 'group' => 'accounting'],
@@ -205,7 +232,10 @@ class RolePermissionSeeder extends Seeder
                     'purchases.view', 'purchases.create', 'purchases.approve', 'purchases.print',
                     'sales.view', 'sales.export', 'sales.print', 'sales.returns_view', 'sales.returns_create', 'sales.returns_approve',
                     'customers.view', 'customers.create', 'customers.edit', 'customers.delete', 'customers.manage', 'customers.loyalty_manage', 'customers.export',
-                    'employees.view', 'employees.create', 'employees.edit',
+                    'employees.view', 'employees.create', 'employees.edit', 'employees.activate', 'employees.deactivate', 'employees.transfer', 'employees.assign_role', 'employees.view_salary', 'employees.view_documents', 'employees.export',
+                    'departments.view', 'departments.create', 'departments.edit', 'departments.assign_head',
+                    'designations.view', 'designations.create', 'designations.edit',
+                    'attendance.view', 'attendance.create', 'attendance.edit', 'attendance.approve', 'attendance.export',
                     'accounting.view', 'accounting.customer_due', 'accounting.supplier_due', 'accounting.export',
                     'expenses.view', 'expenses.create', 'expenses.edit', 'expenses.categories',
                     'reports.view', 'reports.daily', 'reports.monthly', 'reports.stock', 'reports.export',
@@ -233,7 +263,9 @@ class RolePermissionSeeder extends Seeder
                     'purchases.view', 'purchases.create', 'purchases.approve', 'purchases.print',
                     'sales.view', 'sales.export', 'sales.print', 'sales.returns_view', 'sales.returns_create', 'sales.returns_approve',
                     'customers.view', 'customers.create', 'customers.edit', 'customers.manage', 'customers.loyalty_manage', 'customers.export',
-                    'employees.view',
+                    'employees.view', 'employees.edit', 'employees.transfer', 'employees.view_documents',
+                    'departments.view', 'designations.view',
+                    'attendance.view', 'attendance.create', 'attendance.approve',
                     'expenses.view', 'expenses.create', 'expenses.edit', 'expenses.categories',
                     'reports.view', 'reports.daily', 'reports.monthly', 'reports.stock', 'reports.export',
                     'warehouse.view', 'warehouse.receive',

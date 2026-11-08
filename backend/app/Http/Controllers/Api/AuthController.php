@@ -65,16 +65,27 @@ class AuthController extends Controller
 
         // 4. Strict account status check
         if ($user->status !== 'active') {
+            $msg = 'আপনার অ্যাকাউন্টটি বর্তমানে নিষ্ক্রিয় রয়েছে। প্রশাসকের সাথে যোগাযোগ করুন।';
+            if ($user->status === 'suspended') {
+                $msg = 'আপনার অ্যাকাউন্টটি সাময়িকভাবে বরখাস্ত (Suspended) করা হয়েছে। প্রশাসকের সাথে যোগাযোগ করুন।';
+            } elseif ($user->status === 'resigned') {
+                $msg = 'পদত্যাগকৃত কর্মীর সিস্টেমে লগইন করার অনুমতি নেই।';
+            } elseif ($user->status === 'terminated') {
+                $msg = 'চাকরিচ্যুত কর্মীর সিস্টেমে লগইন করার অনুমতি নেই।';
+            } elseif ($user->status === 'on_leave') {
+                $msg = 'আপনি বর্তমানে ছুটিতে (On Leave) আছেন। ছুটির সময় সিস্টেমে এক্সেস স্থগিত রাখা হয়েছে।';
+            }
+
             ActivityLog::create([
                 'user_id' => $user->id,
                 'action' => 'blocked_login',
-                'description' => "নিষ্ক্রিয় একাউন্টে লগইন প্রচেষ্টা (স্ট্যাটাস: {$user->status})",
+                'description' => "লগইন প্রচেষ্টা ব্লক করা হয়েছে (স্ট্যাটাস: {$user->status})",
                 'ip_address' => $request->ip(),
                 'user_agent' => substr((string) $request->userAgent(), 0, 255),
             ]);
 
             return response()->json([
-                'message' => 'আপনার অ্যাকাউন্টটি বর্তমানে নিষ্ক্রিয় বা স্থগিত রয়েছে। প্রশাসকের সাথে যোগাযোগ করুন।'
+                'message' => $msg
             ], 403);
         }
 

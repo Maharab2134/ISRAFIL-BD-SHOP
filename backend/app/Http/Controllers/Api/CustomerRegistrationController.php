@@ -443,7 +443,7 @@ class CustomerRegistrationController extends Controller
 
             return response()->json([
                 'status' => 'success',
-                'message' => "আবেদন সফলভাবে অনুমোদিত হয়েছে! গ্রাহক আইডি তৈরি এবং {$welcomePoints} লয়্যালটি পয়েন্ট যোগ করা হয়েছে।",
+                'message' => 'আবেদন সফলভাবে অনুমোদিত হয়েছে এবং গ্রাহক অ্যাকাউন্ট সক্রিয় করা হয়েছে।',
                 'request' => $regRequest->load(['customer', 'reviewer']),
             ]);
         } catch (\Throwable $e) {

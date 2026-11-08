@@ -62,8 +62,39 @@ export const AppLayout = () => {
         return;
       }
 
-      // Permission-based route protection
-      if (path.startsWith('/employees') && !hasPermission('employees.view') && !hasPermission('employees.manage')) {
+      // Permission-based route protection for Enterprise HR & Employees
+      if (
+        (path.startsWith('/employees') || path.startsWith('/organization-chart') || path.startsWith('/org-chart')) &&
+        !hasPermission('employees.view') &&
+        !hasPermission('employees.manage')
+      ) {
+        navigate(getFallbackRoute(), { replace: true });
+        return;
+      }
+      if (
+        path.startsWith('/departments') &&
+        !hasPermission('departments.view') &&
+        !hasPermission('employees.view') &&
+        !hasPermission('employees.manage')
+      ) {
+        navigate(getFallbackRoute(), { replace: true });
+        return;
+      }
+      if (
+        path.startsWith('/designations') &&
+        !hasPermission('designations.view') &&
+        !hasPermission('employees.view') &&
+        !hasPermission('employees.manage')
+      ) {
+        navigate(getFallbackRoute(), { replace: true });
+        return;
+      }
+      if (
+        path.startsWith('/attendance') &&
+        !hasPermission('attendance.view') &&
+        !hasPermission('employees.view') &&
+        !hasPermission('employees.manage')
+      ) {
         navigate(getFallbackRoute(), { replace: true });
         return;
       }

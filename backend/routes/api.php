@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AccountingController;
+use App\Http\Controllers\Api\AttendanceController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BranchController;
 use App\Http\Controllers\Api\BrandController;
@@ -8,6 +9,8 @@ use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\CustomerController;
 use App\Http\Controllers\Api\CustomerRegistrationController;
 use App\Http\Controllers\Api\DashboardController;
+use App\Http\Controllers\Api\DepartmentController;
+use App\Http\Controllers\Api\DesignationController;
 use App\Http\Controllers\Api\EmployeeController;
 use App\Http\Controllers\Api\ExpenseController;
 use App\Http\Controllers\Api\InventoryController;
@@ -111,14 +114,47 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/reports/products', [ReportController::class, 'productPerformanceReport']);
     Route::get('/reports/stock', [ReportController::class, 'stockReport']);
 
-    // Employees, Roles & Logs
+    // Employees & Enterprise HR
+    Route::get('/employees/kpis', [EmployeeController::class, 'kpis']);
+    Route::get('/employees/org-chart', [EmployeeController::class, 'orgChart']);
     Route::get('/employees/roles', [EmployeeController::class, 'roles']);
     Route::post('/employees/bulk-delete', [EmployeeController::class, 'bulkDelete']);
     Route::get('/employees', [EmployeeController::class, 'index']);
     Route::post('/employees', [EmployeeController::class, 'store']);
     Route::get('/employees/{id}', [EmployeeController::class, 'show'])->whereNumber('id');
     Route::put('/employees/{id}', [EmployeeController::class, 'update'])->whereNumber('id');
+    Route::patch('/employees/{id}/status', [EmployeeController::class, 'updateStatus'])->whereNumber('id');
+    Route::post('/employees/{id}/transfer', [EmployeeController::class, 'transfer'])->whereNumber('id');
+    Route::post('/employees/{id}/reset-password', [EmployeeController::class, 'resetPassword'])->whereNumber('id');
+    Route::post('/employees/{id}/documents', [EmployeeController::class, 'uploadDocument'])->whereNumber('id');
+    Route::delete('/employees/{id}/documents/{docId}', [EmployeeController::class, 'deleteDocument'])->whereNumber('id');
+    Route::get('/employees/{id}/activity', [EmployeeController::class, 'activity'])->whereNumber('id');
+    Route::get('/employees/{id}/attendance', [EmployeeController::class, 'attendance'])->whereNumber('id');
     Route::delete('/employees/{id}', [EmployeeController::class, 'destroy'])->whereNumber('id');
+
+    // Department Management
+    Route::get('/departments', [DepartmentController::class, 'index']);
+    Route::post('/departments', [DepartmentController::class, 'store']);
+    Route::get('/departments/{id}', [DepartmentController::class, 'show'])->whereNumber('id');
+    Route::put('/departments/{id}', [DepartmentController::class, 'update'])->whereNumber('id');
+    Route::delete('/departments/{id}', [DepartmentController::class, 'destroy'])->whereNumber('id');
+    Route::post('/departments/{id}/assign-head', [DepartmentController::class, 'assignHead'])->whereNumber('id');
+
+    // Designation Management
+    Route::get('/designations', [DesignationController::class, 'index']);
+    Route::post('/designations', [DesignationController::class, 'store']);
+    Route::get('/designations/{id}', [DesignationController::class, 'show'])->whereNumber('id');
+    Route::put('/designations/{id}', [DesignationController::class, 'update'])->whereNumber('id');
+    Route::delete('/designations/{id}', [DesignationController::class, 'destroy'])->whereNumber('id');
+
+    // Attendance & Shifts
+    Route::get('/attendances/shifts', [AttendanceController::class, 'shifts']);
+    Route::get('/attendances/monthly-report', [AttendanceController::class, 'monthlyReport']);
+    Route::get('/attendances', [AttendanceController::class, 'index']);
+    Route::post('/attendances/record', [AttendanceController::class, 'record']);
+    Route::post('/attendances/check-in', [AttendanceController::class, 'checkIn']);
+    Route::post('/attendances/check-out', [AttendanceController::class, 'checkOut']);
+
     // Roles & Permissions Management (Super Admin)
     Route::get('/roles', [EmployeeController::class, 'roles']);
     Route::post('/roles', [EmployeeController::class, 'storeRole']);

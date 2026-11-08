@@ -25,6 +25,21 @@ class User extends Authenticatable
         'designation',
         'branch_id',
         'joining_date',
+        // Enterprise HR fields
+        'department_id',
+        'designation_id',
+        'reporting_manager_id',
+        'employment_type',
+        'father_name',
+        'mother_name',
+        'dob',
+        'gender',
+        'present_address',
+        'permanent_address',
+        'emergency_contact_name',
+        'emergency_contact_phone',
+        'emergency_contact_relation',
+        'salary',
     ];
 
     protected $hidden = [
@@ -38,6 +53,8 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'last_login_at' => 'datetime',
             'joining_date' => 'date',
+            'dob' => 'date',
+            'salary' => 'decimal:2',
             'password' => 'hashed',
         ];
     }
@@ -50,6 +67,46 @@ class User extends Authenticatable
     public function branch()
     {
         return $this->belongsTo(Branch::class);
+    }
+
+    public function departmentRelation()
+    {
+        return $this->belongsTo(Department::class, 'department_id');
+    }
+
+    public function designationRelation()
+    {
+        return $this->belongsTo(Designation::class, 'designation_id');
+    }
+
+    public function reportingManager()
+    {
+        return $this->belongsTo(User::class, 'reporting_manager_id');
+    }
+
+    public function subordinates()
+    {
+        return $this->hasMany(User::class, 'reporting_manager_id');
+    }
+
+    public function attendances()
+    {
+        return $this->hasMany(EmployeeAttendance::class);
+    }
+
+    public function transfers()
+    {
+        return $this->hasMany(EmployeeTransfer::class);
+    }
+
+    public function statusHistories()
+    {
+        return $this->hasMany(EmployeeStatusHistory::class);
+    }
+
+    public function documents()
+    {
+        return $this->hasMany(EmployeeDocument::class);
     }
 
     public function sales()

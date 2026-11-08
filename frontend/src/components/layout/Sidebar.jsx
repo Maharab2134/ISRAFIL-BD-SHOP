@@ -35,6 +35,10 @@ import {
   ChevronLeft,
   ChevronRight,
   Keyboard,
+  Building2,
+  Briefcase,
+  Network,
+  Clock,
 } from 'lucide-react';
 import { useShortcuts } from '../../context/ShortcutContext';
 import { useSystemModules } from '../../context/SystemModuleContext';
@@ -69,6 +73,9 @@ export const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
   const canViewSalesPurchases = isSuperAdmin || canViewSales || canViewPurchases;
   const canViewPeople = isSuperAdmin || canViewCustomers || canViewSuppliers;
   const canManageEmployees = isSuperAdmin || hasPermission('employees.view') || hasPermission('employees.manage') || hasPermission('employees.roles_manage');
+  const canViewDepartments = isSuperAdmin || hasPermission('departments.view') || canManageEmployees;
+  const canViewDesignations = isSuperAdmin || hasPermission('designations.view') || canManageEmployees;
+  const canViewAttendance = isSuperAdmin || hasPermission('attendance.view') || canManageEmployees;
   const canManageSettings = isSuperAdmin || hasPermission('settings.view') || hasPermission('settings.manage');
   const canViewAuditLogs = isSuperAdmin || hasPermission('audit.view');
 
@@ -597,10 +604,38 @@ export const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
             {(isCollapsed || expandedSections.admin) && (
               <div className="mt-2 space-y-1">
                 {canManageEmployees && (
-                  <NavLink to="/employees" end className={navLinkClass} title={t('employeeList')}>
-                    <UserCheck className="w-5 h-5 shrink-0" />
-                    {!isCollapsed && <span>{t('employeeList')}</span>}
-                    {renderMaintenanceBadge('employees')}
+                  <>
+                    <NavLink to="/employees" end className={navLinkClass} title={t('employeeList')}>
+                      <UserCheck className="w-5 h-5 shrink-0" />
+                      {!isCollapsed && <span>{t('employeeList')}</span>}
+                      {renderMaintenanceBadge('employees')}
+                    </NavLink>
+
+                    <NavLink to="/organization-chart" className={navLinkClass} title={lang === 'bn' ? 'অর্গানোগ্রাম' : 'Org Chart'}>
+                      <Network className="w-5 h-5 shrink-0" />
+                      {!isCollapsed && <span>{lang === 'bn' ? 'সাংগঠনিক কাঠামো' : 'Org Chart'}</span>}
+                    </NavLink>
+                  </>
+                )}
+
+                {canViewDepartments && (
+                  <NavLink to="/departments" className={navLinkClass} title={lang === 'bn' ? 'বিভাগসমূহ' : 'Departments'}>
+                    <Building2 className="w-5 h-5 shrink-0" />
+                    {!isCollapsed && <span>{lang === 'bn' ? 'বিভাগসমূহ (Dept)' : 'Departments'}</span>}
+                  </NavLink>
+                )}
+
+                {canViewDesignations && (
+                  <NavLink to="/designations" className={navLinkClass} title={lang === 'bn' ? 'পদবীসমূহ' : 'Designations'}>
+                    <Briefcase className="w-5 h-5 shrink-0" />
+                    {!isCollapsed && <span>{lang === 'bn' ? 'পদবীসমূহ' : 'Designations'}</span>}
+                  </NavLink>
+                )}
+
+                {canViewAttendance && (
+                  <NavLink to="/attendance" className={navLinkClass} title={lang === 'bn' ? 'হাজিরা ও শিফট' : 'Attendance'}>
+                    <Clock className="w-5 h-5 shrink-0" />
+                    {!isCollapsed && <span>{lang === 'bn' ? 'হাজিরা ও শিফট' : 'Attendance'}</span>}
                   </NavLink>
                 )}
 

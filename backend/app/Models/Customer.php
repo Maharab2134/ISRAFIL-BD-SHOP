@@ -29,6 +29,33 @@ class Customer extends Model
         'loyalty_points' => 'integer',
     ];
 
+    protected static function booted()
+    {
+        static::deleting(function ($customer) {
+            $rawPhone = preg_replace('/[^0-9]/', '', (string) $customer->phone);
+            $trimmedPhone = ltrim($rawPhone, '0');
+            if (str_starts_with($trimmedPhone, '880')) {
+                $trimmedPhone = substr($trimmedPhone, 3);
+            }
+            $phoneVariants = array_unique(array_filter([
+                $customer->phone,
+                $rawPhone,
+                $trimmedPhone,
+                '0' . $trimmedPhone,
+                '880' . $trimmedPhone,
+                '+880' . $trimmedPhone,
+            ]));
+
+            // Rule 1: Completely delete any linked registration request / approval record
+            CustomerRegistrationRequest::where('customer_id', $customer->id)
+                ->orWhereIn('phone', $phoneVariants)
+                ->delete();
+
+            // Remove payments
+            CustomerPayment::where('customer_id', $customer->id)->delete();
+        });
+    }
+
     public function sales()
     {
         return $this->hasMany(Sale::class);

@@ -60,9 +60,14 @@ import { AccountingDashboard } from './pages/accounting/AccountingDashboard';
 import CashFlow from './pages/accounting/CashFlow';
 import { Reports } from './pages/reports/Reports';
 
-// Employees & System Logs
+// Employees & Enterprise HR
 import EmployeeList from './pages/employees/EmployeeList';
 import AddEmployee from './pages/employees/AddEmployee';
+import EmployeeDetails from './pages/employees/EmployeeDetails';
+import DepartmentList from './pages/employees/DepartmentList';
+import DesignationList from './pages/employees/DesignationList';
+import OrgChart from './pages/employees/OrgChart';
+import AttendanceList from './pages/employees/AttendanceList';
 import ActivityLogs from './pages/employees/ActivityLogs';
 import { RolePermissions } from './pages/employees/RolePermissions';
 import { RolePermissionEdit } from './pages/employees/RolePermissionEdit';
@@ -145,10 +150,17 @@ export default function App() {
         <Route path="cash-flow" element={<CashFlow />} />
         <Route path="reports" element={<Reports />} />
 
-        {/* Administration */}
+        {/* Enterprise Employees & HR */}
         <Route path="employees" element={<EmployeeList />} />
         <Route path="employees/new" element={<AddEmployee />} />
+        <Route path="employees/:id" element={<EmployeeDetails />} />
+        <Route path="employees/:id/edit" element={<AddEmployee />} />
         <Route path="employees/edit/:id" element={<AddEmployee />} />
+        <Route path="departments" element={<DepartmentList />} />
+        <Route path="designations" element={<DesignationList />} />
+        <Route path="organization-chart" element={<OrgChart />} />
+        <Route path="org-chart" element={<OrgChart />} />
+        <Route path="attendance" element={<AttendanceList />} />
         <Route path="roles" element={<RolePermissions />} />
         <Route path="roles/:id/permissions" element={<RolePermissionEdit />} />
         <Route path="employees/roles" element={<RolePermissions />} />

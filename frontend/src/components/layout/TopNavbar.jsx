@@ -174,8 +174,8 @@ export const TopNavbar = ({ isCollapsed }) => {
 
     fetchNotifications();
 
-    // Check every 15 seconds for store events
-    const interval = setInterval(fetchNotifications, 15000);
+    // Check every 6 seconds for live store events
+    const interval = setInterval(fetchNotifications, 6000);
 
     // Cross-tab / cross-window instant notification sync via BroadcastChannel
     let bc = null;
